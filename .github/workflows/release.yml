@@ -1,0 +1,25 @@
+name: Release
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build distributable
+        run: |
+          mkdir -p dist
+          tar czf "dist/m-stdlib-${GITHUB_REF_NAME}-src.tar.gz" \
+              --transform "s,^,m-stdlib-${GITHUB_REF_NAME#v}/," \
+              src tests docs README.md LICENSE CHANGELOG.md
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

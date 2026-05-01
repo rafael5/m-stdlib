@@ -1,0 +1,24 @@
+# YottaDB runtime artifacts
+.ydb/
+.objects/
+*.o
+
+# Test + coverage outputs
+test-results.tap
+coverage.lcov
+coverage.json
+coverage.xml
+htmlcov/
+
+# Editor / OS
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+*~
+
+# Python (m-cli venv if cloned alongside)
+.venv/
+__pycache__/
+*.pyc

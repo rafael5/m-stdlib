@@ -1,0 +1,89 @@
+# m-stdlib CI.
+#
+# Container pinned to yottadb/yottadb-base:latest-master per Phase 0 §6.0
+# verification (2026-04-30). YottaDB r2.07 at pin time; mumps/mupip live
+# at /opt/yottadb/current/ and are reachable after sourcing ydb_env_set.
+#
+# IRIS portability check is omitted in v0.0.1–v0.0.3 per §13.3 of the
+# remediation plan; reintroduce as a fail-soft job at v0.0.4.
+
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  m-stdlib:
+    runs-on: ubuntu-latest
+    container:
+      image: yottadb/yottadb-base:latest-master
+      options: --user root
+    strategy:
+      fail-fast: false
+      matrix:
+        ydb-image: ["latest-master"]   # add tagged release lines as they're vetted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python toolchain
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+              python3.12 python3.12-venv git make ca-certificates
+          python3.12 -m venv /tmp/venv
+          /tmp/venv/bin/pip install --upgrade pip
+
+      - name: Install m-cli (from git until post-Phase-1 publication)
+        run: |
+          git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
+          /tmp/venv/bin/pip install tree-sitter-m
+
+      - name: Initialise YDB workspace
+        run: |
+          . /opt/yottadb/current/ydb_env_set
+          export PATH="/tmp/venv/bin:$PATH"
+          make setup-ydb
+
+      - name: Format check
+        run: |
+          . /opt/yottadb/current/ydb_env_set
+          export PATH="/tmp/venv/bin:$PATH"
+          make fmt-check
+
+      - name: Lint
+        run: |
+          . /opt/yottadb/current/ydb_env_set
+          export PATH="/tmp/venv/bin:$PATH"
+          make lint
+
+      - name: Test (TAP)
+        run: |
+          . /opt/yottadb/current/ydb_env_set
+          export PATH="/tmp/venv/bin:$PATH"
+          m test --format=tap | tee test-results.tap
+
+      - name: Upload TAP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-${{ matrix.ydb-image }}
+          path: test-results.tap
+
+      - name: Coverage (lcov)
+        run: |
+          . /opt/yottadb/current/ydb_env_set
+          export PATH="/tmp/venv/bin:$PATH"
+          m coverage --format=lcov > coverage.lcov || true
+
+      - name: Upload coverage
+        if: matrix.ydb-image == 'latest-master'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.lcov
+          fail_ci_if_error: false   # flip to true once the corpus is non-empty
+
+  # iris-portability-check: reintroduced at v0.0.4 (fail-soft).
+  # See docs/m-stdlib-implementation-plan.md §6.6.

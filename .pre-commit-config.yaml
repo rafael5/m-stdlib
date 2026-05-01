@@ -1,0 +1,22 @@
+# Pre-commit config for m-stdlib.
+#
+# Uses `repo: local` and shells out to a local m-cli venv. Once m-cli
+# publishes its `.pre-commit-hooks.yaml` against a release tag, swap
+# this for `repo: https://github.com/rafael5/m-cli` with a pinned rev.
+
+repos:
+  - repo: local
+    hooks:
+      - id: m-fmt-check
+        name: m fmt --check
+        entry: bash -c 'PATH=$HOME/projects/m-cli/.venv/bin:$PATH m fmt --check "$@"' --
+        language: system
+        files: \.m$
+        pass_filenames: true
+
+      - id: m-lint
+        name: m lint --error-on=error
+        entry: bash -c 'PATH=$HOME/projects/m-cli/.venv/bin:$PATH m lint --error-on=error "$@"' --
+        language: system
+        files: \.m$
+        pass_filenames: true
