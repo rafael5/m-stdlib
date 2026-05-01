@@ -13,7 +13,61 @@ The live source of truth is
       STDUUID v4/v7. 166/166 assertions green; 22/22 labels covered
       (100%); 0 lint findings; per-module docs written.
 
+
+## RESUME HERE:  session interrupted at this point:
+
+Update Todos
+
+Write tests/STDB64TST.m with RFC-4648 §10 vectors + URL-safe + round-trip + valid()
+
+Confirm TDD red against missing STDB64
+
+Implement src/STDB64.m (encode/decode/urlencode/urldecode/valid)
+
+Confirm STDB64TST green
+
+Write tests/STDHEXTST.m (round-trip, case-insensitive decode, valid)
+
+Implement src/STDHEX.m (encode/encodeu/decode/valid)
+
+Run full per-module gate (fmt + lint + test + coverage)
+
+Write docs/modules/stdb64.md + stdhex.md
+
+Update CHANGELOG, plan, memory, TODO
+
+Commit, tag v0.0.2, push
+
+
+
+
+
 ## Next: v0.0.2 — STDB64 + STDHEX
+
+Update Todos
+
+Write tests/STDB64TST.m with RFC-4648 §10 vectors + URL-safe + round-trip + valid()
+
+Confirm TDD red against missing STDB64
+
+Implement src/STDB64.m (encode/decode/urlencode/urldecode/valid)
+
+Confirm STDB64TST green
+
+Write tests/STDHEXTST.m (round-trip, case-insensitive decode, valid)
+
+Implement src/STDHEX.m (encode/encodeu/decode/valid)
+
+Run full per-module gate (fmt + lint + test + coverage)
+
+Write docs/modules/stdb64.md + stdhex.md
+
+Update CHANGELOG, plan, memory, TODO
+
+Commit, tag v0.0.2, push
+
+
+
 
 Per [implementation plan §8.3–§8.4](docs/m-stdlib-implementation-plan.md#83-stdb64--rfc-4648-base64).
 
