@@ -28,9 +28,15 @@ export ydb_dist="$YDB_DIST"
 export ydb_gbldir="$GLD"
 unset ydb_routines
 
+# KEY_SIZE=1019 + BLOCK_SIZE=4096: required so YDB's `view "TRACE"` can
+# capture deeply-nested FOR_LOOP/*CHILDREN subscripts without raising
+# %YDB-E-GVSUBOFLOW. Default KEY_SIZE=64 trips on test labels longer
+# than ~30 chars combined with FOR-loop call depth. See
+# TOOLCHAIN-FINDINGS.md for the full investigation.
 "$YDB_DIST/mumps" -run GDE <<EOF
 change -segment DEFAULT -file_name="$DAT"
-change -region DEFAULT -dynamic_segment=DEFAULT
+change -region DEFAULT -dynamic_segment=DEFAULT -KEY_SIZE=1019
+change -segment DEFAULT -BLOCK_SIZE=4096
 exit
 EOF
 

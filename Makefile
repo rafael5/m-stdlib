@@ -57,8 +57,8 @@ check: fmt-check lint test
 	@echo "OK"
 
 ci: check
-	@$(YDB_ENV) && $(M) test --format=tap > test-results.tap
-	@$(YDB_ENV) && $(M) coverage --format=json > coverage.json
+	@$(YDB_ENV) && $(M) test --format=tap tests/ > test-results.tap
+	@$(YDB_ENV) && $(M) coverage --routines src --tests tests --format=json > coverage.json
 
 clean:
 	rm -rf .ydb .objects coverage.lcov test-results.tap coverage.json

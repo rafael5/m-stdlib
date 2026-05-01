@@ -19,15 +19,13 @@ holds the background and rationale; this document holds the work.
 | Phase | Status | Tag |
 |---|---|---|
 | Phase 0 — bootstrap | **done (2026-04-30)** | — |
-| Phase 1 — pure-M quick wins | not started | → `v0.1.0` |
+| Phase 1 — pure-M quick wins | **in progress** — `v0.0.1` shipped 2026-04-30 | → `v0.1.0` |
 | Phase 2 — pure-M heavy lifting | not started | → `v0.2.0` |
 | Phase 3 — host-call integrations | not started | → `v0.3.0` |
 
-**Next concrete unit of work:** §8 v0.0.1 — replace probe-stub STDASSERT
-with the full assertion library (per §8.1) plus STDUUID v4/v7 (§8.2),
-both with full `*TST.m` suites, `docs/modules/*.md`, and a CHANGELOG
-entry. TDD-first per §2.1 — write the TST suite and confirm it fails
-*before* implementing the routine.
+**Next concrete unit of work:** §8 v0.0.2 — STDB64 + STDHEX
+(RFC-4648 base64 + hex). TDD-first per §2.1; per-module gate (§9)
+must be green before merge.
 
 ---
 
@@ -486,10 +484,10 @@ Eight modules. Each merges as its own tag with the §9 acceptance gate
 green. Each PR carries: source + `*TST.m` + `docs/modules/<name>.md`
 + `CHANGELOG.md` entry. None of those are optional.
 
-| Tag | Module(s) | Routine(s) | LoC est. | Tests est. |
-|---|---|---|---:|---:|
-| `v0.0.1` | Assertion library + UUID v4/v7 | `STDASSERT.m`, `STDUUID.m` | ~270 | ~70 |
-| `v0.0.2` | Base64 + Hex (RFC-4648) | `STDB64.m`, `STDHEX.m` | ~400 | ~80 |
+| Tag | Module(s) | Routine(s) | LoC est. | Tests est. | Status |
+|---|---|---|---:|---:|---|
+| `v0.0.1` | Assertion library + UUID v4/v7 | `STDASSERT.m`, `STDUUID.m` | ~270 | ~70 | ✅ shipped 2026-04-30 — 166/166 assertions, 22/22 coverage |
+| `v0.0.2` | Base64 + Hex (RFC-4648) | `STDB64.m`, `STDHEX.m` | ~400 | ~80 | next |
 | `v0.0.3` | Printf-style formatter | `STDFMT.m` | ~300 | ~60 |
 | `v0.0.4` | Structured logger (text-only) + IRIS CI re-add | `STDLOG.m` | ~200 | ~40 |
 | `v0.0.5` | ISO-8601 datetime | `STDDATE.m` | ~400 | ~80 |
