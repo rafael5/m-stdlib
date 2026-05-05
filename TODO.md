@@ -91,6 +91,101 @@ Per [implementation plan §8.3–§8.4](docs/m-stdlib-implementation-plan.md#83-
 Each PR: source + `*TST.m` + `docs/modules/*.md` + CHANGELOG entry.
 None of those are optional.
 
+## In flight (parallel): L12 / v0.2.0 STDREGEX
+
+Per [parallel-tracks.md §3.3](docs/parallel-tracks.md#33-m-stdlib-phase-2--pure-m-heavy-lifting)
+this is a Phase 2 track with zero hard blockers; it can land in
+parallel with Phase 1 work. Per
+[implementation plan §11](docs/m-stdlib-implementation-plan.md#11-phase-2--pure-m-heavy-lifting):
+Thompson-NFA on YDB; `$MATCH` / `$LOCATE` wrap on IRIS; ~2000 LoC.
+Subset (no back-refs, no lookaround, no Unicode property classes,
+no inline modifiers, no possessive quantifiers — those rejected with
+`U-STDREGEX-UNSUPPORTED`).
+
+**Current TDD signal:** stub committed; 50 tests / 90 assertions
+discovered; **28/90 pass** against safe-default stub, **62 fail**
+as concrete implementation targets.
+
+- [x] **TDD red staked:** `tests/STDREGEXTST.m` — 50 tests cover
+      lifecycle (compile/free/valid), literal matching, `.`, anchors
+      `^`/`$`, quantifiers `* + ? {n} {n,} {n,m}` greedy, character
+      classes `[abc]` / `[^abc]` / `[a-z]` / `[abc-]`, predefined
+      classes `\d \D \w \W \s \S`, escapes `\\ \. \^ \$ \( \) \[
+      \] \{ \} \| \* \+ \? \n \t \r`, alternation `|`, grouping
+      `(...)` / `(?:...)`, capture groups (incl. nested,
+      outer-first-by-`(`), public-API `findall` / `replace`
+      (incl. `\1` in repl) / `split`, error paths
+      (`U-STDREGEX-BAD-PATTERN`, `U-STDREGEX-UNSUPPORTED`,
+      `U-STDREGEX-NO-MATCH`).
+- [x] **API surface frozen:** `src/STDREGEX.m` skeleton with
+      `compile / free / valid / match / search / find / findall /
+      groups / replace / split` — all bodies are safe-default stubs
+      so the harness reports per-test counts during implementation.
+- [ ] **Pass A — Lexer + parser → AST.** Tokenise the v0.2.0
+      grammar; build a small AST (`literal / dot / anchor / klass /
+      class-pred / star / plus / quest / range-quant / concat /
+      alt / group(cap?,n)`). Reject unsupported features
+      (`(?=` / `(?!` / `(?<=` / `(?<!` / `\1..\9` in pattern /
+      `\p{` / `(?[imsx])` / `*+`/`++`/`?+`) with
+      `U-STDREGEX-UNSUPPORTED`. Reject malformed input
+      (unbalanced parens, unterminated `[`, trailing `\`,
+      stray `{n,m}` over an empty atom, `{m,n}` with `m>n`,
+      reverse range `[z-a]`) with `U-STDREGEX-BAD-PATTERN`.
+      Should turn `tValid*` and `tCompileRaises*` green.
+- [ ] **Pass B — AST → Thompson NFA.** Standard McNaughton-Yamada
+      construction; states keyed under `^STDLIB($job,"stdregex",h,
+      "nfa",state,...)`. Greedy quantifiers via priority on the
+      ε-edges. No DFA cache at v0.2.0.
+- [ ] **Pass C — NFA simulation: `match` / `search` / `find`.**
+      Simulate on the input string M-character by M-character.
+      Maintain a dedup'd active-state set per step. Anchors
+      handled at simulation entry/exit.
+      Should turn `tMatch*`, `tSearch*`, `tFind*`, `tDot*`,
+      `tCaret*`, `tDollar*`, `tStar*`, `tPlus*`, `tQuest*`,
+      `tBrace*`, `tCharClass*`, `tBackslash*`, `tEscaped*`,
+      `tAlternation*` green.
+- [ ] **Pass D — capture groups: `groups`.** Extend the
+      simulation with submatch tracking (per-state capture-start /
+      capture-end snapshots; greedy = first match wins). Honour
+      `(?:...)` skipping the capture-group counter. Set
+      `U-STDREGEX-NO-MATCH` on no match.
+      Should turn `tCapturingGroupRecordsText`,
+      `tNonCapturingGroupSkipsIndex`, `tNestedCaptureGroups`,
+      `tGroupZeroIsFullMatch`, `tStarIsGreedy`,
+      `tGroupsRaisesOnNoMatch` green.
+- [ ] **Pass E — `findall` / `replace` / `split`.** Build on
+      `find`. Non-overlapping (advance past the match end). For
+      `replace`, expand `\1..\9` in the repl string against the
+      groups of each match; `\\` is a literal backslash;
+      otherwise unrecognised `\X` is a literal `\X`.
+      Should turn `tFindallReturnsEveryNonOverlappingMatch`,
+      `tReplaceReplacesEveryMatch`, `tReplaceWithBackref`,
+      `tSplitProducesSegments` green.
+- [ ] **IRIS dispatch (fail-soft).** `compile` keeps the source
+      pattern alongside the NFA; `match` / `search` / `find` on
+      IRIS dispatch to `$MATCH` / `$LOCATE` translations of the
+      v0.2.0 subset. Goal: parity on the simple-pattern subset;
+      capture groups on IRIS may use the `%Library.RegEx`
+      class. Per §6 conventions IRIS portability remains
+      fail-soft until a full v0.2.0 IRIS pass.
+- [ ] Per-module gate (plan §9): `make check` green; `make coverage
+      --min-percent=85` green for `STDREGEX` only.
+- [ ] `docs/modules/stdregex.md` — synopsis, public API table,
+      supported subset, error codes, examples (incl. JWT-issuer
+      parsing as a STDHTTP setup). Cross-ref to STDREGEX_PCRE
+      Phase-3 add-on.
+- [ ] CHANGELOG `## [Unreleased]` fragment for L12.
+- [ ] §1 status table — bump Phase 2 to "in progress".
+- [ ] Real-project validation (§10.1) on m-cli `make
+      vista-canonical` smoke + LSP smoke + coverage smoke. No
+      adjacent-project consumer at v0.2.0; STDHTTP becomes the
+      consumer at Phase 3.
+- [ ] Tag scheduling: L12 ships under the joint `v0.2.0` release
+      tag together with L11 (STDJSON), L13 (STDCOLL), L14
+      (STDURL) and the STDLOG-JSON / STDSEED-JSON add-ons —
+      [parallel-tracks.md §5](docs/parallel-tracks.md#5-synchronisation-points)
+      sync point.
+
 ## Then: Phase 1b — TDD primitives (M1, joint with m-cli)
 
 Per [tdd-orchestration-plan §6](docs/tdd-orchestration-plan.md#6-phase-1b--tdd-primitives-m1).
