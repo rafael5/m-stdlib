@@ -1,40 +1,32 @@
 # m-stdlib Makefile.
 #
-# Local-dev path uses the system YottaDB (/usr/local/lib/yottadb/r*)
-# and the m-cli venv at ~/projects/m-cli/.venv. CI overrides PATH to
-# point at the in-container install.
+# Engine: the shared vista-meta YottaDB container (no host YDB).
+# `make test` and `make coverage` go through `m test` / `m coverage`
+# which talk to vista-meta over SSH via ~/data/vista-meta/conn.env.
 
 SHELL := /bin/bash
 
-# YottaDB discovery — newest installed release line wins (local dev).
-# CI sets ydb_dist via the canonical /opt/yottadb/current/ydb_env_set.
-YDB_DIST ?= $(shell ls -d /usr/local/lib/yottadb/r* 2>/dev/null | sort -V | tail -1)
-
-# m-cli venv — local dev default; CI sets M to /tmp/venv/bin/m.
+# m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-# YottaDB env — bare exports (don't source ydb_env_set: it refuses to start
-# if a previously-sourced gtmdir/gtm_dist disagrees with our project dirs).
-# Mirrors the m-tools/scripts/ydb-env.sh pattern.
-YDB_ENV := unset gtmdir gtm_dist gtmgbldir gtmroutines ; \
-           export ydb_dist="$(YDB_DIST)" \
-                  ydb_dir="$(CURDIR)/.ydb" \
-                  ydb_gbldir="$(CURDIR)/.ydb/m-stdlib.gld" \
-                  ydb_routines="$(CURDIR)/src $(CURDIR)/tests $(CURDIR)/.objects $(YDB_DIST)" \
-                  PATH="$(YDB_DIST):$$PATH"
+.PHONY: all fmt fmt-check lint test coverage check ci clean print-env seed unseed
 
-.PHONY: all setup-ydb fmt fmt-check lint test coverage check ci clean print-env
+# vista-meta connection contract — published by `vista-meta: make run`.
+VISTA_CONN := $(HOME)/data/vista-meta/conn.env
+ifeq ($(wildcard $(VISTA_CONN)),)
+$(error vista-meta connection not configured: $(VISTA_CONN) missing — run: cd ~/projects/vista-meta && make run)
+endif
+include $(VISTA_CONN)
+export VISTA_HOST VISTA_SSH_PORT VISTA_SSH_USER
 
 all: check
 
 print-env:
-	@echo "YDB_DIST = $(YDB_DIST)"
-	@echo "M        = $(M)"
+	@echo "M           = $(M)"
+	@echo "VISTA_HOST  = $(VISTA_HOST)"
+	@echo "VISTA_PORT  = $(VISTA_SSH_PORT)"
 
-setup-ydb:
-	@if [ -z "$(YDB_DIST)" ]; then echo "ERROR: YottaDB not found under /usr/local/lib/yottadb/" >&2; exit 1; fi
-	@mkdir -p .objects
-	@bash tools/init-db.sh
+# ── Source-only ─────────────────────────────────────────────────────
 
 fmt:
 	$(M) fmt src/ tests/
@@ -45,11 +37,19 @@ fmt-check:
 lint:
 	$(M) lint --error-on=error src/ tests/
 
-test: setup-ydb
-	@$(YDB_ENV) && $(M) test tests/
+# ── Engine-bound (m test / m coverage seed vista-meta automatically) ──
 
-coverage: setup-ydb
-	@$(YDB_ENV) && $(M) coverage --min-percent=85 --format=lcov > coverage.lcov
+seed:
+	@./scripts/seed-vista.sh
+
+unseed:
+	@./scripts/unseed-vista.sh
+
+test:
+	$(M) test tests/
+
+coverage:
+	$(M) coverage --min-percent=85 --format=lcov > coverage.lcov
 
 # `check` is the fast dev loop (fmt-check + lint + test). Coverage is gated
 # per-module starting v0.0.1 — run it as `make coverage` or via `make ci`.
@@ -57,8 +57,8 @@ check: fmt-check lint test
 	@echo "OK"
 
 ci: check
-	@$(YDB_ENV) && $(M) test --format=tap tests/ > test-results.tap
-	@$(YDB_ENV) && $(M) coverage --routines src --tests tests --format=json > coverage.json
+	$(M) test --format=tap tests/ > test-results.tap
+	$(M) coverage --routines src --tests tests --format=json > coverage.json
 
 clean:
-	rm -rf .ydb .objects coverage.lcov test-results.tap coverage.json
+	rm -rf coverage.lcov test-results.tap coverage.json

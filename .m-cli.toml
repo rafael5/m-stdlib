@@ -1,19 +1,12 @@
-# m-cli configuration for m-stdlib.
-# See https://github.com/rafael5/m-cli for the full schema.
-
-[fmt]
-rules = "canonical"
+# m-cli configuration — modern M project.
+# See ~/claude/templates/m-project/.m-cli.toml for documentation.
 
 [lint]
-rules = "default"
-disable = []
+rules = "pythonic"
 target-engine = "any"
 
-[lint.severity]
-# STDFMT and STDJSON take parametrised mixed-case lvns by design
-# (named substitutions, JSON keys); downgrade the family-wide
-# warning to INFO so it doesn't drown the signal.
-"M-XINDX-057" = "INFO"
+[fmt]
+rules = "pythonic-lower"
 
 [lsp]
 "hover.format" = "markdown"
