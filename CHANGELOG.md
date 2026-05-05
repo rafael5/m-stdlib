@@ -8,6 +8,24 @@ Pre-1.0 minor versions may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **`STDB64`** — RFC-4648 Base64 encoding (standard alphabet `+ /`,
+  with `=` padding) and URL-safe variant (`- _`, no padding —
+  RFC-4648 §5, JWT convention). Five public extrinsics: `encode`,
+  `decode`, `urlencode`, `urldecode`, `valid`. RFC-4648 §10 vectors
+  vendored to `tests/conformance/b64/` (standard + URL-safe). 55/55
+  assertions green; 100% label coverage; 0 lint errors.
+- **`STDHEX`** — RFC-4648 §8 hex encoding. Four public extrinsics:
+  `encode` (lowercase default), `encodeu` (uppercase), `decode`
+  (case-insensitive), `valid` (even length + hex digits, accepts any
+  case). 49/49 assertions green; 100% label coverage; 0 lint errors.
+- **Per-module docs**: `docs/modules/stdb64.md`,
+  `docs/modules/stdhex.md`.
+- **Conformance corpus skeleton**: `tests/conformance/b64/` populated
+  with the §10 vectors; `tests/conformance/{csv,json,uuid}/`
+  directories created for future modules.
+
 ## [v0.0.1] — 2026-04-30
 
 ### Added
