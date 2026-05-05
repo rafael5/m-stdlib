@@ -77,9 +77,9 @@ edge above). Each is roughly 1–2 weeks for one contributor.
 | **L1** | v0.0.2 | STDB64 | everything | RFC-4648 vectors at `tests/conformance/b64/`. **In progress.** |
 | **L2** | v0.0.2 | STDHEX | everything | Bundled with L1 in v0.0.2 by convention; technically independent. |
 | **L3** | v0.0.3 | STDFMT | everything | Printf subset of `str.format` |
-| **L4** | v0.0.4 | STDLOG (text-only, inline ISO ts) | everything (soft dep on STDDATE; ships with inline helper) | IRIS portability job re-add is a sub-track — see §3.5 |
+| **L4** | v0.0.4 | STDLOG (text-only, inline ISO ts) | everything (soft dep on STDDATE; ships with inline helper) | **In progress** — module, tests, and per-module doc landed (45/45 assertions; 18/18 labels at 100%; 0 lint errors). IRIS portability job re-add (track A5) outstanding. |
 | **L5** | v0.0.5 | STDDATE | everything | ISO-8601 + arithmetic |
-| **L6** | v0.0.6 | STDCSV | everything | RFC-4180 + conformance corpus at `tests/conformance/csv/` |
+| **L6** | v0.0.6 | STDCSV | everything | RFC-4180 + conformance corpus at `tests/conformance/csv/`. **Tests green (59/59); 100% label coverage; 0 lint errors. Pending merge.** |
 | **L7** | v0.0.7 | STDARGS | everything | Uses `$ZCMDLINE` |
 | **L4b** | v0.0.5+ | STDLOG bump to `$$NOW^STDDATE()` | merges after L4 + L5 | Trivial follow-on |
 
@@ -110,7 +110,7 @@ All four tracks mutually independent.
 |---|---|---|---|---|
 | **L11** | v0.2.0 | STDJSON | everything | RFC 8259; vendored JSONTestSuite |
 | **L12** | v0.2.0 | STDREGEX | everything | Thompson-NFA YDB; `$MATCH`/`$LOCATE` IRIS |
-| **L13** | v0.2.0 | STDCOLL | everything | Set/Map/Stack/Queue/Deque/Heap/OrderedDict |
+| **L13** | v0.2.0 | STDCOLL | everything | Set/Map/Stack/Queue/Deque/Heap/OrderedDict. **Tests green (116/116); 100% label coverage (51/51); 0 lint errors.** Pending merge. |
 | **L14** | v0.2.0 | STDURL | everything | RFC 3986; STDHTTP consumer in Phase 3 |
 
 **Maximum parallelism for Phase 2: 4 tracks.**
@@ -126,8 +126,8 @@ Three categories:
 | **C1** | TOOLCHAIN P1 fix: drop `^TESTRUN` hardcode in single-test runner | everything | Prereq for W/X/Y but not for itself |
 | **C2** | `m test --format=junit` | everything | Pure Python; ~1–2 days |
 | **C3** | `m test --coverage-min N` / `m coverage --min-percent N` | everything | Pure Python; ~1 day |
-| **C4** | `m coverage --branch` | everything | Tree-sitter-m branch nodes already present; ~1–2 weeks |
-| **C5** | `m test --changed` | everything | Uses existing `WorkspaceIndex`; ~3–4 days |
+| **C4** | `m coverage --branch` | everything | **MVP shipped 2026-05-05** — branch-reach detection (line-level), text/JSON/LCOV output. True/false outcome split deferred (needs ZBREAK-style per-command instrumentation). |
+| **C5** | `m test --changed` | everything | **Shipped 2026-05-05** — git-status / git-diff backed; reuses `m watch` affinity. `--changed-base REV` for diffing against a revision. |
 
 **Hard-blocked on a specific stdlib module (start when that module ships):**
 
