@@ -111,19 +111,25 @@ valid(pattern)  ; True iff pattern parses cleanly under the v0.2.0 subset.
 match(h,s)      ; True iff the entire string s matches the pattern.
         ; doc: Anchored on both ends — equivalent to "^pattern$" semantics.
         ; doc: Example: write $$match^STDREGEX(h,"42")  ; 1 if h compiled "\d+"
-        ; Stub: NFA simulation lands in Pass C.
-        quit 0
+        new str,len,bestEnd
+        set str=$get(s),len=$length(str)
+        set bestEnd=$$attempt(h,str,1,len)
+        quit (bestEnd=(len+1))
         ;
 search(h,s)     ; True iff any substring of s matches the pattern.
         ; doc: Unanchored unless the pattern itself uses ^ or $.
         ; doc: Example: write $$search^STDREGEX(h,"the 42 cats")  ; 1 for "\d+"
-        ; Stub: NFA simulation lands in Pass C.
-        quit 0
+        new str,len,p,found
+        set str=$get(s),len=$length(str),found=0
+        for p=1:1:len+1 set found=$$attempt(h,str,p,len)>0 quit:found
+        quit found
         ;
 find(h,s)       ; 1-indexed start of the first match in s; 0 if no match.
         ; doc: Example: write $$find^STDREGEX(h,"the 42 cats")  ; 5 for "\d+"
-        ; Stub: NFA simulation lands in Pass C.
-        quit 0
+        new str,len,p,foundAt
+        set str=$get(s),len=$length(str),foundAt=0
+        for p=1:1:len+1 if $$attempt(h,str,p,len)>0 set foundAt=p quit
+        quit foundAt
         ;
 findall(h,s,out)        ; Populate out(1..N) with every non-overlapping match text.
         ; doc: out is by-reference. After return, $order(out("")) walks the
@@ -736,4 +742,115 @@ bldGroup(h,id,frag)     ; (A) capturing or (?:A) non-capturing.
         set frag("entry")=e,frag("exit")=x
         if gnum>$get(^STDLIB($job,"stdregex",h,"nfa","groups")) set ^STDLIB($job,"stdregex",h,"nfa","groups")=gnum
         quit
+        ;
+        ; ---------- internal: NFA simulation (Pass C) ----------
+        ;
+        ; Pike-style breadth-first NFA walk. Each step:
+        ;   1. From the active state set, follow consuming edges that match
+        ;      the current input char; collect the targets.
+        ;   2. Compute the ε-closure of those targets under the new
+        ;      position (eps + capStart/capEnd always pass; anchors gate
+        ;      on isStart / isEnd).
+        ;   3. Track bestEnd = the rightmost position at which the accept
+        ;      state was in the active set during the walk; that's what
+        ;      attempt() returns.
+        ;
+        ; Capture-tracking and groups() ride on top of this in Pass D.
+        ;
+attempt(h,str,startPos,len)     ; Run NFA from startPos; return rightmost end pos.
+        ; doc: Internal — returns 0 if no match starts here, otherwise the
+        ; doc: 1-indexed position one past the last consumed char where the
+        ; doc: accept state was reached.
+        new entry,exit,active,next,closed,bestEnd,p,c,isStart,isEnd,st
+        set entry=^STDLIB($job,"stdregex",h,"nfa","entry")
+        set exit=^STDLIB($job,"stdregex",h,"nfa","exit")
+        set isStart=(startPos=1)
+        set isEnd=(startPos>len)
+        kill active
+        do epsClose(h,entry,isStart,isEnd,.active)
+        set bestEnd=$select($data(active(exit)):startPos,1:0)
+        for p=startPos:1:len do  quit:'$data(active)
+        . set c=$extract(str,p)
+        . kill next
+        . do step(h,c,.active,.next)
+        . if '$data(next) kill active quit
+        . set isStart=0
+        . set isEnd=((p+1)>len)
+        . kill closed
+        . set st=""
+        . for  set st=$order(next(st)) quit:st=""  do epsClose(h,st,isStart,isEnd,.closed)
+        . kill active merge active=closed
+        . if $data(active(exit)) set bestEnd=p+1
+        quit bestEnd
+        ;
+step(h,c,active,next)   ; Consume char c from each active state; populate next.
+        ; doc: Internal — only consuming edges (literal/dot/pred/klass)
+        ; doc: are followed here; zero-width edges are handled by epsClose.
+        new st,n,i,kind,target
+        set st=""
+        for  set st=$order(active(st)) quit:st=""  do
+        . set n=+$get(^STDLIB($job,"stdregex",h,"nfa","s",st,"n"),0)
+        . for i=1:1:n do
+        . . set kind=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"kind")
+        . . set target=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"target")
+        . . if kind="literal" if c=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"char") set next(target)=""
+        . . if kind="dot" if c'=$char(10) set next(target)=""
+        . . if kind="pred" if $$predMatch(^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"sym"),c) set next(target)=""
+        . . if kind="klass" if $$klassMatch(h,^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"klassRef"),c) set next(target)=""
+        quit
+        ;
+epsClose(h,st,isStart,isEnd,close)      ; Add st + ε-reachable states to close.
+        ; doc: Internal — iterative BFS through eps / anchor / capStart /
+        ; doc: capEnd edges. Anchor edges only pass when isStart / isEnd
+        ; doc: matches the symbol. close is by-reference and may already
+        ; doc: contain other states; epsClose unions in.
+        new pending,cur,n,i,kind,target,sym
+        if $data(close(st)) quit
+        set pending(st)=""
+        for  set cur=$order(pending("")) quit:cur=""  do
+        . kill pending(cur)
+        . if $data(close(cur)) quit
+        . set close(cur)=""
+        . set n=+$get(^STDLIB($job,"stdregex",h,"nfa","s",cur,"n"),0)
+        . for i=1:1:n do
+        . . set kind=^STDLIB($job,"stdregex",h,"nfa","s",cur,"e",i,"kind")
+        . . set target=^STDLIB($job,"stdregex",h,"nfa","s",cur,"e",i,"target")
+        . . if (kind="eps")!(kind="capStart")!(kind="capEnd") set:'$data(close(target)) pending(target)=""
+        . . if kind="anchor" do
+        . . . set sym=^STDLIB($job,"stdregex",h,"nfa","s",cur,"e",i,"sym")
+        . . . if (sym="^")&isStart set:'$data(close(target)) pending(target)=""
+        . . . if (sym="$")&isEnd set:'$data(close(target)) pending(target)=""
+        quit
+        ;
+predMatch(sym,c)        ; True iff char c satisfies predicate sym.
+        ; doc: Internal — \d/\D digit, \w/\W word (alnum + '_'),
+        ; doc: \s/\S whitespace (space, tab, LF, CR, FF, VT).
+        new code
+        if c="" quit 0
+        set code=$ascii(c)
+        if sym="d" quit (code>=48)&(code<=57)
+        if sym="D" quit '((code>=48)&(code<=57))
+        if sym="w" quit ((code>=48)&(code<=57))!((code>=65)&(code<=90))!((code>=97)&(code<=122))!(code=95)
+        if sym="W" quit '(((code>=48)&(code<=57))!((code>=65)&(code<=90))!((code>=97)&(code<=122))!(code=95))
+        if sym="s" quit (code=32)!(code=9)!(code=10)!(code=13)!(code=12)!(code=11)
+        if sym="S" quit '((code=32)!(code=9)!(code=10)!(code=13)!(code=12)!(code=11))
+        quit 0
+        ;
+klassMatch(h,id,c)      ; True iff char c matches the user character class at AST id.
+        ; doc: Internal — items live under ^...,h,"ast",id,"item",N. A
+        ; doc: char hits if any item matches; negated classes invert.
+        new neg,n,kind,result,clo,chi
+        if c="" quit 0
+        set neg=+$get(^STDLIB($job,"stdregex",h,"ast",id,"negated"),0)
+        set n=0,result=0
+        for  set n=n+1 quit:'$data(^STDLIB($job,"stdregex",h,"ast",id,"item",n,"kind"))  do  quit:result
+        . set kind=^STDLIB($job,"stdregex",h,"ast",id,"item",n,"kind")
+        . if kind="char" if c=^STDLIB($job,"stdregex",h,"ast",id,"item",n,"char") set result=1
+        . if kind="range" do
+        . . set clo=$ascii(^STDLIB($job,"stdregex",h,"ast",id,"item",n,"lo"))
+        . . set chi=$ascii(^STDLIB($job,"stdregex",h,"ast",id,"item",n,"hi"))
+        . . if ($ascii(c)>=clo)&($ascii(c)<=chi) set result=1
+        . if kind="pred" if $$predMatch(^STDLIB($job,"stdregex",h,"ast",id,"item",n,"sym"),c) set result=1
+        if neg quit 'result
+        quit result
         ;
