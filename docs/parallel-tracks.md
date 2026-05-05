@@ -74,18 +74,17 @@ edge above). Each is roughly 1–2 weeks for one contributor.
 
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
-| **L1** | v0.0.2 | STDB64 | everything | RFC-4648 vectors at `tests/conformance/b64/`. **In progress.** |
-| **L2** | v0.0.2 | STDHEX | everything | Bundled with L1 in v0.0.2 by convention; technically independent. |
-| **L3** | v0.0.3 | STDFMT | everything | Printf subset of `str.format` |
-| **L4** | v0.0.4 | STDLOG (text-only, inline ISO ts) | everything (soft dep on STDDATE; ships with inline helper) | **In progress** — module, tests, and per-module doc landed (45/45 assertions; 18/18 labels at 100%; 0 lint errors). IRIS portability job re-add (track A5) outstanding. |
-| **L5** | v0.0.5 | STDDATE | everything | ISO-8601 + arithmetic |
-| **L6** | v0.0.6 | STDCSV | everything | RFC-4180 + conformance corpus at `tests/conformance/csv/`. **Tests green (59/59); 100% label coverage; 0 lint errors. Pending merge.** |
-| **L7** | v0.0.7 | STDARGS | everything | Uses `$ZCMDLINE` |
-| **L4b** | v0.0.5+ | STDLOG bump to `$$NOW^STDDATE()` | merges after L4 + L5 | Trivial follow-on |
+| **L1** | v0.0.2 | STDB64 | everything | ✅ **Shipped** in `v0.0.2` (commit `83e11b2`). 55/55 assertions; 100% label coverage; 0 lint. RFC-4648 §10 vectors at `tests/conformance/b64/`. |
+| **L2** | v0.0.2 | STDHEX | everything | ✅ **Shipped** in `v0.0.2` (commit `83e11b2`). 49/49 assertions; 100% label coverage; 0 lint. Bundled with L1 by release convention. |
+| **L3** | v0.0.3 | STDFMT | everything | ✅ **Shipped** in `v0.0.3` (commit `8e6b689`). Printf subset of `str.format`. 56/56 assertions; 100% label coverage; 0 lint. Error-path tests deferred (TOOLCHAIN-FINDINGS P1). |
+| **L4** | v0.0.4 | STDLOG | everything | ✅ **Shipped** in `v0.0.4` (commit `abfa9a2`). 45/45 assertions; 15/15 labels (100%); 0 lint. L4b folded in — STDDATE landed first so STDLOG ships directly with `$$now^STDDATE()`; the inline-helper interim was never cut. |
+| **L5** | v0.0.5 | STDDATE | everything | ✅ **Shipped** in `v0.0.5` (commit `1ec3b00`). ISO-8601 + duration arithmetic. 60/60 assertions; 19/20 labels (95.0%); 0 lint. |
+| **L6** | v0.0.6 | STDCSV | everything | ✅ **Shipped** in `v0.0.6` (commit `0f7de40`). RFC-4180 parser/writer; corpus at `tests/conformance/csv/`. 59/59 assertions; 100% label coverage; 0 lint. |
+| **L7** | v0.0.7 | STDARGS | everything | ✅ **Shipped** in `v0.0.7` (commit `c98d5a1`). argparse-style parser over `$ZCMDLINE`. |
+| **L4b** | — | STDLOG bump to `$$now^STDDATE()` | — | ✅ **Folded into L4 / `v0.0.4`** rather than shipping as a follow-on tag. |
 
-**Maximum parallelism for Phase 1: 7 tracks** (L1, L2, L3, L4, L5, L6, L7
-all running simultaneously). Today's v0.0.2 sequence is a release
-convention — nothing technical prevents L3–L7 from starting now.
+**Phase 1 closed.** All seven tracks merged and rolled up under
+`v0.1.0` (commit `3cf84f2`, 2026-05-05).
 
 ### 3.2 m-stdlib Phase 1b — TDD primitives (M1)
 
@@ -94,13 +93,14 @@ Could in principle start before Phase 1 completes.
 
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
-| **L8** | v0.1.1 | STDFIX | everything | TSTART/TROLLBACK isolation |
-| **L9** | v0.1.2 | STDMOCK | everything | Opt-in `INVOKE^STDMOCK` |
-| **L10** | v0.1.3 | STDSEED | works with STDFIX but does not require it | TSV manifest → `FILE^DIE`. JSON manifest add-on (LOADJSON) waits for STDJSON in M4. |
+| **L8** | v0.1.1 | STDFIX | everything | ✅ **Shipped** in `v0.1.1` (commit `3f8aa51`). TSTART/TROLLBACK isolation via `with` / `invoke`. 28/28 assertions; 5/5 labels (100%); 0 lint. Standalone setup/teardown labels intentionally not exposed (YDB TPQUIT enforces per-frame transaction balance). |
+| **L9** | v0.1.2 | STDMOCK | everything | ✅ **Shipped** in `v0.1.2` (commit `c582dc2`). Opt-in `invoke^STDMOCK` interception. 26/26 assertions; 7/7 labels (100%); 0 lint. |
+| **L10** | v0.1.3 | STDSEED | works with STDFIX but does not require it | ✅ **Shipped** in `v0.1.3` (commit `bdd4ce9`). TSV manifest → pluggable filer (default `fileViaDie^STDSEED` calls `FILE^DIE`). 25/25 assertions; 10/11 labels (90.9% — `fileViaDie` real-FileMan path pending v0.1.4). `loadJson` is a stub raising `U-STDSEED-NOT-IMPLEMENTED` until L11 (STDJSON) ships in Phase 2. |
 
-**Maximum parallelism for Phase 1b: 3 tracks.** Each pairs with a
-m-cli companion track (W/X/Y in §3.4); the M companion is hard-blocked
-on the stdlib track but is independent of the other two pairs.
+**Phase 1b closed (stdlib side).** All three tracks shipped and rolled
+up alongside Phase 1 in the v0.1.x series. Each still pairs with an
+m-cli companion track (W/X/Y in §3.4) — those companions are now
+unblocked.
 
 ### 3.3 m-stdlib Phase 2 — pure-M heavy lifting
 
@@ -108,12 +108,14 @@ All four tracks mutually independent.
 
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
-| **L11** | v0.2.0 | STDJSON | everything | RFC 8259; vendored JSONTestSuite |
-| **L12** | v0.2.0 | STDREGEX | everything | Thompson-NFA YDB; `$MATCH`/`$LOCATE` IRIS |
-| **L13** | v0.2.0 | STDCOLL | everything | Set/Map/Stack/Queue/Deque/Heap/OrderedDict. **Tests green (116/116); 100% label coverage (51/51); 0 lint errors.** Pending merge. |
-| **L14** | v0.2.0 | STDURL | everything | RFC 3986; STDHTTP consumer in Phase 3 |
+| **L11** | v0.2.0 | STDJSON | everything | ✅ **Landed on `main`** (commit `4144130`); awaits `v0.2.0` tag. RFC 8259 parser + serialiser; consumes the curated A3 corpus at `tests/conformance/json/`. Storage convention: one M tree node per JSON value (`o` / `a` / `s:` / `n:` / `t` / `f` / `z`). |
+| **L12** | v0.2.0 | STDREGEX | everything | 🟡 **In progress** (target tag `v0.2.0`). API skeleton + TDD-red staked (commit `fb2fda9`). Pass A — lexer + parser → AST — landed (commit `cfce923`); `compile()` rejects out-of-scope features (back-refs, lookaround, named groups, Unicode property classes, inline modifiers, possessive/lazy quantifiers) with `U-STDREGEX-UNSUPPORTED`. Passes B–E (NFA construction, simulation, capture tracking, findall/replace/split) outstanding; engine entry points remain safe-default stubs until then. Engine: Thompson-NFA on YDB; `$match` / `$locate` on IRIS. |
+| **L13** | v0.2.0 | STDCOLL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. Set/Map/Stack/Queue/Deque/Heap/OrderedDict over caller-owned arrays. 116/116 assertions; 51/51 labels (100%); 0 lint. |
+| **L14** | v0.2.0 | STDURL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. RFC 3986 parse / build / encode / decode / valid / normalize / resolve. 150/150 assertions; 21/21 labels (100%); 0 lint. RFC 3986 §5.4 reference-resolution corpus at `tests/conformance/url/`. STDHTTP consumes in Phase 3. |
 
-**Maximum parallelism for Phase 2: 4 tracks.**
+**Phase 2 status:** 3 of 4 tracks landed on `main`; L12 mid-pipeline
+(Pass A done, B–E outstanding). `v0.2.0` tag waits on L12 completion
+plus the L4 / L10 add-ons listed in §5.
 
 ### 3.4 m-cli companion tracks
 
@@ -133,12 +135,13 @@ Three categories:
 
 | Track | Capability | Blocked on | Notes |
 |---|---|---|---|
-| **W** | Runner SETUP/TEARDOWN wrap | L8 (STDFIX) ships | Single-line wrapper change |
-| **X** | Runner `CLEAR^STDMOCK` between tests | L9 (STDMOCK) ships | Single line |
-| **Y** | `m test --seed PATH` | L10 (STDSEED) ships | New CLI flag + load step |
+| **W** | Runner SETUP/TEARDOWN wrap | L8 (STDFIX) ships | ⚪ **Unblocked** — L8 shipped (`v0.1.1`). Single-line wrapper change in m-cli. |
+| **X** | Runner `CLEAR^STDMOCK` between tests | L9 (STDMOCK) ships | ⚪ **Unblocked** — L9 shipped (`v0.1.2`). Single-line addition in m-cli runner loop. |
+| **Y** | `m test --seed PATH` | L10 (STDSEED) ships | ⚪ **Unblocked** — L10 shipped (`v0.1.3`). New CLI flag + load step in m-cli. |
 
-W, X, Y are mutually independent of each other — they can be parallel
-once their respective stdlib track is green.
+W, X, Y are mutually independent of each other and all three are
+**ready to dispatch** in `~/projects/m-cli/`. Each will close M1 for
+its respective pair.
 
 **Hard-blocked on parent plan (vista-orchestration):**
 
@@ -183,29 +186,35 @@ completeness.
 
 ---
 
-## 4. Maximum-parallelism snapshot (today, 2026-05-05)
+## 4. Execution snapshot (today, 2026-05-05)
 
-Given current state (v0.0.1 shipped; v0.0.2 in progress on L1; m-cli
-Tier 1+2 done), the following tracks could **all** run simultaneously
-with no coordination beyond merge ordering:
+State of the dispatch board after the morning's commits. Tags
+`v0.0.1` and `v0.1.0` are the only two cut in git so far — every
+intermediate `v0.0.x` / `v0.1.x` exists as a labelled commit on
+`main` awaiting its tag at the next release boundary.
 
 ```
-Phase 1 modules:    L1, L2, L3, L4, L5, L6, L7         (7 tracks)
-Phase 1b modules:   L8, L9, L10                        (3 tracks)
-Phase 2 modules:    L11, L12, L13, L14                 (4 tracks)
-m-cli enhancements: C1, C2, C3, C4, C5                 (5 tracks)
-Conformance:        A1, A2, A3, A4                     (4 tracks)
-Aux:                A5, A6                             (2 tracks)
-STDASSERT migrate:  V1, V2, V3                         (3 tracks)
-Parent-plan adj.:   P1, P2, P3                         (3 tracks)
-─────────────────────────────────────────────────
-Total parallel-eligible:                               31 tracks
+Phase 1   (L1–L7, L4b)                     ✅ ALL SHIPPED — rolled up under v0.1.0
+Phase 1b  (L8, L9, L10)                    ✅ ALL SHIPPED — v0.1.1 / v0.1.2 / v0.1.3
+Phase 2   L11 STDJSON                      ✅ landed on main (awaits v0.2.0 tag)
+          L12 STDREGEX                     🟡 Pass A done; Passes B–E outstanding
+          L13 STDCOLL                      ✅ landed on main (awaits v0.2.0 tag)
+          L14 STDURL                       ✅ landed on main (awaits v0.2.0 tag)
+m-cli     C4 --branch coverage MVP         ✅ shipped 2026-05-05
+          C5 --changed                     ✅ shipped 2026-05-05
+          W / X / Y                        ⚪ unblocked (m-cli side outstanding)
+          C1 / C2 / C3 / C6                — see §3.4
+Aux       A1, A2, A3, A4, A5, A6, A7       ✅ ALL DONE
+STDASSERT V1, V2, V3                       — see §3.6
+Parent    P1, P2, P3                       — see §3.7
 ```
 
-The release-tag sequence (v0.0.2 → v0.0.3 → … → v0.1.0 → …) is a
-**merge ordering**, not a development ordering. With enough hands the
-entire Phase-1 set could land in parallel and tag in numeric order
-the day each one's gate goes green.
+Active stdlib work right now reduces to **L12 STDREGEX** (Passes B–E)
+plus the v0.2.0 add-ons listed in §5 (STDLOG JSON-line output,
+STDSEED `LOADJSON`). Everything else of `v0.2.0`-eligible work is
+already on `main`. Phase 3 cannot start until L12 closes (release
+sync) and the build-callouts harness (A6 — already shipped) is
+exercised by its first consumer.
 
 What you **cannot** parallelise:
 
@@ -238,40 +247,54 @@ Where parallelism ends and a join is required:
 
 ## 6. Pick-list — what to dispatch right now
 
-Given v0.0.1 shipped and v0.0.2 (L1) in flight, these are the
-zero-blocked tracks ready to start today:
+Phase 1, 1b, and three of four Phase 2 modules are on `main`. The
+zero-blocked, ready-to-dispatch tracks today are:
 
-**Highest leverage** (unblock multiple downstream consumers):
+**Highest leverage** (closes the v0.2.0 release tag):
 
-- **L8 (STDFIX)** — unblocks W, m-cli runner protocol, every future
-  test that wants isolation.
-- **A6 (build-callouts.sh)** — unblocks all of Phase 3.
-- **C1 (m-cli TOOLCHAIN P1 fix)** — closes one P1 finding; clears the
-  publication gate for m-cli + tree-sitter-m.
+- **L12 STDREGEX Passes B–E** — only stdlib work blocking `v0.2.0`.
+  Pass A (lexer + parser → AST) landed in `cfce923`; Pass B (NFA
+  construction from AST) is the next concrete deliverable. Engine
+  entry points (`match` / `search` / `find` / `findall` / `groups` /
+  `replace` / `split`) currently return safe-default stubs.
+- **STDLOG JSON-line add-on** — small follow-on once L11 STDJSON is
+  consumable; emits one JSON object per log line via `STDJSON.encode`.
+- **STDSEED `LOADJSON` add-on** — replaces the
+  `U-STDSEED-NOT-IMPLEMENTED` stub now that L11 has shipped.
 
-**High velocity** (small, independent, finishable in a session):
+**Closes M1** (the matching M-side track is ready now):
 
-- **L2 (STDHEX)** — already specced; bundle-mate to L1.
-- **L3 (STDFMT)**, **L5 (STDDATE)**, **L6 (STDCSV)**, **L7 (STDARGS)** — each
-  ~1–2 weeks for one contributor; all mutually parallel.
-- **C2 (--format=junit)**, **C3 (--coverage-min N)** — each a day or
-  two of m-cli Python work.
-- **A1–A4 (conformance corpora)** — pure data vendoring, unblocks
-  TDD-first work on the matching module.
+- **m-cli W** — `with`/`invoke` wrap in the runner loop (consumes
+  `STDFIX`).
+- **m-cli X** — `do clear^STDMOCK` between tests (consumes `STDMOCK`).
+- **m-cli Y** — `m test --seed PATH` flag (consumes `STDSEED`).
 
-**Medium velocity** (larger but still independent):
+W, X, Y are mutually independent and live in `~/projects/m-cli/`.
 
-- **L9 (STDMOCK)**, **L10 (STDSEED)** — mutually parallel with L8.
-- **L11 (STDJSON)**, **L12 (STDREGEX)**, **L13 (STDCOLL)**,
-  **L14 (STDURL)** — Phase 2 modules; per existing plan they wait for
-  v0.1.0 by convention, but technically have zero blockers today.
-- **C4 (--branch coverage)** — tree-sitter-m nodes are present.
-- **C5 (--changed)** — `WorkspaceIndex` is in place.
+**m-cli enhancements still open** (independent of any stdlib work):
 
-**Low priority but free** (do them when stuck on something else):
+- **C1** — drop hardcoded `^TESTRUN` in m-cli single-test runner
+  (TOOLCHAIN P1 fix).
+- **C2** — `m test --format=junit`.
+- **C3** — `m test --coverage-min N` / `m coverage --min-percent N`.
 
-- **A5 (IRIS CI re-add)**, **V1/V2/V3 (STDASSERT migrations)**,
-  **P1/P2/P3 (parent-plan adjacent)**.
+**STDASSERT migrations** (real-project consumers per §3.6):
+
+- **V1** — m-cli M-side tests onto STDASSERT (closes a TOOLCHAIN P2).
+- **V2** — tree-sitter-m M-side tests (verify any exist).
+- **V3** — m-standard test suites (likely no-op; verify).
+
+**Parent-plan adjacent** (orthogonal, don't gate stdlib):
+
+- **P1** — tree-sitter-m v0.1 publish + prebuildify binaries.
+- **P2** — vista-meta `README.md`.
+- **P3** — m-modern-corpus seeding.
+
+**Phase 3 is queued** (do not start until v0.2.0 cuts):
+
+STDHTTP, STDCRYPTO, STDCOMPRESS, plus the jwt-verify example. The
+build-callouts harness (A6) shipped already, so Phase 3 has no
+remaining infra prereq beyond the v0.2.0 release sync.
 
 ---
 
