@@ -1,0 +1,28 @@
+uuid	version	variant	valid	notes
+00000000-0000-0000-0000-000000000000	0	ncs	1	Nil UUID — RFC 4122 §4.1.7
+ffffffff-ffff-ffff-ffff-ffffffffffff	15	future	1	Max UUID — RFC 9562 §5.10
+6ba7b810-9dad-11d1-80b4-00c04fd430c8	1	rfc4122	1	Namespace DNS — RFC 4122 Appendix C
+6ba7b811-9dad-11d1-80b4-00c04fd430c8	1	rfc4122	1	Namespace URL — RFC 4122 Appendix C
+6ba7b812-9dad-11d1-80b4-00c04fd430c8	1	rfc4122	1	Namespace OID — RFC 4122 Appendix C
+6ba7b814-9dad-11d1-80b4-00c04fd430c8	1	rfc4122	1	Namespace X.500 — RFC 4122 Appendix C
+f81d4fae-7dec-11d0-a765-00a0c91e6bf6	1	rfc4122	1	v1 time-based example — RFC 4122 §4.1.5
+000003e8-cafe-21eb-9a03-0242ac130003	2	rfc4122	1	v2 DCE Security — uid 1000 example
+5df41881-3aed-3515-88a7-2f4a814cf09e	3	rfc4122	1	v3 MD5 name-based example
+e0e7d088-9f8a-4a3a-bd0a-1f80c4c5b1f3	4	rfc4122	1	v4 random example
+2ed6657d-e927-568b-95e1-2665a8aea6a2	5	rfc4122	1	v5 SHA-1 name-based example
+1ec9414c-232a-6b00-b3c8-9e6bdeced846	6	rfc4122	1	v6 reordered time-based — RFC 9562 §5.6
+018d7c0a-3000-7000-bb33-1234567890ab	7	rfc4122	1	v7 Unix-time-based — RFC 9562 §5.7
+018d7c0a-3000-8000-bb33-1234567890ab	8	rfc4122	1	v8 custom — RFC 9562 §5.8
+6ba7b810-9dad-11d1-30b4-00c04fd430c8	1	ncs	1	NCS variant (position-20 = 3, high bit 0)
+6ba7b810-9dad-11d1-c0b4-00c04fd430c8	1	microsoft	1	Microsoft variant (position-20 = c, high bits 110)
+6ba7b810-9dad-11d1-f0b4-00c04fd430c8	1	future	1	Future variant (position-20 = f, high bits 111)
+E0E7D088-9F8A-4A3A-BD0A-1F80C4C5B1F3	4	rfc4122	1	uppercase hex — STDUUID.valid is case-insensitive
+e0e7d088-9F8A-4a3a-BD0A-1f80c4c5b1f3	4	rfc4122	1	mixed case
+e0e7d088-9f8a-4a3a-bd0a-1f80c4c5b1f		1	0	35 chars — too short by 1
+e0e7d088-9f8a-4a3a-bd0a-1f80c4c5b1f33			0	37 chars — too long by 1
+e0e7d0889f8a-4a3a-bd0a-1f80c4c5b1f33			0	36 chars but hyphens shift left when group-1 separator is dropped — must reject
+e0e7d088_9f8a-4a3a-bd0a-1f80c4c5b1f3			0	separator 9 is `_` not `-`
+e0e7d088-9f8a-4a3a-bd0a-1f80c4c5g1f3			0	non-hex char `g` at position 33
+e0e7d0889f8a4a3abd0a1f80c4c5b1f3				0	no hyphens — 32 chars
+				0	empty string
+nothex00-0000-0000-0000-000000000000			0	well-formed shape (36 chars, hyphens in right places), non-hex content

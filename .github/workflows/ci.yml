@@ -4,8 +4,10 @@
 # verification (2026-04-30). YottaDB r2.07 at pin time; mumps/mupip live
 # at /opt/yottadb/current/ and are reachable after sourcing ydb_env_set.
 #
-# IRIS portability check is omitted in v0.0.1–v0.0.3 per §13.3 of the
-# remediation plan; reintroduce as a fail-soft job at v0.0.4.
+# IRIS portability check (auxiliary track A5) reintroduced at v0.0.4 as
+# a fail-soft (continue-on-error) job. See impl-plan §4 (vendor scope)
+# and §8.6 (STDLOG ships alongside the IRIS re-add). The job's purpose
+# is to surface portability regressions over time, not to gate merges.
 
 name: CI
 on:
@@ -85,5 +87,54 @@ jobs:
           files: coverage.lcov
           fail_ci_if_error: false   # flip to true once the corpus is non-empty
 
-  # iris-portability-check: reintroduced at v0.0.4 (fail-soft).
-  # See docs/m-stdlib-implementation-plan.md §6.6.
+  iris-portability-check:
+    # Auxiliary track A5: fail-soft IRIS portability surfacing.
+    # Runs on PRs only — push-to-main runs are reserved for the gating
+    # YottaDB job above. continue-on-error means a red IRIS run never
+    # blocks a merge; the artifact + check status make the regression
+    # visible in the PR view.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    container:
+      image: intersystemsdc/iris-community:latest
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python toolchain
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+              python3.12 python3.12-venv git make ca-certificates
+          python3.12 -m venv /tmp/venv
+          /tmp/venv/bin/pip install --upgrade pip
+
+      - name: Install m-cli (from git until post-Phase-1 publication)
+        run: |
+          git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
+          /tmp/venv/bin/pip install tree-sitter-m
+
+      - name: Format check (engine-agnostic)
+        run: /tmp/venv/bin/m fmt --check src/ tests/
+
+      - name: Lint (--target-engine=any)
+        # The --target-engine=any profile flags constructs that don't
+        # work on every supported engine. Treat findings here as the
+        # IRIS portability signal.
+        run: /tmp/venv/bin/m lint --error-on=error --target-engine=any src/ tests/
+
+      - name: Test under IRIS (best-effort)
+        # m-cli's IRIS runner support is itself work-in-progress. Until
+        # it lands fully, this step's purpose is to record the failure
+        # mode in the TAP artifact so the gap is visible. continue-on-error
+        # at the job level means a non-zero exit here never blocks a PR.
+        run: /tmp/venv/bin/m test --format=tap tests/ | tee iris-test-results.tap
+
+      - name: Upload IRIS TAP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iris-tap
+          path: iris-test-results.tap

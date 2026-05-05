@@ -10,6 +10,30 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **Auxiliary tracks A3 / A4 / A5 / A6** (per impl-plan §3.5).
+  - **A3**: curated JSON conformance corpus at
+    `tests/conformance/json/` — 23 `y_*` (must-parse), 15 `n_*`
+    (must-reject), 8 `i_*` (implementation-defined) files plus a
+    README mapping each file to an RFC-8259 clause. Used by track
+    L11 (STDJSON, Phase 2). Full ~318-file JSONTestSuite intentionally
+    not vendored — the curated set keeps the corpus auditable by eye.
+  - **A4**: RFC-4122 / RFC-9562 UUID vectors at
+    `tests/conformance/uuid/rfc4122-vectors.tsv` — 27 rows (Nil + Max
+    + every version 1–8 + all four variants + mixed/upper case + 8
+    malformed-input rejections), with the `version`/`variant`/`valid`
+    columns matching STDUUID's expected returns. README documents the
+    coverage map.
+  - **A5**: `iris-portability-check` job re-added to
+    `.github/workflows/ci.yml`. Fail-soft (`continue-on-error: true`),
+    runs on PRs only against `intersystemsdc/iris-community:latest`.
+    Surfaces IRIS portability regressions without gating merges.
+  - **A6**: `tools/build-callouts.sh` — Phase 3 prereq for STDHTTP /
+    STDCRYPTO / STDCOMPRESS callouts. Auto-detects host platform
+    (linux-x86_64 / linux-aarch64 / darwin-x86_64 / darwin-arm64),
+    compiles `src/callouts/*.c` to `so/<platform>/*.{so,dylib}` with
+    YDB host-call ABI flags. Supports `--check` (dry run), `--clean`,
+    `--target=PLAT` (cross-name only). Permanent self-test fixture at
+    `src/callouts/probe.c`; build output gitignored under `so/`.
 - **`STDURL`** — RFC 3986 URI parser, builder, encoder, resolver
   (track L14, Phase 2, target tag `v0.2.0`). One public procedure
   (`parse`) and six public extrinsics (`build`, `encode`, `decode`,

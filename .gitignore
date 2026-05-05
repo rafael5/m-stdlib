@@ -3,6 +3,9 @@
 .objects/
 *.o
 
+# Phase 3 callout build output (tools/build-callouts.sh)
+so/
+
 # Test + coverage outputs
 test-results.tap
 coverage.lcov

@@ -150,13 +150,13 @@ once their respective stdlib track is green.
 
 | Track | Work | Independent of | Notes |
 |---|---|---|---|
-| **A1** | Vendor RFC-4648 §10 vectors → `tests/conformance/b64/` | everything | Pure data; usable by L1 |
-| **A2** | Vendor RFC-4180 corpus → `tests/conformance/csv/` | everything | Used by L6 |
-| **A3** | Vendor JSONTestSuite → `tests/conformance/json/` | everything | Used by L11 |
-| **A4** | Vendor RFC-4122 UUID vectors → `tests/conformance/uuid/` | everything | Reinforces v0.0.1 STDUUID |
-| **A5** | IRIS portability CI job re-add (fail-soft) | everything | Currently bundled with L4; technically independent |
-| **A6** | `tools/build-callouts.sh` for $ZF SOs (linux-x86_64, linux-aarch64, macOS) | everything | Phase 3 prereq; can start now |
-| **A7** | `docs/modules/<m>.md` per module | the module itself | Each module's doc is independent of every other module's doc |
+| **A1** | Vendor RFC-4648 §10 vectors → `tests/conformance/b64/` | everything | ✅ **Done** — TSVs (standard + URL-safe) + README; landed alongside L1. |
+| **A2** | Vendor RFC-4180 corpus → `tests/conformance/csv/` | everything | ✅ **Done** — 10 CSV fixtures (every §2 clause + extensions) + README; landed alongside L6. |
+| **A3** | Vendor JSONTestSuite → `tests/conformance/json/` | everything | ✅ **Done** — curated subset (23 `y_`, 15 `n_`, 8 `i_` files) + README mapping each file to an RFC-8259 clause. Full ~318-file JSONTestSuite intentionally not vendored. |
+| **A4** | Vendor RFC-4122 UUID vectors → `tests/conformance/uuid/` | everything | ✅ **Done** — `rfc4122-vectors.tsv` (27 rows: every version 1–8, all four variants, mixed/upper case, malformed-input rejections) + README. Reinforces v0.0.1 STDUUID. |
+| **A5** | IRIS portability CI job re-add (fail-soft) | everything | ✅ **Done** — `iris-portability-check` job in `.github/workflows/ci.yml`, `continue-on-error: true`, runs on PRs only against `intersystemsdc/iris-community:latest`. |
+| **A6** | `tools/build-callouts.sh` for $ZF SOs (linux-x86_64, linux-aarch64, macOS) | everything | ✅ **Done** — bash script, platform auto-detect (linux-x86_64 / linux-aarch64 / darwin-x86_64 / darwin-arm64), `--check` / `--clean` / `--target=` flags; smoke-test fixture at `src/callouts/probe.c`; output gitignored. |
+| **A7** | `docs/modules/<m>.md` per module | the module itself | ✅ **Done** — every shipped or in-progress module has its doc (stdassert, stduuid, stdb64, stdhex, stdfmt, stdlog, stddate, stdcsv, stdargs, stdmock). Phase 2/3 modules add theirs as they land. |
 
 ### 3.6 STDASSERT real-project migration tracks (per impl-plan §10.2)
 
