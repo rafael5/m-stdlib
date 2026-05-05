@@ -10,82 +10,58 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
-- **`STDB64`** — RFC-4648 Base64 encoding (standard alphabet `+ /`,
-  with `=` padding) and URL-safe variant (`- _`, no padding —
-  RFC-4648 §5, JWT convention). Five public extrinsics: `encode`,
-  `decode`, `urlencode`, `urldecode`, `valid`. RFC-4648 §10 vectors
-  vendored to `tests/conformance/b64/` (standard + URL-safe). 55/55
-  assertions green; 100% label coverage; 0 lint errors.
-- **`STDHEX`** — RFC-4648 §8 hex encoding. Four public extrinsics:
-  `encode` (lowercase default), `encodeu` (uppercase), `decode`
-  (case-insensitive), `valid` (even length + hex digits, accepts any
-  case). 49/49 assertions green; 100% label coverage; 0 lint errors.
-- **`STDCSV`** — RFC-4180 CSV parser/writer. Four public entry points:
-  `$$parse^STDCSV(text,.rows)`, `$$write^STDCSV(.rows)`,
-  `parseFile^STDCSV(path,callback)`, `writeFile^STDCSV(path,.rows)`.
-  Covers every RFC-4180 §2 clause (CRLF/LF/lone-CR record separators,
-  optional trailing terminator, optional `"..."` field wrapping,
-  embedded `,` / CRLF / `""` escape) and strips a leading UTF-8 BOM
-  on input. YottaDB-only file I/O at v0.0.6 (uses SEQ-device
-  `readonly` / `newversion:stream:nowrap` deviceparams). 59/59
-  assertions green; 100% label coverage (6/6); 0 lint errors.
-  Per-module doc at `docs/modules/stdcsv.md`. RFC-4180 §2 audit-trail
-  corpus vendored to `tests/conformance/csv/`.
-- **Per-module docs**: `docs/modules/stdb64.md`,
-  `docs/modules/stdhex.md`, `docs/modules/stdcsv.md`.
-- **Conformance corpus skeleton**: `tests/conformance/b64/` populated
-  with the §10 vectors; `tests/conformance/csv/` populated with the
-  RFC-4180 §2 vectors; `tests/conformance/{json,uuid}/` directories
-  created for future modules.
-- **`STDFMT`** — printf-style formatter (subset of Python `str.format`).
-  Two public extrinsics: `f` (up to 9 positional) and `fn` (named
-  via local array). Format spec covers fill / align / width /
-  precision / type (`s d f x X o b`). `{{` and `}}` escape literal
-  braces. Float precision uses `$FNUMBER` rounding. Errors set
-  `$ECODE` to documented `U-STDFMT-*` codes. 56/56 assertions green;
-  100% label coverage (11/11); 0 lint errors. Per-module doc at
-  `docs/modules/stdfmt.md`. Error-path unit tests deferred — see
-  TOOLCHAIN-FINDINGS P1 against `STDASSERT.raises`.
-- **`STDARGS`** — argparse for M scripts (Phase 1, `v0.0.7`). Long
-  flags (`--verbose`), short flags (`-v`), grouped count flags
-  (`-vvv`), positionals, sub-commands, `--` end-of-flags terminator.
-  Four actions: `store_true`, `store`, `count`, `append`. Args source
-  is `$ZCMDLINE` on YDB, an explicit string elsewhere. Tokenisation
-  is whitespace-only; quoting is the shell's job. Parser state lives
-  per handle under `^STDLIB($job,"stdargs",p,...)`; `free()` drops
-  it. Errors set `$ECODE` to documented `U-STDARGS-*` codes. 37/37
-  assertions green; 100% label coverage (14/14); 0 lint errors.
-  Per-module doc at `docs/modules/stdargs.md`. Real-project demo at
-  `examples/stdargs-demo.m`.
-- **`STDDATE`** — ISO-8601 datetime + duration arithmetic (track L5,
-  `v0.0.5`). Seven public extrinsics: `now` (current UTC, ms
-  precision, trailing `Z`), `fromh` ($HOROLOG → ISO-8601, accepts
-  2/3/4-piece input), `toh` (ISO-8601 → $HOROLOG, emits 2/3/4-piece
-  per subsecond + tz presence), `strftime` / `strptime` (`%Y %m %d
-  %H %M %S %j %z %%`), `add` (ISO-8601 duration `P[nY][nM][nW][nD][T[nH][nM][nS]]`,
-  with `-P...` for negative durations and Feb-29 → Feb-28 day-clamp
-  on `+P1Y`), `diff` (h2 − h1 → `PnDTnHnMnS`, sign-prefixed).
-  Civil ↔ day-count uses Howard Hinnant's `days_from_civil` over
-  proleptic Gregorian (verified for years 1840 − 2400 incl. all
-  leap-year edge cases). Errors set `$ECODE` to `U-STDDATE-BAD-HOROLOG`
-  / `U-STDDATE-BAD-ISO` / `U-STDDATE-BAD-DUR`. 60/60 assertions green.
-  Per-module doc at `docs/modules/stddate.md`. Error-path unit tests
-  deferred — see TOOLCHAIN-FINDINGS P1 against `STDASSERT.raises`.
-- **`STDLOG`** — structured key=value logger (track L4, `v0.0.4`).
-  Five level entry points (`DEBUG`/`INFO`/`WARN`/`ERROR`/`FATAL`),
-  each accepting an `event` string and up to 5 kv pairs.
-  Configuration: `LEVEL` (per-process threshold) and `SINK`
-  (`stderr` / `stdout` / `global` / `global:^GREF`). Output line
-  format: `<ISO ts> level=<NAME> event=<event> k=v k=v ...`; values
-  are emitted raw when clean, otherwise wrapped in `"..."` with
-  `\\` and `\"` escaping. Errors set `$ECODE` to
-  `U-STDLOG-INVALID-LEVEL` or `U-STDLOG-INVALID-SINK`. Timestamp
-  source: `$$now^STDDATE()` (track L4b folded into the v0.0.4
-  commit since L5 STDDATE landed first). 45/45 assertions green;
-  100% label coverage (15/15); 0 lint errors. Per-module doc at
-  `docs/modules/stdlog.md`. Pending sub-track (per impl-plan
-  §8.6): re-introduce IRIS `iris-portability-check` job in CI
-  (fail-soft) — auxiliary track A5.
+- **`STDURL`** — RFC 3986 URI parser, builder, encoder, resolver
+  (track L14, Phase 2, target tag `v0.2.0`). One public procedure
+  (`parse`) and six public extrinsics (`build`, `encode`, `decode`,
+  `valid`, `normalize`, `resolve`). `parse` writes all seven keys
+  (`scheme` / `userinfo` / `host` / `port` / `path` / `query` /
+  `fragment`) so callers can index without `$get`. `decode` is
+  intentionally lenient (Python `urllib.parse.unquote` semantics —
+  malformed `%` sequences pass through as literal text); `valid` is
+  the strict gate. `normalize` applies RFC 3986 §6.2 syntax-based
+  normalisation (lowercase scheme + host, uppercase `%HH` hex,
+  decode unreserved, remove `.` / `..` dot-segments). `resolve`
+  implements §5.3 transform-references in strict mode (no scheme
+  inheritance — `http:g` against `http://a/b/c/` resolves to
+  `http:g`). Pure-M; no host-call. `STDURL` does not set `$ECODE`.
+  150/150 assertions green; 100% label coverage (21/21); 0 lint
+  errors. Per-module doc at `docs/modules/stdurl.md`. RFC 3986 §5.4
+  normal + abnormal reference-resolution corpora vendored to
+  `tests/conformance/url/`. Downstream consumer is `STDHTTP` in
+  Phase 3.
+- **`STDCOLL`** — collections (track L13, Phase 2, target tag `v0.2.0`).
+  Seven by-reference collection types over caller-owned local arrays:
+  `Set`, `Map`, `Stack`, `Queue`, `Deque`, `Heap` (min-heap with
+  optional payload), and insertion-ordered `OrderedDict`. 51 public
+  labels covering `add` / `put` / `push` / `pop` / `peek` / `get` /
+  `has` / `remove` / `size` / `clear` / `next` / `prev` / `first` /
+  `last` per type. Empty-key and empty-pop semantics are silent
+  no-ops / blank returns rather than `$ECODE`-raising — callers gate
+  on `*Size` to distinguish empty from a stored `""`. Heap is a
+  binary-heap with `O(log n)` push / pop and `O(1)` peek; OrderedDict
+  walks insertion order via a monotonic sequence allocator and
+  reverse map. 116/116 assertions green; 51/51 labels covered (100%);
+  0 lint errors. Per-module doc at `docs/modules/stdcoll.md`. Pure-M;
+  no host-call. YottaDB-first; IRIS-portable (no engine-specific
+  features used). Companion track to L11/L12/L14 toward the v0.2.0
+  Phase 2 release.
+- **`STDFIX`** — fixture lifecycle and per-test isolation (track L8,
+  Phase 1b TDD primitive, target tag `v0.1.1`). Five public labels:
+  `with` (one-shot transactional scope), `$$active` (predicate),
+  `register` (declarative fixture), `invoke` (run code with registered
+  setup/teardown hooks), `cleanup` (idempotent rollback of leaks).
+  YDB nested transactions (`tstart` / `trollback $tlevel-1`) provide
+  rollback isolation; nested `with`/`invoke` calls roll back their
+  own level only and preserve outer scopes. 28/28 assertions green;
+  100% label coverage (5/5); 0 lint errors. Per-module doc at
+  `docs/modules/stdfix.md`. Design departure from the orchestration-
+  plan sketch: standalone `setup(tag)` / `teardown(tag)` cannot exist
+  in YDB because TPQUIT enforces per-routine-frame balance of
+  `tstart` / `trollback`; STDFIX therefore exposes only one-shot
+  wrappers. The `m test` runner protocol consumes `with`/`invoke`,
+  not raw setup/teardown. Error-path re-raise tests deferred to
+  v0.0.5+ alongside the TOOLCHAIN-FINDINGS P1 STDASSERT.raises fix
+  (same chain that affects STDFMT, STDDATE, STDCSV).
 - **`STDMOCK`** — opt-in test-time call interception (track L9, Phase
   1b TDD primitive, target tag `v0.1.2`). Three procedures
   (`register` / `unregister` / `clear`), three extrinsics (`$$resolve`
@@ -120,6 +96,145 @@ Pre-1.0 minor versions may include breaking changes.
   pending v0.1.4 + STDFIX rollback. Per-module doc at
   `docs/modules/stdseed.md`. Pairs with the m-cli runner track Y
   flag `m test --seed PATH` once M1 lands.
+
+## [v0.1.0] — 2026-05-05
+
+**Phase 1 release.** Seven new pure-M modules ship across tags
+`v0.0.2`–`v0.0.7`, completing the Phase-1 set planned in §8 of the
+implementation plan. Combined with `v0.0.1` (`STDASSERT` + `STDUUID`),
+m-stdlib at `v0.1.0` provides nine modules: assertions, UUIDs, base64
++ hex, printf-style formatting, structured logging, ISO-8601 datetime,
+RFC-4180 CSV, and argparse.
+
+### `v0.0.2` — Base64 + Hex (commit `83e11b2`)
+
+- **`STDB64`** — RFC-4648 Base64 encoding (standard alphabet `+ /`,
+  with `=` padding) and URL-safe variant (`- _`, no padding —
+  RFC-4648 §5, JWT convention). Five public extrinsics: `encode`,
+  `decode`, `urlencode`, `urldecode`, `valid`. RFC-4648 §10 vectors
+  vendored to `tests/conformance/b64/` (standard + URL-safe). 55/55
+  assertions green; 100% label coverage; 0 lint errors.
+- **`STDHEX`** — RFC-4648 §8 hex encoding. Four public extrinsics:
+  `encode` (lowercase default), `encodeu` (uppercase), `decode`
+  (case-insensitive), `valid` (even length + hex digits, accepts any
+  case). 49/49 assertions green; 100% label coverage; 0 lint errors.
+
+### `v0.0.3` — Printf-style formatter (commit `8e6b689`)
+
+- **`STDFMT`** — printf-style formatter (subset of Python `str.format`).
+  Two public extrinsics: `f` (up to 9 positional) and `fn` (named
+  via local array). Format spec covers fill / align / width /
+  precision / type (`s d f x X o b`). `{{` and `}}` escape literal
+  braces. Float precision uses `$FNUMBER` rounding. Errors set
+  `$ECODE` to documented `U-STDFMT-*` codes. 56/56 assertions green;
+  100% label coverage (11/11); 0 lint errors. Per-module doc at
+  `docs/modules/stdfmt.md`. Error-path unit tests deferred — see
+  TOOLCHAIN-FINDINGS P1 against `STDASSERT.raises`.
+
+### `v0.0.4` — Structured logger (commit `abfa9a2`)
+
+- **`STDLOG`** — structured `key=value` logger (track L4 + L4b).
+  Five level entry points (`DEBUG`/`INFO`/`WARN`/`ERROR`/`FATAL`),
+  each accepting an `event` string and up to 5 kv pairs.
+  Configuration: `LEVEL` (per-process threshold) and `SINK`
+  (`stderr` / `stdout` / `global` / `global:^GREF`). Output line
+  format: `<ISO ts> level=<NAME> event=<event> k=v k=v ...`; values
+  emitted raw when clean, otherwise wrapped in `"..."` with `\\`
+  and `\"` escaping. Errors set `$ECODE` to `U-STDLOG-INVALID-LEVEL`
+  or `U-STDLOG-INVALID-SINK`. Timestamp source: `$$now^STDDATE()`
+  (track L4b folded in since L5 STDDATE landed first — the inline
+  ISO-8601 helper that v0.0.4 was originally to ship was never
+  needed). 45/45 assertions green; 100% label coverage (15/15); 0
+  lint errors. Per-module doc at `docs/modules/stdlog.md`.
+
+### `v0.0.5` — ISO-8601 datetime (commit `1ec3b00`)
+
+- **`STDDATE`** — ISO-8601 datetime + duration arithmetic (track L5).
+  Seven public extrinsics: `now` (current UTC, ms precision, trailing
+  `Z`), `fromh` ($HOROLOG → ISO-8601, accepts 2/3/4-piece input),
+  `toh` (ISO-8601 → $HOROLOG, emits 2/3/4-piece per subsecond + tz
+  presence), `strftime` / `strptime` (`%Y %m %d %H %M %S %j %z %%`
+  directives), `add` (ISO-8601 duration
+  `[-]P[nY][nM][nW][nD][T[nH][nM][nS]]`, with Feb-29 → Feb-28
+  day-clamp on `+P1Y`), `diff` (h2 − h1 → `PnDTnHnMnS`,
+  sign-prefixed). Civil ↔ day-count uses Howard Hinnant's
+  `days_from_civil` over proleptic Gregorian (verified for years
+  1840–2400 incl. all leap-year edge cases). Errors set `$ECODE` to
+  `U-STDDATE-BAD-{HOROLOG,ISO,DUR}`. 60/60 assertions green; 19/20
+  labels (95.0%); 0 lint errors. Per-module doc at
+  `docs/modules/stddate.md`. Error-path unit tests deferred per
+  TOOLCHAIN-FINDINGS P1 against `STDASSERT.raises`.
+
+### `v0.0.6` — RFC-4180 CSV (commit `0f7de40`)
+
+- **`STDCSV`** — RFC-4180 CSV parser/writer. Four public entry points:
+  `$$parse^STDCSV(text,.rows)`, `$$write^STDCSV(.rows)`,
+  `parseFile^STDCSV(path,callback)`, `writeFile^STDCSV(path,.rows)`.
+  Covers every RFC-4180 §2 clause (CRLF/LF/lone-CR record separators,
+  optional trailing terminator, optional `"..."` field wrapping,
+  embedded `,` / CRLF / `""` escape) and strips a leading UTF-8 BOM
+  on input. YottaDB-only file I/O at v0.0.6 (uses SEQ-device
+  `readonly` / `newversion:stream:nowrap` deviceparams). 59/59
+  assertions green; 100% label coverage (6/6); 0 lint errors.
+  Per-module doc at `docs/modules/stdcsv.md`. RFC-4180 §2 audit-trail
+  corpus vendored to `tests/conformance/csv/`.
+
+### `v0.0.7` — argparse (commit `c98d5a1`)
+
+- **`STDARGS`** — argparse for M scripts. Long flags (`--verbose`),
+  short flags (`-v`), grouped count flags (`-vvv`), positionals,
+  sub-commands, `--` end-of-flags terminator. Four actions:
+  `store_true`, `store`, `count`, `append`. Args source is
+  `$ZCMDLINE` on YDB, an explicit string elsewhere. Tokenisation is
+  whitespace-only; quoting is the shell's job. Parser state lives
+  per handle under `^STDLIB($job,"stdargs",p,...)`; `free()` drops
+  it. Errors set `$ECODE` to documented `U-STDARGS-*` codes. 37/37
+  assertions green; 100% label coverage (14/14); 0 lint errors.
+  Per-module doc at `docs/modules/stdargs.md`. Real-project demo at
+  `examples/stdargs-demo.m`.
+
+### Conformance corpora
+
+- `tests/conformance/b64/` — RFC-4648 §10 (standard + URL-safe),
+  consumed by `STDB64`.
+- `tests/conformance/csv/` — RFC-4180 §2 vectors + excel-quirks +
+  LF-only line endings + UTF-8 BOM, consumed by `STDCSV`.
+- `tests/conformance/{json,uuid}/` directories reserved for Phase 2.
+
+### Per-module docs
+
+`docs/modules/{stdb64,stdhex,stdfmt,stdlog,stddate,stdcsv,stdargs}.md`
+written. `docs/modules/index.md` regenerated as the canonical index of
+shipped Phase-1 modules.
+
+### Per-module gate (§9 of the implementation plan)
+
+- ✅ `m fmt --check` clean across all `src/` and `tests/` files
+- ✅ `m lint --error-on=error` 0 findings
+- ✅ `m test` — 527 / 527 assertions across 9 suites (`STDASSERT` 35,
+  `STDUUID` 131, `STDB64` 55, `STDHEX` 49, `STDFMT` 56, `STDLOG` 45,
+  `STDDATE` 60, `STDCSV` 59, `STDARGS` 37)
+- ✅ `m coverage --min-percent=85` — every module ≥ 95% (most at
+  100%); aggregate well above the 85% threshold
+- ✅ Per-module docs written for all 9 modules
+- ✅ STDLOG inline-timestamp helper removed (replaced by `$$now^STDDATE()`
+  per impl-plan §8.10) — folded into the L4 commit since L5 landed
+  first
+- ⏭️ IRIS `iris-portability-check` job re-add (auxiliary track A5)
+  outstanding; planned alongside the v0.1.0 → v0.1.1 cycle
+
+### Notes on deferred work
+
+- **Error-path unit tests** for `STDFMT` and `STDDATE` (and any
+  future `raises`-based suites that drive errors through extrinsic
+  chains) are present-but-not-dispatched until
+  `STDASSERT.raises` is fixed — see `TOOLCHAIN-FINDINGS.md` P1
+  (`$ETRAP` arg-less `quit` + `%YDB-E-NOTEXTRINSIC`). The contract
+  is documented in each module's per-module doc.
+- **Phase 1b** (`STDFIX` / `STDMOCK` / `STDSEED`) and **Phase 2**
+  (`STDCOLL` / `STDREGEX` / `STDJSON` / `STDURL`) remain in
+  `[Unreleased]`; their respective minor-version releases follow
+  Phase 1 on the orchestration plan's M1 / `v0.2.0` schedule.
 
 ## [v0.0.1] — 2026-04-30
 

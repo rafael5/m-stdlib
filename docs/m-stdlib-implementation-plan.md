@@ -19,13 +19,15 @@ holds the background and rationale; this document holds the work.
 | Phase | Status | Tag |
 |---|---|---|
 | Phase 0 — bootstrap | **done (2026-04-30)** | — |
-| Phase 1 — pure-M quick wins | **in progress** — `v0.0.1` shipped 2026-04-30 | → `v0.1.0` |
-| Phase 2 — pure-M heavy lifting | not started | → `v0.2.0` |
+| Phase 1 — pure-M quick wins | **done (2026-05-05)** — `v0.1.0` shipped (9 modules: STDASSERT, STDUUID, STDB64, STDHEX, STDFMT, STDLOG, STDDATE, STDCSV, STDARGS) | `v0.1.0` |
+| Phase 1b — TDD primitives | **in progress** — STDMOCK (`v0.1.2`) + STDSEED (`v0.1.3`) green; STDFIX (`v0.1.1`) pending | → M1 |
+| Phase 2 — pure-M heavy lifting | **in progress** — STDCOLL green; STDREGEX scaffolded; STDJSON / STDURL pending | → `v0.2.0` |
 | Phase 3 — host-call integrations | not started | → `v0.3.0` |
 
-**Next concrete unit of work:** §8 v0.0.2 — STDB64 + STDHEX
-(RFC-4648 base64 + hex). TDD-first per §2.1; per-module gate (§9)
-must be green before merge.
+**Next concrete unit of work:** Phase 1b sequencing — STDFIX (`v0.1.1`)
+or M1 sync (each Phase 1b module pairs with a m-cli companion track,
+per `tdd-orchestration-plan.md`). In parallel: complete Phase 2
+modules (STDREGEX passes A–E; STDJSON; STDURL).
 
 ---
 
@@ -492,7 +494,7 @@ green. Each PR carries: source + `*TST.m` + `docs/modules/<name>.md`
 | `v0.0.4` | Structured logger (text-only) + IRIS CI re-add | `STDLOG.m` | ~200 | ~40 |
 | `v0.0.5` | ISO-8601 datetime | `STDDATE.m` | ~400 | ~80 | ✅ green 2026-05-05 — 60/60 assertions, 19/20 labels (95.0%), 0 lint errors. Error-path raises tests deferred per STDASSERT.raises limitation. |
 | `v0.0.6` | RFC-4180 CSV | `STDCSV.m` | ~300 | ~50 | ✅ shipped 2026-05-05 — 59/59 assertions, 6/6 labels (100%), 0 lint errors. RFC-4180 §2 conformance corpus at `tests/conformance/csv/`. |
-| `v0.0.7` | argparse | `STDARGS.m` | ~400 | ~50 |
+| `v0.0.7` | argparse | `STDARGS.m` | ~400 | ~50 | ✅ shipped 2026-05-05 — 37/37 assertions, 14/14 labels (100%), 0 lint errors. |
 | `v0.1.0` | Phase 1 release: CHANGELOG roll-up, GitHub Release, source tarball, regenerated docs index | — | — | — |
 
 ### 8.1 STDASSERT — assertion library
@@ -759,13 +761,13 @@ canonical real-project exercise for STDASSERT itself.
 
 Not started until `v0.1.0` is tagged.
 
-| Tag | Module | Routine | LoC est. |
-|---|---|---|---:|
-| `v0.1.x` | JSON parser/serialiser (RFC 8259) | `STDJSON.m` | ~1500 |
-| `v0.1.x` | Regex (Thompson-NFA, YDB; wraps `$MATCH`/`$LOCATE` on IRIS) | `STDREGEX.m` | ~2000 |
-| `v0.1.x` | Collections (Set, Map, Stack, Queue, Deque, Heap, OrderedDict) | `STDCOLL.m` | ~600 |
-| `v0.1.x` | URL parsing + percent-encoding (RFC 3986) | `STDURL.m` | ~250 |
-| `v0.2.0` | Phase 2 release | — | — |
+| Tag | Module | Routine | LoC est. | Status |
+|---|---|---|---:|---|
+| `v0.1.x` | JSON parser/serialiser (RFC 8259) | `STDJSON.m` | ~1500 | |
+| `v0.1.x` | Regex (Thompson-NFA, YDB; wraps `$MATCH`/`$LOCATE` on IRIS) | `STDREGEX.m` | ~2000 | |
+| `v0.1.x` | Collections (Set, Map, Stack, Queue, Deque, Heap, OrderedDict) | `STDCOLL.m` | ~600 | ✅ green 2026-05-05 (track L13) — 116/116 assertions, 51/51 labels (100%), 0 lint errors. |
+| `v0.1.x` | URL parsing + percent-encoding (RFC 3986) | `STDURL.m` | ~250 | |
+| `v0.2.0` | Phase 2 release | — | — | |
 
 **STDJSON** stores JSON in M globals natively (`^STDJSON($J,...)`);
 streaming parse/serialise for multi-MB payloads. Conformance corpus:

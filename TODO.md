@@ -1,6 +1,10 @@
 # m-stdlib — resume-here TODO
 
-**Status:** Phase 0 + v0.0.1 shipped 2026-04-30. Next: v0.0.2.
+**Status:** **Phase 1 complete — `v0.1.0` shipped 2026-05-05** (9
+modules; 478/478 assertions; per-module coverage ≥ 95%). Phase 1b
+in flight (STDMOCK + STDSEED green; STDFIX pending). Phase 2 in
+flight (STDCOLL green; STDREGEX scaffolded). Next: STDFIX (`v0.1.1`)
+or finish Phase 2 implementation.
 
 Three living docs:
 - [`docs/m-stdlib-implementation-plan.md`](docs/m-stdlib-implementation-plan.md)
@@ -24,72 +28,62 @@ Three living docs:
 - [x] **v0.0.1** — full STDASSERT (9 helpers + silent toggle) +
       STDUUID v4/v7. 166/166 assertions green; 22/22 labels covered
       (100%); 0 lint findings; per-module docs written.
+- [x] **v0.0.2** (commit `83e11b2`) — STDB64 + STDHEX. RFC-4648
+      §10 vectors vendored. 104/104 assertions; 100% coverage.
+- [x] **v0.0.3** (commit `8e6b689`) — STDFMT (printf-style
+      formatter). 56/56 assertions; 100% coverage.
+- [x] **v0.0.4** (commit `abfa9a2`) — STDLOG (L4 + L4b folded in;
+      uses `$$now^STDDATE()` from day one). 45/45 assertions; 100%
+      coverage (15/15).
+- [x] **v0.0.5** (commit `1ec3b00`) — STDDATE (ISO-8601 datetime +
+      duration arithmetic). 60/60 assertions; 95% coverage (19/20).
+- [x] **v0.0.6** (commit `0f7de40`) — STDCSV (RFC-4180; conformance
+      corpus at `tests/conformance/csv/`). 59/59 assertions; 100%
+      coverage (6/6).
+- [x] **v0.0.7** (commit `c98d5a1`) — STDARGS. 37/37 assertions;
+      100% coverage (14/14).
+- [x] **v0.1.0** Phase 1 release roll-up — CHANGELOG collapsed;
+      `docs/modules/index.md` regenerated; tag applied 2026-05-05.
+- [x] **v0.1.2** (commit `c582dc2`) — STDMOCK (Phase 1b TDD
+      primitive). 26/26 assertions; 100% coverage (7/7).
+- [x] **v0.1.3** (commit `bdd4ce9`) — STDSEED (Phase 1b TDD
+      primitive). 25/25 assertions; 90.9% coverage (10/11).
 
 
 
 
 
 
-## Next: v0.0.2 — STDB64 + STDHEX
+## Next
 
-Update Todos
+**Phase 1b — TDD primitives** (target M1 sync per
+`docs/tdd-orchestration-plan.md`):
 
-Write tests/STDB64TST.m with RFC-4648 §10 vectors + URL-safe + round-trip + valid()
+- [ ] **L8 / `v0.1.1` — STDFIX** (TSTART/TROLLBACK isolation primitive).
+      The remaining Phase 1b module. Its m-cli companion track W
+      (runner SETUP/TEARDOWN wrap) is hard-blocked on this.
+- [ ] **M1 close** — pair (STDFIX, W), (STDMOCK, X), (STDSEED, Y) and
+      ship together. STDMOCK + STDSEED stdlib sides already shipped.
 
-Confirm TDD red against missing STDB64
+**Phase 2 — pure-M heavy lifting** (target `v0.2.0`; tracks
+mutually independent):
 
-Implement src/STDB64.m (encode/decode/urlencode/urldecode/valid)
+- [ ] **L12 / STDREGEX** — Thompson-NFA on YDB; `$MATCH` / `$LOCATE`
+      wrap on IRIS. Scaffold + 50 tests / 90 assertions in flight; see
+      "In flight" section below for current pass-by-pass plan.
+- [ ] **L11 / STDJSON** — RFC 8259; vendored JSONTestSuite at
+      `tests/conformance/json/`. Unblocks `STDLOG` JSON-line output
+      and `STDSEED.loadJson`.
+- [ ] **L13 / STDCOLL** — substance ✅ green in tree; pending its own
+      `v0.2.0`-track commit.
+- [ ] **L14 / STDURL** — RFC 3986; consumer of STDHTTP in Phase 3.
 
-Confirm STDB64TST green
+**Auxiliary tracks** (do when stuck on something else):
 
-Write tests/STDHEXTST.m (round-trip, case-insensitive decode, valid)
-
-Implement src/STDHEX.m (encode/encodeu/decode/valid)
-
-Run full per-module gate (fmt + lint + test + coverage)
-
-Write docs/modules/stdb64.md + stdhex.md
-
-Update CHANGELOG, plan, memory, TODO
-
-Commit, tag v0.0.2, push
-
-
-
-
-Per [implementation plan §8.3–§8.4](docs/m-stdlib-implementation-plan.md#83-stdb64--rfc-4648-base64).
-
-- [ ] Write `tests/STDB64TST.m` first. Vendor the RFC-4648 §10
-      vectors into `tests/conformance/b64/` and assert byte-equivalent
-      round-trip on every vector. Confirm TDD red.
-- [ ] Implement `src/STDB64.m`: `ENCODE`, `DECODE`, `URLENCODE`
-      (`-_`, no padding), `URLDECODE`, `VALID`. Lookup-table-based
-      hot loop on `$EXTRACT`.
-- [ ] Confirm TDD green.
-- [ ] Write `tests/STDHEXTST.m`. Round-trip on random byte strings
-      0..1024 bytes; case-insensitive decode; reject odd-length and
-      non-hex inputs.
-- [ ] Implement `src/STDHEX.m`: `ENCODE` (lowercase default),
-      `ENCODEU` (uppercase), `DECODE`, `VALID`.
-- [ ] Per-module gate (plan §9): `make check` + `make coverage` both
-      green; coverage ≥85% per module.
-- [ ] Write `docs/modules/stdb64.md` + `docs/modules/stdhex.md`.
-- [ ] Update CHANGELOG, plan §1 status table, memory.
-- [ ] Commit, tag `v0.0.2`, push.
-
-## Then: v0.0.3..v0.0.7
-
-| Tag | Module | Plan ref |
-|---|---|---|
-| `v0.0.3` | STDFMT (printf-style formatter) | §8.5 |
-| `v0.0.4` | STDLOG (text-only) + IRIS CI re-add | §8.6 |
-| `v0.0.5` | STDDATE (ISO-8601, replaces STDLOG inline ts) | §8.7 |
-| `v0.0.6` | STDCSV (RFC-4180 + conformance corpus) | §8.8 |
-| `v0.0.7` | STDARGS | §8.9 |
-| `v0.1.0` | Phase 1 release | §8.10 |
-
-Each PR: source + `*TST.m` + `docs/modules/*.md` + CHANGELOG entry.
-None of those are optional.
+- [ ] **A5** — IRIS `iris-portability-check` job re-add (fail-soft).
+- [ ] **A6** — `tools/build-callouts.sh` for $ZF SOs (Phase 3 prereq).
+- [ ] **A4** — Vendor RFC-4122 UUID test vectors to
+      `tests/conformance/uuid/`.
 
 ## In flight (parallel): L12 / v0.2.0 STDREGEX
 
