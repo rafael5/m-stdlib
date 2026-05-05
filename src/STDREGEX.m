@@ -73,12 +73,26 @@ compile(pattern)        ; Compile pattern into a handle.
         new ast,root,err,handle,src
         set src=$get(pattern)
         set err=$$parse(src,.ast,.root)
-        if err'="" set $ecode=",U-STDREGEX-"_err_"," quit ""
+        ; Why two checks: setting $ECODE in raise() fires the caller's
+        ; $ETRAP, and YDB resumes execution one physical line *below* the
+        ; line that fired the trap. A single-line `do raise quit ""` would
+        ; bypass its own quit, so the next line is a safety-net quit.
+        if err'="" do raise(err)
+        if err'="" quit ""
         set handle=$increment(^STDLIB($job,"stdregex"))
         set ^STDLIB($job,"stdregex",handle,"src")=src
         set ^STDLIB($job,"stdregex",handle,"root")=root
         merge ^STDLIB($job,"stdregex",handle,"ast")=ast
+        do buildNfa(handle)
         quit handle
+        ;
+raise(err)      ; Raise a U-STDREGEX-<err> error code via a fresh frame.
+        ; doc: Internal — fires the caller's $ETRAP from a nested frame so
+        ; doc: that the trap's QUIT-with-empty-$ECODE resumes execution
+        ; doc: at a known safe point in the caller (a guarded quit), not
+        ; doc: in the middle of post-error cleanup.
+        set $ecode=",U-STDREGEX-"_err_","
+        quit
         ;
 free(h) ; Release the compiled-pattern state.
         ; doc: Idempotent. The handle must not be reused after free().
@@ -431,4 +445,295 @@ pRange(st,ast,atomId)   ; '{' n [',' [m]] '}' — bounded quantifier.
 isDigit(c)      ; True iff c is one ASCII decimal digit.
         ; doc: Internal — used by pRange for {n,m} parsing.
         quit "0123456789"[c
+        ;
+        ; ---------- internal: NFA construction (Pass B) ----------
+        ;
+        ; Standard Thompson construction: every AST node yields a fragment
+        ; with an entry state and an exit state. Each NFA state owns 0..N
+        ; out-edges in priority order; lower edge index = higher priority,
+        ; so greedy quantifiers explore the loop edge before the skip edge.
+        ; Edge kinds:
+        ;   eps      — always passable, zero-width
+        ;   anchor   — zero-width; passable only when input position
+        ;              satisfies "^" (start) or "$" (end)
+        ;   capStart — zero-width side-effect: open capture group N
+        ;   capEnd   — zero-width side-effect: close capture group N
+        ;   literal  — consumes one input char if it equals "char"
+        ;   dot      — consumes one input char if not LF
+        ;   pred     — consumes one input char satisfying \d \D \w \W \s \S
+        ;   klass    — consumes one input char satisfying klass(astId)'s
+        ;              "item" entries; we keep a reference to the AST id
+        ;              rather than copying the items so the simulator can
+        ;              read them straight out of the global at match time
+        ;
+        ; State storage under handle h:
+        ;   ^STDLIB($job,"stdregex",h,"nfa","entry") — entry state id
+        ;   ^STDLIB($job,"stdregex",h,"nfa","exit")  — accept state id
+        ;   ^STDLIB($job,"stdregex",h,"nfa","next")  — last allocated state
+        ;   ^STDLIB($job,"stdregex",h,"nfa","groups")— max capture group num
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"n")           — edge count
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"kind")  — edge kind
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"target")— next state
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"char")  — for literal
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"sym")   — for anchor/pred
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"klassRef")— ast id
+        ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"group") — for capStart/End
+        ;
+buildNfa(h)     ; Build the NFA for handle h from its committed AST root.
+        ; doc: Internal — called by compile() once parse() has committed
+        ; doc: the AST. Allocates state ids densely from 1; sets entry/exit.
+        new root,frag
+        set ^STDLIB($job,"stdregex",h,"nfa","next")=0
+        set ^STDLIB($job,"stdregex",h,"nfa","groups")=0
+        set root=^STDLIB($job,"stdregex",h,"root")
+        do bld(h,root,.frag)
+        set ^STDLIB($job,"stdregex",h,"nfa","entry")=frag("entry")
+        set ^STDLIB($job,"stdregex",h,"nfa","exit")=frag("exit")
+        quit
+        ;
+newSt(h)        ; Allocate a fresh NFA state id under handle h.
+        ; doc: Internal — every fragment-builder calls this for endpoints.
+        quit $increment(^STDLIB($job,"stdregex",h,"nfa","next"))
+        ;
+addEps(h,s,target)      ; Append an ε-edge to state s.
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="eps"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addAnchor(h,s,sym,target)       ; Append an anchor edge ("^" or "$").
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="anchor"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"sym")=sym
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addCapStart(h,s,gnum,target)    ; Append a capture-group-open edge.
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="capStart"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"group")=gnum
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addCapEnd(h,s,gnum,target)      ; Append a capture-group-close edge.
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="capEnd"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"group")=gnum
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addLit(h,s,c,target)    ; Append a literal-char consume edge.
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="literal"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"char")=c
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addDot(h,s,target)      ; Append a dot consume edge (any char except LF).
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="dot"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addPred(h,s,sym,target) ; Append a predicate-class consume edge.
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="pred"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"sym")=sym
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+addKlass(h,s,ref,target)        ; Append a character-class consume edge.
+        new idx
+        set idx=$increment(^STDLIB($job,"stdregex",h,"nfa","s",s,"n"))
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"kind")="klass"
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"klassRef")=ref
+        set ^STDLIB($job,"stdregex",h,"nfa","s",s,"e",idx,"target")=target
+        quit
+        ;
+bld(h,id,frag)  ; Compile AST node id; populate frag("entry","exit").
+        ; doc: Internal — central dispatcher. Each AST node type has a
+        ; doc: matching bld* helper that allocates fresh state ids and
+        ; doc: writes its edges into the NFA global.
+        new t
+        set t=^STDLIB($job,"stdregex",h,"ast",id,"type")
+        if t="literal" do bldLit(h,id,.frag) quit
+        if t="dot" do bldDotN(h,.frag) quit
+        if t="anchor" do bldAnch(h,id,.frag) quit
+        if t="pred" do bldPredN(h,id,.frag) quit
+        if t="klass" do bldKlassN(h,id,.frag) quit
+        if t="concat" do bldConcat(h,id,.frag) quit
+        if t="alt" do bldAlt(h,id,.frag) quit
+        if t="star" do bldStar(h,id,.frag) quit
+        if t="plus" do bldPlus(h,id,.frag) quit
+        if t="quest" do bldQuest(h,id,.frag) quit
+        if t="range" do bldRange(h,id,.frag) quit
+        if t="group" do bldGroup(h,id,.frag) quit
+        quit
+        ;
+bldLit(h,id,frag)       ; literal — single consume edge.
+        new e,x
+        set e=$$newSt(h),x=$$newSt(h)
+        do addLit(h,e,^STDLIB($job,"stdregex",h,"ast",id,"char"),x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldDotN(h,frag) ; dot — single consume edge.
+        new e,x
+        set e=$$newSt(h),x=$$newSt(h)
+        do addDot(h,e,x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldAnch(h,id,frag)      ; anchor "^"/"$" — zero-width.
+        new e,x
+        set e=$$newSt(h),x=$$newSt(h)
+        do addAnchor(h,e,^STDLIB($job,"stdregex",h,"ast",id,"sym"),x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldPredN(h,id,frag)     ; predefined class \d \D \w \W \s \S.
+        new e,x
+        set e=$$newSt(h),x=$$newSt(h)
+        do addPred(h,e,^STDLIB($job,"stdregex",h,"ast",id,"sym"),x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldKlassN(h,id,frag)    ; user character class — refers back to AST items.
+        new e,x
+        set e=$$newSt(h),x=$$newSt(h)
+        do addKlass(h,e,id,x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldConcat(h,id,frag)    ; A B C ... — chain fragments through ε-edges.
+        ; doc: Internal — empty concat (no children) yields a one-state
+        ; doc: ε-fragment so callers can treat it uniformly.
+        new n,i,prev,first,sub
+        set n=0
+        for  set n=n+1 quit:'$data(^STDLIB($job,"stdregex",h,"ast",id,"child",n))
+        set n=n-1
+        if n=0 do  quit
+        . new e
+        . set e=$$newSt(h)
+        . set frag("entry")=e,frag("exit")=e
+        do bld(h,^STDLIB($job,"stdregex",h,"ast",id,"child",1),.first)
+        set frag("entry")=first("entry"),prev=first("exit")
+        for i=2:1:n do
+        . kill sub
+        . do bld(h,^STDLIB($job,"stdregex",h,"ast",id,"child",i),.sub)
+        . do addEps(h,prev,sub("entry"))
+        . set prev=sub("exit")
+        set frag("exit")=prev
+        quit
+        ;
+bldAlt(h,id,frag)       ; A | B | C — split entry, merge exits.
+        new n,i,e,x,sub
+        set e=$$newSt(h),x=$$newSt(h)
+        set n=0
+        for  set n=n+1 quit:'$data(^STDLIB($job,"stdregex",h,"ast",id,"branch",n))
+        set n=n-1
+        for i=1:1:n do
+        . kill sub
+        . do bld(h,^STDLIB($job,"stdregex",h,"ast",id,"branch",i),.sub)
+        . do addEps(h,e,sub("entry"))
+        . do addEps(h,sub("exit"),x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldStar(h,id,frag)      ; A* — greedy: try child first, then skip.
+        new e,x,sub
+        set e=$$newSt(h),x=$$newSt(h)
+        do bld(h,^STDLIB($job,"stdregex",h,"ast",id,"child"),.sub)
+        ; Edge order matters — priority 1 is the loop, priority 2 is the
+        ; skip. The simulator walks edges in order, so "greedy" falls out
+        ; of "explore the loop before the exit".
+        do addEps(h,e,sub("entry"))
+        do addEps(h,e,x)
+        do addEps(h,sub("exit"),e)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldPlus(h,id,frag)      ; A+ — child runs once, then optional repeat.
+        new e,x,sub
+        do bld(h,^STDLIB($job,"stdregex",h,"ast",id,"child"),.sub)
+        set x=$$newSt(h)
+        do addEps(h,sub("exit"),sub("entry"))
+        do addEps(h,sub("exit"),x)
+        set frag("entry")=sub("entry"),frag("exit")=x
+        quit
+        ;
+bldQuest(h,id,frag)     ; A? — split entry, no loop.
+        new e,x,sub
+        set e=$$newSt(h),x=$$newSt(h)
+        do bld(h,^STDLIB($job,"stdregex",h,"ast",id,"child"),.sub)
+        do addEps(h,e,sub("entry"))
+        do addEps(h,e,x)
+        do addEps(h,sub("exit"),x)
+        set frag("entry")=e,frag("exit")=x
+        quit
+        ;
+bldRange(h,id,frag)     ; {n}, {n,}, {n,m} — unrolled into n required +
+        ; doc: optional copies. Test patterns use small bounds (n<=4) so
+        ; doc: unrolling is fine; a future pass could special-case large m.
+        new childAst,n,m,i,sub,prev,e,x
+        set childAst=^STDLIB($job,"stdregex",h,"ast",id,"child")
+        set n=^STDLIB($job,"stdregex",h,"ast",id,"min")
+        set m=^STDLIB($job,"stdregex",h,"ast",id,"max")
+        ; Build the n required copies, chained.
+        if n=0 do
+        . set e=$$newSt(h)
+        . set frag("entry")=e,frag("exit")=e
+        else  do
+        . kill sub
+        . do bld(h,childAst,.sub)
+        . set frag("entry")=sub("entry"),prev=sub("exit")
+        . for i=2:1:n do
+        . . new s2
+        . . do bld(h,childAst,.s2)
+        . . do addEps(h,prev,s2("entry"))
+        . . set prev=s2("exit")
+        . set frag("exit")=prev
+        ; m="" means {n,} — append a star fragment.
+        if m="" do  quit
+        . new se,sx,s3
+        . set se=$$newSt(h),sx=$$newSt(h)
+        . do bld(h,childAst,.s3)
+        . do addEps(h,se,s3("entry"))
+        . do addEps(h,se,sx)
+        . do addEps(h,s3("exit"),se)
+        . do addEps(h,frag("exit"),se)
+        . set frag("exit")=sx
+        ; m>n means {n,m} — append (m-n) optional copies (each a quest).
+        if m>n do
+        . for i=1:1:(m-n) do
+        . . new qe,qx,q
+        . . set qe=$$newSt(h),qx=$$newSt(h)
+        . . do bld(h,childAst,.q)
+        . . do addEps(h,qe,q("entry"))
+        . . do addEps(h,qe,qx)
+        . . do addEps(h,q("exit"),qx)
+        . . do addEps(h,frag("exit"),qe)
+        . . set frag("exit")=qx
+        quit
+        ;
+bldGroup(h,id,frag)     ; (A) capturing or (?:A) non-capturing.
+        new childAst,capturing,gnum,e,x,sub
+        set childAst=^STDLIB($job,"stdregex",h,"ast",id,"child")
+        set capturing=^STDLIB($job,"stdregex",h,"ast",id,"capturing")
+        do bld(h,childAst,.sub)
+        if 'capturing set frag("entry")=sub("entry"),frag("exit")=sub("exit") quit
+        set gnum=^STDLIB($job,"stdregex",h,"ast",id,"groupNum")
+        set e=$$newSt(h),x=$$newSt(h)
+        do addCapStart(h,e,gnum,sub("entry"))
+        do addCapEnd(h,sub("exit"),gnum,x)
+        set frag("entry")=e,frag("exit")=x
+        if gnum>$get(^STDLIB($job,"stdregex",h,"nfa","groups")) set ^STDLIB($job,"stdregex",h,"nfa","groups")=gnum
+        quit
         ;
