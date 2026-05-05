@@ -83,7 +83,7 @@ edge above). Each is roughly 1–2 weeks for one contributor.
 | **L7** | v0.0.7 | STDARGS | everything | ✅ **Shipped** in `v0.0.7` (commit `c98d5a1`). argparse-style parser over `$ZCMDLINE`. |
 | **L4b** | — | STDLOG bump to `$$now^STDDATE()` | — | ✅ **Folded into L4 / `v0.0.4`** rather than shipping as a follow-on tag. |
 
-**Phase 1 closed.** All seven tracks merged and rolled up under
+✅ **Phase 1 closed.** All seven tracks merged and rolled up under
 `v0.1.0` (commit `3cf84f2`, 2026-05-05).
 
 ### 3.2 m-stdlib Phase 1b — TDD primitives (M1)
@@ -97,10 +97,9 @@ Could in principle start before Phase 1 completes.
 | **L9** | v0.1.2 | STDMOCK | everything | ✅ **Shipped** in `v0.1.2` (commit `c582dc2`). Opt-in `invoke^STDMOCK` interception. 26/26 assertions; 7/7 labels (100%); 0 lint. |
 | **L10** | v0.1.3 | STDSEED | works with STDFIX but does not require it | ✅ **Shipped** in `v0.1.3` (commit `bdd4ce9`). TSV manifest → pluggable filer (default `fileViaDie^STDSEED` calls `FILE^DIE`). 25/25 assertions; 10/11 labels (90.9% — `fileViaDie` real-FileMan path pending v0.1.4). `loadJson` is a stub raising `U-STDSEED-NOT-IMPLEMENTED` until L11 (STDJSON) ships in Phase 2. |
 
-**Phase 1b closed (stdlib side).** All three tracks shipped and rolled
-up alongside Phase 1 in the v0.1.x series. Each still pairs with an
-m-cli companion track (W/X/Y in §3.4) — those companions are now
-unblocked.
+✅ **Phase 1b closed.** All three stdlib tracks shipped and rolled up
+alongside Phase 1 in the v0.1.x series. Their m-cli companion tracks
+(W/X/Y in §3.4) all landed together in m-cli `e5818bd`, closing M1.
 
 ### 3.3 m-stdlib Phase 2 — pure-M heavy lifting
 
@@ -125,23 +124,22 @@ Three categories:
 
 | Track | Capability | Independent of | Notes |
 |---|---|---|---|
-| **C1** | TOOLCHAIN P1 fix: drop `^TESTRUN` hardcode in single-test runner | everything | Prereq for W/X/Y but not for itself |
-| **C2** | `m test --format=junit` | everything | Pure Python; ~1–2 days |
-| **C3** | `m test --coverage-min N` / `m coverage --min-percent N` | everything | Pure Python; ~1 day |
-| **C4** | `m coverage --branch` | everything | **MVP shipped 2026-05-05** — branch-reach detection (line-level), text/JSON/LCOV output. True/false outcome split deferred (needs ZBREAK-style per-command instrumentation). |
-| **C5** | `m test --changed` | everything | **Shipped 2026-05-05** — git-status / git-diff backed; reuses `m watch` affinity. `--changed-base REV` for diffing against a revision. |
+| **C1** | TOOLCHAIN P1 fix: drop `^TESTRUN` hardcode in single-test runner | everything | ✅ **Shipped 2026-05-05** (m-cli `23241a2`) — `m_cli.test.discovery.detect_protocol(src)` scans for `do start^XYZ(.pass,.fail)` and records the assertion-library routine on each `TestCase.protocol` (defaults to `TESTRUN` for backwards compatibility); `run_case` invokes `do start^{protocol}` / `do report^{protocol}` so STDASSERT-driven suites work via single-test selection without source edits. Closes the m-stdlib P1 TOOLCHAIN-FINDINGS row. |
+| **C2** | `m test --format=junit` | everything | ✅ **Shipped 2026-05-05** (m-cli `23241a2`) — `_write_junit()` in `m_cli.test.output` emits Jenkins-style XML over the parsed `RunResult` list. `--format` choices are `text` / `tap` / `json` / `junit` in `m_cli.cli`. |
+| **C3** | `m test --coverage-min N` / `m coverage --min-percent N` | everything | ✅ **Shipped 2026-05-05** (m-cli `23241a2`) — `m coverage --min-percent N` exits 1 when measured coverage is below the threshold; threshold echoed in text mode and surfaced as `min_percent` in JSON output. |
+| **C4** | `m coverage --branch` | everything | ✅ **MVP shipped 2026-05-05** (m-cli `23241a2`) — branch-reach detection (line-level), text/JSON/LCOV output. True/false outcome split deferred (needs ZBREAK-style per-command instrumentation). |
+| **C5** | `m test --changed` | everything | ✅ **Shipped 2026-05-05** (m-cli `23241a2`) — git-status / git-diff backed; reuses `m watch` affinity. `--changed-base REV` for diffing against a revision. |
 
 **Hard-blocked on a specific stdlib module (start when that module ships):**
 
 | Track | Capability | Blocked on | Notes |
 |---|---|---|---|
-| **W** | Runner SETUP/TEARDOWN wrap | L8 (STDFIX) ships | ⚪ **Unblocked** — L8 shipped (`v0.1.1`). Single-line wrapper change in m-cli. |
-| **X** | Runner `CLEAR^STDMOCK` between tests | L9 (STDMOCK) ships | ⚪ **Unblocked** — L9 shipped (`v0.1.2`). Single-line addition in m-cli runner loop. |
-| **Y** | `m test --seed PATH` | L10 (STDSEED) ships | ⚪ **Unblocked** — L10 shipped (`v0.1.3`). New CLI flag + load step in m-cli. |
+| **W** | Runner SETUP/TEARDOWN wrap | L8 (STDFIX) ships | ✅ **Shipped** in m-cli (commit `e5818bd`) — STDFIX-style per-test transactional isolation in the runner loop. |
+| **X** | Runner `CLEAR^STDMOCK` between tests | L9 (STDMOCK) ships | ✅ **Shipped** in m-cli (commit `e5818bd`) — `do clear^STDMOCK` between tests. |
+| **Y** | `m test --seed PATH` | L10 (STDSEED) ships | ✅ **Shipped** in m-cli (commit `e5818bd`) — `--seed PATH` flag (repeatable) loads STDSEED TSV manifests before each test. |
 
-W, X, Y are mutually independent of each other and all three are
-**ready to dispatch** in `~/projects/m-cli/`. Each will close M1 for
-its respective pair.
+W, X, Y all landed together in m-cli `e5818bd`, closing M1 across all
+three (stdlib, m-cli) pairs.
 
 **Hard-blocked on parent plan (vista-orchestration):**
 
@@ -200,10 +198,13 @@ Phase 2   L11 STDJSON                      ✅ landed on main (awaits v0.2.0 tag
           L12 STDREGEX                     🟡 Pass A done; Passes B–E outstanding
           L13 STDCOLL                      ✅ landed on main (awaits v0.2.0 tag)
           L14 STDURL                       ✅ landed on main (awaits v0.2.0 tag)
-m-cli     C4 --branch coverage MVP         ✅ shipped 2026-05-05
+m-cli     C1 dynamic ^TESTRUN protocol     ✅ shipped
+          C2 --format=junit                ✅ shipped
+          C3 --coverage-min / --min-percent ✅ shipped
+          C4 --branch coverage MVP         ✅ shipped 2026-05-05
           C5 --changed                     ✅ shipped 2026-05-05
-          W / X / Y                        ⚪ unblocked (m-cli side outstanding)
-          C1 / C2 / C3 / C6                — see §3.4
+          W / X / Y                        ✅ shipped (m-cli e5818bd) — closes M1
+          C6 --integration                 — blocked on parent-plan Phase 4
 Aux       A1, A2, A3, A4, A5, A6, A7       ✅ ALL DONE
 STDASSERT V1, V2, V3                       — see §3.6
 Parent    P1, P2, P3                       — see §3.7
@@ -236,8 +237,8 @@ Where parallelism ends and a join is required:
 
 | Sync | What joins | Why |
 |---|---|---|
-| **v0.1.0 release** | L1–L7 (and L4-bump after L5) | Phase 1 release tag; CHANGELOG roll-up; GitHub Release |
-| **M1 close** | L8 + W; L9 + X; L10 + Y | Each (stdlib, m-cli) pair must ship together for the runner protocol to work |
+| **v0.1.0 release** ✅ | L1–L7 (and L4-bump after L5) | Phase 1 release tag; CHANGELOG roll-up; GitHub Release |
+| **M1 close** ✅ | L8 + W; L9 + X; L10 + Y | Each (stdlib, m-cli) pair must ship together for the runner protocol to work. All three pairs landed (W/X/Y in m-cli `e5818bd`). |
 | **v0.2.0 release** | L11–L14 + STDLOG-JSON add-on + STDSEED-JSON add-on | Phase 2 release tag |
 | **Phase 3 entry** | A6 (build harness) before STDHTTP / STDCRYPTO / STDCOMPRESS | Build infra must work before any Phase 3 track starts |
 | **v0.3.0 release** | All Phase 3 tracks + jwt-verify example | Phase 3 release |
@@ -262,21 +263,19 @@ zero-blocked, ready-to-dispatch tracks today are:
 - **STDSEED `LOADJSON` add-on** — replaces the
   `U-STDSEED-NOT-IMPLEMENTED` stub now that L11 has shipped.
 
-**Closes M1** (the matching M-side track is ready now):
+**M1 closed** (W, X, Y all shipped in m-cli `e5818bd`):
 
-- **m-cli W** — `with`/`invoke` wrap in the runner loop (consumes
+- ✅ **m-cli W** — `with`/`invoke` wrap in the runner loop (consumes
   `STDFIX`).
-- **m-cli X** — `do clear^STDMOCK` between tests (consumes `STDMOCK`).
-- **m-cli Y** — `m test --seed PATH` flag (consumes `STDSEED`).
+- ✅ **m-cli X** — `do clear^STDMOCK` between tests (consumes `STDMOCK`).
+- ✅ **m-cli Y** — `m test --seed PATH` flag (consumes `STDSEED`).
 
-W, X, Y are mutually independent and live in `~/projects/m-cli/`.
+**m-cli enhancements** (independent of any stdlib work) — all shipped:
 
-**m-cli enhancements still open** (independent of any stdlib work):
-
-- **C1** — drop hardcoded `^TESTRUN` in m-cli single-test runner
-  (TOOLCHAIN P1 fix).
-- **C2** — `m test --format=junit`.
-- **C3** — `m test --coverage-min N` / `m coverage --min-percent N`.
+- ✅ **C1** — `^TESTRUN` hardcode dropped from m-cli single-test runner;
+  protocol resolves dynamically per suite (TOOLCHAIN P1 fix).
+- ✅ **C2** — `m test --format=junit`.
+- ✅ **C3** — `m coverage --min-percent N`.
 
 **STDASSERT migrations** (real-project consumers per §3.6):
 
