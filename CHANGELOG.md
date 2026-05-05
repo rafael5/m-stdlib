@@ -100,6 +100,26 @@ Pre-1.0 minor versions may include breaking changes.
   errors (one M-MOD-036 line is suppressed with justification — the
   documented purpose of `invoke` is registered-target indirection).
   Per-module doc at `docs/modules/stdmock.md`.
+- **`STDSEED`** — declarative test-data loader (track L10, Phase 1b
+  TDD primitive, target tag `v0.1.3`). One public procedure
+  (`load`), three extrinsics (`$$loaded`, `$$validate`, default-filer
+  internals), and `clear` / `loadJson` companions. TSV manifest
+  format: `<file>\t<field>=<value>\t…` with `#` comments and blank
+  lines skipped; the first `=` per pair is the separator (values
+  may contain further `=`). Each row dispatches to a pluggable
+  *filer* — default `fileViaDie^STDSEED` calls `FILE^DIE` and
+  surfaces `^TMP("DIERR",$J)` as `U-STDSEED-FILER-DIE-ERROR`; tests
+  inject a stub filer so the suite runs without FileMan. Bookkeeping
+  per loaded path under `^STDLIB($job,"stdseed",path,...)` so
+  `clear` can drop it. `loadJson` is a stub raising
+  `U-STDSEED-NOT-IMPLEMENTED` until STDJSON ships in Phase 2.
+  Errors set `$ECODE` to `U-STDSEED-{FILE-NOT-FOUND, MISSING-FILE,
+  MISSING-FIELD, FILER-ERROR, FILER-DIE-ERROR, NOT-IMPLEMENTED}`.
+  25/25 assertions green; 10/11 labels covered (90.9%) — the only
+  uncovered label is `fileViaDie`, the real-FileMan integration
+  pending v0.1.4 + STDFIX rollback. Per-module doc at
+  `docs/modules/stdseed.md`. Pairs with the m-cli runner track Y
+  flag `m test --seed PATH` once M1 lands.
 
 ## [v0.0.1] — 2026-04-30
 
