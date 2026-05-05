@@ -79,11 +79,11 @@ Pre-1.0 minor versions may include breaking changes.
   format: `<ISO ts> level=<NAME> event=<event> k=v k=v ...`; values
   are emitted raw when clean, otherwise wrapped in `"..."` with
   `\\` and `\"` escaping. Errors set `$ECODE` to
-  `U-STDLOG-INVALID-LEVEL` or `U-STDLOG-INVALID-SINK`. Ships an
-  inline ISO-8601 timestamp helper (replaced by `$$now^STDDATE()`
-  in track L4b once STDDATE merges at v0.0.5). 45/45 assertions
-  green; 100% label coverage (18/18); 0 lint errors. Per-module doc
-  at `docs/modules/stdlog.md`. Pending sub-track (per impl-plan
+  `U-STDLOG-INVALID-LEVEL` or `U-STDLOG-INVALID-SINK`. Timestamp
+  source: `$$now^STDDATE()` (track L4b folded into the v0.0.4
+  commit since L5 STDDATE landed first). 45/45 assertions green;
+  100% label coverage (15/15); 0 lint errors. Per-module doc at
+  `docs/modules/stdlog.md`. Pending sub-track (per impl-plan
   §8.6): re-introduce IRIS `iris-portability-check` job in CI
   (fail-soft) — auxiliary track A5.
 - **`STDMOCK`** — opt-in test-time call interception (track L9, Phase
