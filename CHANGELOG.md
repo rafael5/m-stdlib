@@ -25,6 +25,15 @@ Pre-1.0 minor versions may include breaking changes.
 - **Conformance corpus skeleton**: `tests/conformance/b64/` populated
   with the §10 vectors; `tests/conformance/{csv,json,uuid}/`
   directories created for future modules.
+- **`STDFMT`** — printf-style formatter (subset of Python `str.format`).
+  Two public extrinsics: `f` (up to 9 positional) and `fn` (named
+  via local array). Format spec covers fill / align / width /
+  precision / type (`s d f x X o b`). `{{` and `}}` escape literal
+  braces. Float precision uses `$FNUMBER` rounding. Errors set
+  `$ECODE` to documented `U-STDFMT-*` codes. 56/56 assertions green;
+  100% label coverage (11/11); 0 lint errors. Per-module doc at
+  `docs/modules/stdfmt.md`. Error-path unit tests deferred — see
+  TOOLCHAIN-FINDINGS P1 against `STDASSERT.raises`.
 
 ## [v0.0.1] — 2026-04-30
 
