@@ -490,7 +490,7 @@ green. Each PR carries: source + `*TST.m` + `docs/modules/<name>.md`
 | `v0.0.2` | Base64 + Hex (RFC-4648) | `STDB64.m`, `STDHEX.m` | ~400 | ~80 | next |
 | `v0.0.3` | Printf-style formatter | `STDFMT.m` | ~300 | ~60 |
 | `v0.0.4` | Structured logger (text-only) + IRIS CI re-add | `STDLOG.m` | ~200 | ~40 |
-| `v0.0.5` | ISO-8601 datetime | `STDDATE.m` | ~400 | ~80 |
+| `v0.0.5` | ISO-8601 datetime | `STDDATE.m` | ~400 | ~80 | ✅ green 2026-05-05 — 60/60 assertions, 19/20 labels (95.0%), 0 lint errors. Error-path raises tests deferred per STDASSERT.raises limitation. |
 | `v0.0.6` | RFC-4180 CSV | `STDCSV.m` | ~300 | ~50 |
 | `v0.0.7` | argparse | `STDARGS.m` | ~400 | ~50 |
 | `v0.1.0` | Phase 1 release: CHANGELOG roll-up, GitHub Release, source tarball, regenerated docs index | — | — | — |
