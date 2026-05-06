@@ -1,0 +1,14 @@
+# STDSEED TSV manifest — VistA fixture seed-data.
+# Format (per docs/modules/stdseed.md):
+#   <FILE>\t<FIELD>=<VALUE>\t<FIELD>=<VALUE>...
+# Lines beginning with '#' are comments. Blank lines are skipped.
+#
+# Each row dispatches once via `filer` — default `fileViaDie^STDSEED`
+# calls FILE^DIE; tests can pass an explicit `capture^*TST` filer to
+# stub the file-write and just record the request.
+#
+# Replace these example rows with seeds for your package's tests.
+
+PATIENT	.01=SMITH,JOHN	.02=M	.03=2 7 80	.09=123-45-6789
+PATIENT	.01=DOE,JANE	.02=F	.03=12 1 75	.09=987-65-4321
+PATIENT	.01=ROE,RICHARD	.02=M	.03=8 15 65	.09=555-12-3456

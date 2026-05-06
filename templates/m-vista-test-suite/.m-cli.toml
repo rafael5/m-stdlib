@@ -1,0 +1,17 @@
+# Lint configuration for a VistA-targeted test suite.
+# Same shape as m-cli/docs/vista-lint-presets/m-cli.toml.example —
+# vista-full profile + Kernel-locals + trusted-routines allowlists.
+
+[lint]
+rules = "vista-full"
+target_engine = "yottadb"
+
+[lint.vista]
+kernel_locals = "default"
+trusted_routines = "default"
+
+# Test files conventionally use `pass` / `fail` as by-ref counters
+# and delegate to STDASSERT — m-cli's M-MOD-020 false-positive on
+# this idiom is silenced via a file-wide directive in each *TST.m.
+# (Per m-stdlib's own STDASSERTTST suite; the directive needs to
+# live in the file, not config.)
