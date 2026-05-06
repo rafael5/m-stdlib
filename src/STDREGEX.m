@@ -144,7 +144,18 @@ groups(h,s,g)   ; Populate g(0..N) with the full match text and each capture gro
         ; doc: numbering ignores (?:...) non-capturing groups. Sets $ECODE to
         ; doc: U-STDREGEX-NO-MATCH if pattern does not match s.
         ; doc: Example: do groups^STDREGEX(h,"42-foo",.g)
-        ; Stub: capture tracking lands in Pass D.
+        new str,len,startPos,bestEnd,winCaps,k,gnum
+        kill g
+        set str=$get(s),len=$length(str),bestEnd=0
+        for startPos=1:1:len+1 do  quit:bestEnd>0
+        . kill winCaps
+        . set bestEnd=$$attemptCap(h,str,startPos,len,.winCaps)
+        if bestEnd=0 do raise("NO-MATCH")
+        if bestEnd=0 quit
+        set g(0)=$extract(str,winCaps(0,"s"),winCaps(0,"e")-1)
+        set gnum=+$get(^STDLIB($job,"stdregex",h,"nfa","groups"),0)
+        for k=1:1:gnum do
+        . if $data(winCaps(k,"s")),$data(winCaps(k,"e")) set g(k)=$extract(str,winCaps(k,"s"),winCaps(k,"e")-1)
         quit
         ;
 replace(h,s,repl)       ; Return s with every match replaced by repl.
@@ -853,4 +864,101 @@ klassMatch(h,id,c)      ; True iff char c matches the user character class at AS
         . if kind="pred" if $$predMatch(^STDLIB($job,"stdregex",h,"ast",id,"item",n,"sym"),c) set result=1
         if neg quit 'result
         quit result
+        ;
+        ; ---------- internal: NFA simulation with captures (Pass D) ----------
+        ;
+        ; Same shape as Pass C's attempt/epsClose/step but each thread now
+        ; carries a capture map { groupNum -> start, groupNum -> end }.
+        ; State dedup is first-arrival-wins; eps-closure is recursive DFS in
+        ; edge-priority order, so the greedy preference (loop edge before
+        ; skip edge) determines whose caps survive at any state both paths
+        ; reach.
+        ;
+        ; Simulation continues past the first accept hit. Each later accept
+        ; hit overwrites bestEnd / winCaps; the recorded caps belong to the
+        ; thread that made the longest match. That delivers leftmost-greedy
+        ; capture semantics for the v0.2.0 subset.
+        ;
+attemptCap(h,str,startPos,len,winCaps)  ; Like attempt() but tracks captures.
+        ; doc: Internal — returns 0 on no match, otherwise the rightmost
+        ; doc: position one past the last consumed char where the accept
+        ; doc: state was reached. winCaps is by-reference and on success
+        ; doc: holds (g,"s")/(g,"e") for every group plus (0,"s")/(0,"e")
+        ; doc: for the full match.
+        new entry,exit,active,closed,next,bestEnd,p,c,isStart,isEnd,st,srcCaps,emptyCaps
+        kill winCaps
+        set entry=^STDLIB($job,"stdregex",h,"nfa","entry")
+        set exit=^STDLIB($job,"stdregex",h,"nfa","exit")
+        set isStart=(startPos=1)
+        set isEnd=(startPos>len)
+        kill active
+        do epsCloseCap(h,.emptyCaps,entry,isStart,isEnd,startPos,.active)
+        set bestEnd=0
+        if $data(active(exit)) do
+        . set bestEnd=startPos
+        . kill winCaps merge winCaps=active(exit,"cap")
+        . set winCaps(0,"s")=startPos,winCaps(0,"e")=startPos
+        for p=startPos:1:len do  quit:'$data(active)
+        . set c=$extract(str,p)
+        . kill next
+        . do stepCap(h,c,.active,.next)
+        . if '$data(next) kill active quit
+        . set isStart=0
+        . set isEnd=((p+1)>len)
+        . kill closed
+        . set st=""
+        . for  set st=$order(next(st)) quit:st=""  do
+        . . kill srcCaps merge srcCaps=next(st,"cap")
+        . . do epsCloseCap(h,.srcCaps,st,isStart,isEnd,p+1,.closed)
+        . kill active merge active=closed
+        . if $data(active(exit)) do
+        . . set bestEnd=p+1
+        . . kill winCaps merge winCaps=active(exit,"cap")
+        . . set winCaps(0,"s")=startPos,winCaps(0,"e")=p+1
+        quit bestEnd
+        ;
+stepCap(h,c,active,next)        ; Consume char c; carry cap state forward.
+        ; doc: Internal — only consuming edges (literal/dot/pred/klass)
+        ; doc: are followed; first-arrival wins for next-state caps.
+        new st,n,i,kind,target
+        set st=""
+        for  set st=$order(active(st)) quit:st=""  do
+        . set n=+$get(^STDLIB($job,"stdregex",h,"nfa","s",st,"n"),0)
+        . for i=1:1:n do
+        . . set kind=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"kind")
+        . . set target=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"target")
+        . . if kind="literal" if c=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"char") if '$data(next(target)) set next(target)="" merge next(target,"cap")=active(st,"cap")
+        . . if kind="dot" if c'=$char(10) if '$data(next(target)) set next(target)="" merge next(target,"cap")=active(st,"cap")
+        . . if kind="pred" if $$predMatch(^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"sym"),c) if '$data(next(target)) set next(target)="" merge next(target,"cap")=active(st,"cap")
+        . . if kind="klass" if $$klassMatch(h,^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"klassRef"),c) if '$data(next(target)) set next(target)="" merge next(target,"cap")=active(st,"cap")
+        quit
+        ;
+epsCloseCap(h,srcCaps,st,isStart,isEnd,pos,active)
+        ; doc: Internal — recursive DFS over zero-width edges in edge-index
+        ; doc: order. First arrival at a state wins; capStart / capEnd
+        ; doc: stamp pos into a fresh capture map before recursing.
+        new n,i,kind,target,sym,g,newCaps
+        if $data(active(st)) quit
+        set active(st)=""
+        merge active(st,"cap")=srcCaps
+        set n=+$get(^STDLIB($job,"stdregex",h,"nfa","s",st,"n"),0)
+        for i=1:1:n do
+        . set kind=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"kind")
+        . set target=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"target")
+        . if kind="eps" do epsCloseCap(h,.srcCaps,target,isStart,isEnd,pos,.active)
+        . if kind="capStart" do
+        . . set g=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"group")
+        . . kill newCaps merge newCaps=srcCaps
+        . . set newCaps(g,"s")=pos
+        . . do epsCloseCap(h,.newCaps,target,isStart,isEnd,pos,.active)
+        . if kind="capEnd" do
+        . . set g=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"group")
+        . . kill newCaps merge newCaps=srcCaps
+        . . set newCaps(g,"e")=pos
+        . . do epsCloseCap(h,.newCaps,target,isStart,isEnd,pos,.active)
+        . if kind="anchor" do
+        . . set sym=^STDLIB($job,"stdregex",h,"nfa","s",st,"e",i,"sym")
+        . . if (sym="^")&isStart do epsCloseCap(h,.srcCaps,target,isStart,isEnd,pos,.active)
+        . . if (sym="$")&isEnd do epsCloseCap(h,.srcCaps,target,isStart,isEnd,pos,.active)
+        quit
         ;
