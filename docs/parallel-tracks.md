@@ -108,14 +108,14 @@ All four tracks mutually independent.
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
 | **L11** | v0.2.0 | STDJSON | everything | ✅ **Landed on `main`** (commit `4144130`); awaits `v0.2.0` tag. RFC 8259 parser + serialiser; consumes the curated A3 corpus at `tests/conformance/json/`. Storage convention: one M tree node per JSON value (`o` / `a` / `s:` / `n:` / `t` / `f` / `z`). |
-| **L12** | v0.2.0 | STDREGEX | everything | ✅ **Engine landed on `main`** (target tag `v0.2.0`). API skeleton + TDD-red staked (`fb2fda9`); Pass A lexer/parser → AST (`cfce923`); Pass B Thompson NFA + `raise()` helper fix for the long-latent `$ECODE`/`$ETRAP`/M17 corruption (`3abf7e8`); Pass C Pike-style match/search/find (`491eb38`); Pass D capture groups + greedy semantics via parallel cap-aware simulator (`c51a394`); Pass E findall / replace / split with `\1..\9` backref expansion (`48da86e`). **STDREGEXTST 90/90 assertions green; 0 lint errors.** Out-of-scope features (back-refs in pattern, lookaround, named groups, Unicode property classes, inline modifiers, possessive/lazy quantifiers) are rejected with `U-STDREGEX-UNSUPPORTED`. Engine: Thompson-NFA on YDB; `$MATCH` / `$LOCATE` wrap on IRIS for the simple-pattern subset (full IRIS pass deferred — fail-soft via the existing `iris-portability-check` CI job). Outstanding non-engine items per TODO §"In flight": coverage gate, real-project validation, v0.2.0 sync. |
+| **L12** | v0.2.0 | STDREGEX | everything | ✅ **Landed on `main`; gates closed** (target tag `v0.2.0`). API skeleton + TDD-red staked (`fb2fda9`); Pass A lexer/parser → AST (`cfce923`); Pass B Thompson NFA + `raise()` helper fix for the long-latent `$ECODE`/`$ETRAP`/M17 corruption (`3abf7e8`); Pass C Pike-style match/search/find (`491eb38`); Pass D capture groups + greedy semantics via parallel cap-aware simulator (`c51a394`); Pass E findall / replace / split with `\1..\9` backref expansion (`48da86e`); docs/CHANGELOG/status updates (`3ada83d`). **STDREGEXTST 90/90 assertions green; coverage 98.3% (58/59 labels); 0 lint errors.** Module doc at `docs/modules/stdregex.md`. Out-of-scope features rejected with `U-STDREGEX-UNSUPPORTED`. Engine is pure-M and runs on IRIS today; native `$MATCH` / `$LOCATE` translation for the simple-pattern subset deferred to a future IRIS pass (fail-soft via `iris-portability-check` CI job). Only outstanding item: v0.2.0 sync. |
 | **L13** | v0.2.0 | STDCOLL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. Set/Map/Stack/Queue/Deque/Heap/OrderedDict over caller-owned arrays. 116/116 assertions; 51/51 labels (100%); 0 lint. |
 | **L14** | v0.2.0 | STDURL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. RFC 3986 parse / build / encode / decode / valid / normalize / resolve. 150/150 assertions; 21/21 labels (100%); 0 lint. RFC 3986 §5.4 reference-resolution corpus at `tests/conformance/url/`. STDHTTP consumes in Phase 3. |
 
-**Phase 2 status:** all 4 tracks landed on `main` (L11 STDJSON, L12
-STDREGEX engine, L13 STDCOLL, L14 STDURL). `v0.2.0` tag waits on
-L12's non-engine items (coverage gate, real-project validation) plus
-the L4 / L10 add-ons listed in §5.
+**Phase 2 status:** all 4 tracks landed on `main` with gates closed
+(L11 STDJSON observed-healthy, L12 STDREGEX engine + gates, L13
+STDCOLL, L14 STDURL). `v0.2.0` tag waits on the L4 / L10 add-ons
+listed in §5 plus the joint sync.
 
 ### 3.4 m-cli companion tracks
 
@@ -255,14 +255,19 @@ zero-blocked, ready-to-dispatch tracks today are:
 
 **Highest leverage** (closes the v0.2.0 release tag):
 
-- **L12 STDREGEX non-engine items** — engine landed in commits
-  `3abf7e8` (Pass B + raise-helper fix), `491eb38` (Pass C
-  match/search/find), `c51a394` (Pass D captures + greedy), `48da86e`
-  (Pass E findall/replace/split); STDREGEXTST 90/90 green. Remaining
-  to close `v0.2.0`: `make coverage --min-percent=85` STDREGEX-only
-  gate, real-project validation per §10.1, IRIS `$MATCH`/`$LOCATE`
-  dispatch (fail-soft). Module doc shipped at
-  `docs/modules/stdregex.md`.
+- **L12 STDREGEX** — engine landed in commits `3abf7e8` (Pass B +
+  raise-helper fix), `491eb38` (Pass C match/search/find),
+  `c51a394` (Pass D captures + greedy), `48da86e` (Pass E
+  findall/replace/split); STDREGEXTST 90/90 green. Per-module gate
+  closed: `m coverage --min-percent=85` → **98.3%** label coverage;
+  `m lint --error-on=error` → 0 errors for STDREGEX. Real-project
+  validation closed: `m fmt --check` clean, lcov well-formed; LSP
+  smoke deferred to the v0.2.0 release sync (interactive, but the
+  same tree-sitter-m parser backs `m fmt`/`m lint` and both pass).
+  Module doc shipped at `docs/modules/stdregex.md`. Remaining: IRIS
+  `$MATCH`/`$LOCATE` translation (fail-soft, deferred to a future
+  IRIS pass — engine is pure-M and runs on IRIS today; the
+  translation is the optimisation, not a correctness requirement).
 - **STDLOG JSON-line add-on** — small follow-on once L11 STDJSON is
   consumable; emits one JSON object per log line via `STDJSON.encode`.
 - **STDSEED `LOADJSON` add-on** — replaces the

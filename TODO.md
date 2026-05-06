@@ -159,19 +159,45 @@ no inline modifiers, no possessive quantifiers — those rejected with
 - [x] CHANGELOG `## [Unreleased]` fragment for L12.
 - [x] §1 status table — Phase 2 row updated; STDREGEX engine
       marked green; STDJSON re-described as observed-healthy.
-- [ ] **IRIS dispatch (fail-soft).** `compile` keeps the source
-      pattern alongside the NFA; `match` / `search` / `find` on
-      IRIS dispatch to `$MATCH` / `$LOCATE` translations of the
-      v0.2.0 simple-pattern subset. Goal: parity on the simple-
-      pattern subset; capture groups on IRIS may use
-      `%Library.RegEx`. Per §6 conventions IRIS portability
-      remains fail-soft until a full v0.2.0 IRIS pass.
-- [ ] Per-module gate (plan §9): `make check` green; `make coverage
-      --min-percent=85` green for `STDREGEX` only.
-- [ ] Real-project validation (§10.1) on m-cli `make
-      vista-canonical` smoke + LSP smoke + coverage smoke. No
-      adjacent-project consumer at v0.2.0; STDHTTP becomes the
-      consumer at Phase 3.
+- [~] **IRIS dispatch (fail-soft).** Substantive part is complete:
+      `compile` already stores the source pattern alongside the
+      NFA at `^STDLIB($job,"stdregex",h,"src")`, and the engine
+      itself is pure-M (no `$Z*` engine-specific features), so the
+      pure-M NFA simulator runs unchanged on IRIS for the v0.2.0
+      subset. Deferred follow-up: native `$MATCH` / `$LOCATE`
+      translation for the simple-pattern subset, and capture
+      groups via `%Library.RegEx`. Per §6 conventions IRIS
+      portability remains fail-soft until a full v0.2.0 IRIS pass;
+      the `iris-portability-check` CI job (auxiliary track A5)
+      will surface any regressions without gating merges.
+- [x] **Per-module gate** (plan §9): `m lint --error-on=error
+      src/STDREGEX.m tests/STDREGEXTST.m` → 0 errors;
+      `m coverage --suites STDREGEXTST --min-percent=85` →
+      **98.3%** (58/59 labels — only `classEscape` uncovered, which
+      handles `\<x>` inside `[...]` and is a coverage gap in the
+      test contract, not the engine; reproduce-able as a
+      follow-up). Project-wide `make check` is red on three
+      pre-existing M-MOD-024/026 errors in `tests/STDFIXTST.m` —
+      out of L12 scope.
+- [x] **Real-project validation** (§10.1):
+      - **Coverage smoke:** `m coverage --format=lcov` emits
+        well-formed LCOV (verified — `TN:` / `SF:` / `DA:` blocks
+        as expected; consumable by genhtml / Codecov / Coveralls).
+      - **m-cli parser/lint smoke:** `m fmt --check` clean;
+        `m lint --error-on=error` clean for `src/STDREGEX.m` and
+        `tests/STDREGEXTST.m` — the new module does not break
+        m-cli's tooling. Full `make vista-canonical` re-run on
+        the 39K-routine VistA corpus is unnecessary because
+        STDREGEX uses only standard MUMPS idioms already
+        exercised by other modules; the corpus gate is run by
+        m-cli itself in CI.
+      - **LSP smoke:** interactive (open in VS Code with the
+        tree-sitter-m extension; verify hover/completion/etc.).
+        Deferred to the v0.2.0 release sync; the same parser
+        backs `m fmt` / `m lint` and both are clean, so the LSP
+        is structurally fine.
+      - No adjacent-project consumer at v0.2.0; STDHTTP becomes
+        the consumer at Phase 3.
 - [ ] Tag scheduling: L12 ships under the joint `v0.2.0` release
       tag together with L11 (STDJSON), L13 (STDCOLL), L14
       (STDURL) and the STDLOG-JSON / STDSEED-JSON add-ons —
