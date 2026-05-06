@@ -1,6 +1,6 @@
 ---
 title: m-stdlib — parallel execution tracks
-status: live (2026-05-05)
+status: live (2026-05-06)
 companion: tdd-orchestration-plan.md (joint milestone narrative)
 implementation: m-stdlib-implementation-plan.md (per-module specs)
 ---
@@ -170,22 +170,19 @@ three (stdlib, m-cli) pairs.
 
 ### 3.6 STDASSERT real-project migration tracks (per impl-plan §10.2)
 
-Three independent migrations: STDASSERT consumed by adjacent
-projects' test suites in place of `^TESTRUN`. Each is its own track;
-none touch each other. **All three verified 2026-05-05 — none of the
-target projects ship M-side test suites, so all three reduce to a
-verified no-op.** The real-project STDASSERT consumer in this
-ecosystem is **m-tools** (already on STDASSERT — `GTREETST.m`,
-`GLOBALTST.m`, `JSONTST.m` all use `do start^STDASSERT(.pass,.fail)`
-/ `do report^STDASSERT(pass,fail)` / `do eq^STDASSERT(...)`), so the
-"adjacent-project consumption" gate from impl-plan §10.1 item 4 is
-already met for STDASSERT.
+Migrations of `^TESTRUN`-using test suites onto STDASSERT. The
+plan originally named V1 / V2 / V3 against m-cli, tree-sitter-m,
+and m-standard, but those three projects ship no M-side test
+suites at all. The actual real-project STDASSERT consumer turned
+out to be **m-tools** (whose homegrown `^TESTRUN.m` runner
+predated STDASSERT by ~5 weeks), tracked retroactively as **V4**.
 
 | Track | Repo | Status |
 |---|---|---|
 | **V1** | m-cli — migrate M-side tests onto STDASSERT | ✅ **Verified no-op 2026-05-05.** m-cli has zero `*TST.m` routines outside `tests/fixtures/` (which are SAC/parser fixtures, not test suites). m-cli's tests are pure pytest in Python; the M side is invoked at runtime by the `m test` runner, not via static suites. The C1 fix (m-cli `23241a2`) made the runner protocol-aware so STDASSERT-driven suites in *consumer* projects (m-stdlib, m-tools) work end-to-end — that is the actual TOOLCHAIN P1 closure. |
 | **V2** | tree-sitter-m — migrate `tests/` if any M-side suites use TESTRUN | ✅ **Verified no-op 2026-05-05.** tree-sitter-m's `test/` directory holds the tree-sitter grammar corpus (`corpus/*.txt` parser test cases + `coverage/keywords.m` token-coverage fixture) — no M-side test routines, no `TESTRUN` references anywhere in the tree. |
 | **V3** | m-standard — migrate any `tests/` suites | ✅ **Verified no-op 2026-05-05.** m-standard's `tests/` directory is exclusively pytest (Python). The M code in `sources/` is the SAC / YDB / IRIS reference corpus being catalogued, not test suites for m-standard itself. The lone `TESTRUN` hit in `docs/m-libraries-remediation.md` is a reference to the legacy library — no source to migrate. |
+| **V4** | m-tools — migrate suites from homegrown `^TESTRUN.m` to `^STDASSERT` | ✅ **Shipped 2026-05-06** (m-tools commit `3eec0bf`). Mechanical rename across all 11 suites: `CSVTST`, `GLOBALTST`, `GTREETST`, `HELLOTST`, `IDXTST`, `JSONTST`, `SAFETST`, `STRFNSTST`, `TASKSTST`, `TXNTST`, `VALIDATETST` — `do start^TESTRUN(.pass,.fail)` / `do eq^TESTRUN(.pass,.fail,...)` / `do report^TESTRUN(pass,fail)` → STDASSERT equivalents. API parity exact, suite bodies untouched. `routines/tests/TESTRUN.m` deleted. Backstory: m-tools shipped its own no-deps `^TESTRUN.m` scaffold runner from its initial commit `41ed967` (2026-03-24) — ~5 weeks before STDASSERT existed. The migration was performed in a prior session but sat uncommitted in m-tools' working tree until 2026-05-06. **This is the impl-plan §10.1 item-4 "adjacent-project consumption" gate for STDASSERT.** |
 
 ### 3.7 Parent-plan tracks orthogonal to m-stdlib (FYI)
 
@@ -224,7 +221,8 @@ m-cli     C1 dynamic ^TESTRUN protocol       ✅ shipped
           W / X / Y                          ✅ shipped (m-cli e5818bd) — closes M1
           C6 --integration                   — blocked on parent-plan Phase 4
 Aux       A1, A2, A3, A4, A5, A6, A7         ✅ ALL DONE
-STDASSERT V1, V2, V3                         ✅ ALL VERIFIED NO-OP 2026-05-05 (see §3.6) — no M-side suites to migrate; m-tools is the de-facto STDASSERT consumer
+STDASSERT V1, V2, V3                         ✅ ALL VERIFIED NO-OP 2026-05-05 (see §3.6) — no M-side suites in m-cli / tree-sitter-m / m-standard
+          V4 m-tools migration               ✅ shipped 2026-05-06 (m-tools `3eec0bf`) — 11 suites migrated TESTRUN→STDASSERT; TESTRUN.m deleted
 Parent    P1 tree-sitter-m v0.1 publish      ⚠️ prebuildify CI shipped; publish user-gated (registry creds)
           P2 vista-meta README.md            ✅ shipped 2026-05-05
           P3 m-modern-corpus seeding         ✅ at floor of 5–10 (5 projects, 4,215 routines)
@@ -331,16 +329,15 @@ test bodies:**
 - ✅ **C4** — `m coverage --branch` MVP.
 - ✅ **C5** — `m test --changed`.
 
-**STDASSERT migrations** (real-project consumers per §3.6) — all
-verified no-op:
+**STDASSERT migrations** (real-project consumers per §3.6):
 
-- ✅ **V1** — m-cli has no M-side test suites to migrate.
-- ✅ **V2** — tree-sitter-m has no M-side test suites to migrate.
-- ✅ **V3** — m-standard has no M-side test suites to migrate.
-
-The de-facto STDASSERT real-project consumer is **m-tools**, whose
-`GTREETST.m`, `GLOBALTST.m`, `JSONTST.m` already use STDASSERT — so
-the impl-plan §10.1 "adjacent-project consumption" gate is met.
+- ✅ **V1** — m-cli has no M-side test suites to migrate (verified no-op).
+- ✅ **V2** — tree-sitter-m has no M-side test suites to migrate (verified no-op).
+- ✅ **V3** — m-standard has no M-side test suites to migrate (verified no-op).
+- ✅ **V4** — m-tools migration shipped 2026-05-06 (m-tools commit
+  `3eec0bf`): 11 suites renamed TESTRUN→STDASSERT, `routines/tests/
+  TESTRUN.m` deleted. Closes the impl-plan §10.1 item-4
+  "adjacent-project consumption" gate for STDASSERT.
 
 **Parent-plan adjacent** (orthogonal, don't gate stdlib):
 

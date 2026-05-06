@@ -765,11 +765,15 @@ existing `^TESTRUN`-using suites onto STDASSERT:
   lone `TESTRUN` hit in `docs/m-libraries-remediation.md` is a
   reference to the legacy library — no source to migrate.
 
-The de-facto STDASSERT real-project consumer in this ecosystem is
-**m-tools** — `GTREETST.m`, `GLOBALTST.m`, `JSONTST.m` all use
-`do start^STDASSERT(.pass,.fail)` / `do report^STDASSERT(pass,fail)`
-/ `do eq^STDASSERT(...)`. The §10.1 item-4 gate (adjacent-project
-consumption) is satisfied via m-tools.
+The actual STDASSERT real-project consumer turned out to be
+**m-tools**, whose homegrown `^TESTRUN.m` runner predated STDASSERT
+by ~5 weeks. Migration shipped 2026-05-06 (m-tools commit `3eec0bf`):
+all 11 suites — `CSVTST`, `GLOBALTST`, `GTREETST`, `HELLOTST`,
+`IDXTST`, `JSONTST`, `SAFETST`, `STRFNSTST`, `TASKSTST`, `TXNTST`,
+`VALIDATETST` — renamed TESTRUN→STDASSERT (mechanical, API parity
+exact); `routines/tests/TESTRUN.m` deleted. Tracked retroactively
+as **V4** in `docs/parallel-tracks.md` §3.6. The §10.1 item-4 gate
+(adjacent-project consumption) is satisfied via this V4 migration.
 
 ---
 
