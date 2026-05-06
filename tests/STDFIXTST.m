@@ -86,6 +86,7 @@ tWithRollsBackGlobalWrites(pass,fail)   ;@TEST "with() rolls back global writes 
 tWithSetsActiveInsideScope(pass,fail)   ;@TEST "active() returns 1 inside with()'s body"
         do reset
         new probed
+        set probed=""  ; lint can't see across XECUTE that with() sets probed
         do with^STDFIX("scope","set probed=$$active^STDFIX()")
         do eq^STDASSERT(.pass,.fail,probed,1,"active inside with -> 1")
         do eq^STDASSERT(.pass,.fail,$$active^STDFIX(),0,"active after with -> 0")
@@ -119,6 +120,7 @@ tWithRollsBackOnError(pass,fail)        ;@TEST "with() rolls back and cleans up 
 tWithRecordsTagOnStack(pass,fail)       ;@TEST "with() records the tag in ^STDLIB($job,FIX,STACK,$tlevel)"
         do reset
         new probedTag
+        set probedTag=""  ; lint can't see across XECUTE that with() sets probedTag
         do with^STDFIX("myScope","set probedTag=$get(^STDLIB($job,""FIX"",""STACK"",$tlevel))")
         do eq^STDASSERT(.pass,.fail,probedTag,"myScope","tag recorded at $tlevel")
         quit
@@ -149,10 +151,12 @@ tCleanupIdempotent(pass,fail)   ;@TEST "cleanup() is idempotent at $tlevel=0"
         do cleanup^STDFIX
         do eq^STDASSERT(.pass,.fail,$$active^STDFIX(),0,"still no scope after two cleanups")
         quit
-        ;
+        ; m-lint: disable-next-line=M-MOD-026
 tCleanupAfterLeak(pass,fail)    ;@TEST "cleanup() rolls back a leaked transaction"
-        ; Simulate a leak by opening a tstart in this frame, then having
-        ; cleanup roll it back (cleanup didn't tstart, so its quit is fine).
+        ; The whole point of this test is to OPEN a tstart and have
+        ; cleanup^STDFIX (called below) roll it back from the outside;
+        ; lint can't see across the call so it flags the unbalanced
+        ; tstart at the label level.
         do reset
         tstart
         set ^STDLIB($job,"FIXT","leaked")=1
