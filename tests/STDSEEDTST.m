@@ -37,13 +37,13 @@ STDSEEDTST      ; Test suite for STDSEED (v0.1.3).
         do tValidateDoesNotInvokeFiler(.pass,.fail)
         ;
         ; ---- LOADJSON stub ----
-        ; ALL loadJson tests deferred from the driver until the documented
-        ; STDASSERT.raises P1 / extrinsic-chain harness crash is fixed.
-        ; loadJson calls $$parse^STDJSON internally; invoking that from
-        ; inside the suite driver crashes the YDB harness with the same
-        ; rc=1/no-stderr signature observed for STDLOG-JSON's $$encode call.
-        ; Implementation ships intact; bodies stay in-file for re-enabling
-        ; once the crash is resolved.
+        ; STDASSERT.raises P1 fix landed (ZGOTO-based unwind). Verification
+        ; of these six loadJson tests is currently blocked by stuck mumps
+        ; processes in the shared vista-meta container (same infra issue
+        ; noted in commit 8c0b419) — `m test` returns rc=143/Terminated
+        ; before any TAP output reaches stdout. Re-enable once the
+        ; container is rundowned/restarted; the underlying ZGOTO fix
+        ; should make them green.
         ; do tLoadJsonStubFilerReceivesEntry(.pass,.fail)
         ; do tLoadJsonMultipleEntriesAllDispatched(.pass,.fail)
         ; do tLoadJsonNoFieldsKeyIsLegal(.pass,.fail)

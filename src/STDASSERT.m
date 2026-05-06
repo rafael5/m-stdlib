@@ -87,14 +87,26 @@ raises(p,f,code,errno,desc)     ; Assert XECUTEing 'code' sets $ECODE containing
         ; doc: For YDB DIVZERO use "Z150373058"; for general "M9" use ",M9,".
         ; doc: Example: do raises^STDASSERT(.pass,.fail,"set x=1/0","Z150373058","divzero")
         ; $ECODE is a special variable and cannot be NEWed; we clear it
-        ; explicitly before and after, and use $ETRAP to capture.
-        new $etrap,captured
+        ; explicitly before and after, and use $ETRAP+ZGOTO to unwind cleanly
+        ; out of arbitrary extrinsic depth (the trap's arg-less QUIT is
+        ; illegal in extrinsic context — fires M17 NOTEXTRINSIC). ZGOTO N
+        ; unwinds the stack to $ZLEVEL=N before the GOTO, so capture our
+        ; level at $ETRAP-set time and use that as the unwind target.
+        new $etrap,captured,raisesLvl
         set captured="",$ecode=""
-        set $etrap="set captured=$ecode set $ecode="""" quit"
+        set raisesLvl=$zlevel
+        set $etrap="set captured=$ecode set $ecode="""" zgoto "_raisesLvl_":raisesUnwound^STDASSERT"
         ; m-lint: disable-next-line=M-MOD-036
         xecute code  ; XECUTE-of-arg is the documented purpose of raises().
+raisesUnwound   ; Trap-resume target — also reached on no-error fall-through.
+        ; doc: Internal — never an external entry point. The linter sees it
+        ; doc: as a label without formals; the `captured`, `errno`, `desc`
+        ; doc: locals it reads come from raises()'s frame, restored intact
+        ; doc: after ZGOTO unwinds to that level.
         set $ecode=""
+        ; m-lint: disable-next-line=M-MOD-024
         if captured'="",captured[errno do recordPass(.p,desc) quit
+        ; m-lint: disable-next-line=M-MOD-024
         do recordFail(.f,desc,"$ECODE containing "_errno,$select(captured="":"<no error>",1:captured))
         quit
         ;

@@ -43,13 +43,20 @@ STDLOGTST       ; Test suite for STDLOG (v0.0.4).
         do tFatalEntryEmitsFatal(.pass,.fail)
         ;
         ; ---- json format ----
-        ; Only the kv-path test runs from the driver until the documented
-        ; M17/extrinsic-chain runner crash is resolved (same shape as the
-        ; STDASSERT.raises P1 in TOOLCHAIN-FINDINGS.md). The remaining
-        ; tests (tFormatJsonEmitsValidJson … tFormatInvalidRaises) are
-        ; defined below so the bodies are not lost — re-enable in the
-        ; driver once the crash is fixed.
+        ; STDASSERT.raises P1 fix landed (ZGOTO-based unwind); the
+        ; tFormatInvalidRaises test should now be safe. The remaining
+        ; six tests rely on $$encode^STDJSON's recursive descent, whose
+        ; crash signature is independent of the raises P1 — see
+        ; TOOLCHAIN-FINDINGS.md follow-up. Re-enable once that distinct
+        ; encode-chain crash is resolved.
         do tFormatDefaultIsKv(.pass,.fail)
+        do tFormatInvalidRaises(.pass,.fail)
+        ; do tFormatJsonEmitsValidJson(.pass,.fail)
+        ; do tFormatJsonHasTsLevelEvent(.pass,.fail)
+        ; do tFormatJsonKvPairsBecomeKeys(.pass,.fail)
+        ; do tFormatJsonValuesAreStrings(.pass,.fail)
+        ; do tFormatJsonEscapesQuotesAndBackslash(.pass,.fail)
+        ; do tFormatKvAfterJsonReverts(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
