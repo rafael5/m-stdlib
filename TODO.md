@@ -2,9 +2,12 @@
 
 **Status:** **Phase 1 complete — `v0.1.0` shipped 2026-05-05** (9
 modules; 478/478 assertions; per-module coverage ≥ 95%). Phase 1b
-in flight (STDMOCK + STDSEED green; STDFIX pending). Phase 2 in
-flight (STDCOLL green; STDREGEX scaffolded). Next: STDFIX (`v0.1.1`)
-or finish Phase 2 implementation.
+shipped (STDFIX `v0.1.1`, STDMOCK `v0.1.2`, STDSEED `v0.1.3`).
+Phase 2 in flight: STDCOLL ✅, STDURL ✅, STDJSON observed-healthy,
+STDREGEX engine ✅ (Passes A–E + raise-helper fix; 90/90 green —
+non-engine items in flight). Next: close L12 non-engine items
+(coverage gate, real-project validation, IRIS dispatch) or move on
+to Phase 3.
 
 Three living docs:
 - [`docs/m-stdlib-implementation-plan.md`](docs/m-stdlib-implementation-plan.md)
@@ -68,9 +71,11 @@ Three living docs:
 **Phase 2 — pure-M heavy lifting** (target `v0.2.0`; tracks
 mutually independent):
 
-- [ ] **L12 / STDREGEX** — Thompson-NFA on YDB; `$MATCH` / `$LOCATE`
-      wrap on IRIS. Scaffold + 50 tests / 90 assertions in flight; see
-      "In flight" section below for current pass-by-pass plan.
+- [x] **L12 / STDREGEX** — Thompson-NFA on YDB. Engine landed
+      (Passes A–E + raise-helper fix); STDREGEXTST 90/90 green.
+      Outstanding: IRIS dispatch (fail-soft), coverage gate,
+      real-project validation, v0.2.0 sync. See "In flight" section
+      for the per-item state.
 - [ ] **L11 / STDJSON** — RFC 8259; vendored JSONTestSuite at
       `tests/conformance/json/`. Unblocks `STDLOG` JSON-line output
       and `STDSEED.loadJson`.
@@ -96,9 +101,8 @@ Subset (no back-refs, no lookaround, no Unicode property classes,
 no inline modifiers, no possessive quantifiers — those rejected with
 `U-STDREGEX-UNSUPPORTED`).
 
-**Current TDD signal:** stub committed; 50 tests / 90 assertions
-discovered; **28/90 pass** against safe-default stub, **62 fail**
-as concrete implementation targets.
+**Current TDD signal:** engine complete on `main`; **STDREGEXTST
+90/90 assertions green; 0 lint errors.**
 
 - [x] **TDD red staked:** `tests/STDREGEXTST.m` — 50 tests cover
       lifecycle (compile/free/valid), literal matching, `.`, anchors
@@ -113,63 +117,57 @@ as concrete implementation targets.
       `U-STDREGEX-NO-MATCH`).
 - [x] **API surface frozen:** `src/STDREGEX.m` skeleton with
       `compile / free / valid / match / search / find / findall /
-      groups / replace / split` — all bodies are safe-default stubs
-      so the harness reports per-test counts during implementation.
-- [ ] **Pass A — Lexer + parser → AST.** Tokenise the v0.2.0
-      grammar; build a small AST (`literal / dot / anchor / klass /
-      class-pred / star / plus / quest / range-quant / concat /
-      alt / group(cap?,n)`). Reject unsupported features
-      (`(?=` / `(?!` / `(?<=` / `(?<!` / `\1..\9` in pattern /
-      `\p{` / `(?[imsx])` / `*+`/`++`/`?+`) with
-      `U-STDREGEX-UNSUPPORTED`. Reject malformed input
-      (unbalanced parens, unterminated `[`, trailing `\`,
-      stray `{n,m}` over an empty atom, `{m,n}` with `m>n`,
-      reverse range `[z-a]`) with `U-STDREGEX-BAD-PATTERN`.
-      Should turn `tValid*` and `tCompileRaises*` green.
-- [ ] **Pass B — AST → Thompson NFA.** Standard McNaughton-Yamada
-      construction; states keyed under `^STDLIB($job,"stdregex",h,
-      "nfa",state,...)`. Greedy quantifiers via priority on the
-      ε-edges. No DFA cache at v0.2.0.
-- [ ] **Pass C — NFA simulation: `match` / `search` / `find`.**
-      Simulate on the input string M-character by M-character.
-      Maintain a dedup'd active-state set per step. Anchors
-      handled at simulation entry/exit.
-      Should turn `tMatch*`, `tSearch*`, `tFind*`, `tDot*`,
-      `tCaret*`, `tDollar*`, `tStar*`, `tPlus*`, `tQuest*`,
-      `tBrace*`, `tCharClass*`, `tBackslash*`, `tEscaped*`,
-      `tAlternation*` green.
-- [ ] **Pass D — capture groups: `groups`.** Extend the
-      simulation with submatch tracking (per-state capture-start /
-      capture-end snapshots; greedy = first match wins). Honour
-      `(?:...)` skipping the capture-group counter. Set
-      `U-STDREGEX-NO-MATCH` on no match.
-      Should turn `tCapturingGroupRecordsText`,
+      groups / replace / split`.
+- [x] **Pass A — Lexer + parser → AST** (`cfce923`). Tokenises the
+      v0.2.0 grammar and builds the AST under
+      `^STDLIB($job,"stdregex",h,"ast",...)`. Rejects out-of-scope
+      features with `U-STDREGEX-UNSUPPORTED` and malformed input
+      with `U-STDREGEX-BAD-PATTERN`. Turned `tValid*` and (after
+      Pass B's raise-helper fix) `tCompileRaises*` green.
+- [x] **Pass B — AST → Thompson NFA** (`3abf7e8`). Standard
+      McNaughton-Yamada construction; states under
+      `^STDLIB($job,"stdregex",h,"nfa",...)`. Greedy via priority
+      ordering on the ε-edges. No DFA cache at v0.2.0. Bundled the
+      `raise(err)` helper that fixed the long-latent `$ECODE` /
+      `$ETRAP` / M17 corruption — flipped `tCompileRaisesOn*`
+      green.
+- [x] **Pass C — NFA simulation: `match` / `search` / `find`**
+      (`491eb38`). Pike-style breadth-first walk; `attempt()` is
+      the inner loop. Anchors gated on `isStart` / `isEnd`. Turned
+      every non-capture, non-findall test green: literal / dot /
+      anchors / `* + ?` / `{n,m}` / `[abc]` / `[a-z]` /
+      `[^abc]` / `\d \D \w \W \s \S` / escapes / alternation.
+- [x] **Pass D — capture groups: `groups`** (`c51a394`). Parallel
+      cap-aware simulator (`attemptCap` / `stepCap` /
+      `epsCloseCap`) with first-arrival-wins state dedup and
+      recursive DFS ε-closure in edge-priority order. Simulation
+      continues past the first accept hit; the longest match's
+      caps win — leftmost-greedy capture semantics for the v0.2.0
+      subset. Turned `tCapturingGroupRecordsText`,
       `tNonCapturingGroupSkipsIndex`, `tNestedCaptureGroups`,
       `tGroupZeroIsFullMatch`, `tStarIsGreedy`,
       `tGroupsRaisesOnNoMatch` green.
-- [ ] **Pass E — `findall` / `replace` / `split`.** Build on
-      `find`. Non-overlapping (advance past the match end). For
-      `replace`, expand `\1..\9` in the repl string against the
-      groups of each match; `\\` is a literal backslash;
-      otherwise unrecognised `\X` is a literal `\X`.
-      Should turn `tFindallReturnsEveryNonOverlappingMatch`,
-      `tReplaceReplacesEveryMatch`, `tReplaceWithBackref`,
-      `tSplitProducesSegments` green.
+- [x] **Pass E — `findall` / `replace` / `split`** (`48da86e`).
+      Non-overlapping walk over `attempt` / `attemptCap`. `replace`
+      expands `\1..\9` in the repl string via the captures of each
+      match (`\\` literal, unrecognised `\X` literal). Turned the
+      remaining 8 reds green; **STDREGEXTST 90/90.**
+- [x] `docs/modules/stdregex.md` — synopsis, public API table,
+      supported subset, error codes, examples (lifecycle, captures,
+      greedy, findall/replace/split, JWT-issuer worked example).
+      Cross-ref to STDREGEX_PCRE Phase-3 add-on.
+- [x] CHANGELOG `## [Unreleased]` fragment for L12.
+- [x] §1 status table — Phase 2 row updated; STDREGEX engine
+      marked green; STDJSON re-described as observed-healthy.
 - [ ] **IRIS dispatch (fail-soft).** `compile` keeps the source
       pattern alongside the NFA; `match` / `search` / `find` on
       IRIS dispatch to `$MATCH` / `$LOCATE` translations of the
-      v0.2.0 subset. Goal: parity on the simple-pattern subset;
-      capture groups on IRIS may use the `%Library.RegEx`
-      class. Per §6 conventions IRIS portability remains
-      fail-soft until a full v0.2.0 IRIS pass.
+      v0.2.0 simple-pattern subset. Goal: parity on the simple-
+      pattern subset; capture groups on IRIS may use
+      `%Library.RegEx`. Per §6 conventions IRIS portability
+      remains fail-soft until a full v0.2.0 IRIS pass.
 - [ ] Per-module gate (plan §9): `make check` green; `make coverage
       --min-percent=85` green for `STDREGEX` only.
-- [ ] `docs/modules/stdregex.md` — synopsis, public API table,
-      supported subset, error codes, examples (incl. JWT-issuer
-      parsing as a STDHTTP setup). Cross-ref to STDREGEX_PCRE
-      Phase-3 add-on.
-- [ ] CHANGELOG `## [Unreleased]` fragment for L12.
-- [ ] §1 status table — bump Phase 2 to "in progress".
 - [ ] Real-project validation (§10.1) on m-cli `make
       vista-canonical` smoke + LSP smoke + coverage smoke. No
       adjacent-project consumer at v0.2.0; STDHTTP becomes the

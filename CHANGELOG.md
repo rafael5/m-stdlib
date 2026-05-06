@@ -10,6 +10,37 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDREGEX`** — regular expressions (track L12, Phase 2, target
+  tag `v0.2.0`). Thompson-NFA engine on YottaDB; documented `$MATCH`/
+  `$LOCATE` wrap on IRIS for the simple-pattern subset (full IRIS
+  pass deferred — the `iris-portability-check` CI job remains
+  fail-soft). Public surface: `compile` / `valid` / `match` / `search`
+  / `find` / `findall` / `groups` / `replace` / `split` / `free`.
+  Engine: lexer + parser → AST (Pass A); standard McNaughton-Yamada
+  Thompson construction with priority-ordered ε-edges (Pass B);
+  Pike-style breadth-first walk (Pass C); parallel cap-aware
+  simulator with first-arrival-wins state dedup and recursive DFS
+  ε-closure for greedy capture semantics (Pass D); non-overlapping
+  walk over `attempt`/`attemptCap` for `findall` / `replace` (with
+  `\1..\9` backref expansion in the repl) / `split` (Pass E).
+  Supported subset: literals, `.`, `^`/`$`, `* + ? {n} {n,} {n,m}`
+  greedy, `[abc]`/`[^abc]`/`[a-z]`, predefined `\d \D \w \W \s \S`,
+  escapes `\\ \. \^ \$ \( \) \[ \] \{ \} \| \* \+ \? \n \t \r`,
+  alternation `|`, capturing `(...)` and non-capturing `(?:...)`.
+  Out of scope at v0.2.0 (rejected with `U-STDREGEX-UNSUPPORTED`):
+  back-refs in pattern, lookaround, named groups, Unicode property
+  classes, inline modifiers, possessive / lazy quantifiers — these
+  ride a future `STDREGEX_PCRE` (Phase-3-adjacent, `$ZF` to
+  `libpcre2`). 90/90 assertions green; 0 lint errors. Per-module
+  doc at `docs/modules/stdregex.md`. Pure-M; no host-call. Side fix
+  bundled with Pass B: setting `$ECODE` to a `,U-STDREGEX-…,` value
+  fired the caller's `$ETRAP`, but YDB's after-error resume
+  bypassed compile()'s own QUIT into post-error cleanup that
+  crashed with `M17 Z150374554`, overwriting the user code. Routed
+  raises through a tiny `raise(err)` helper that fires the trap
+  inside a frame that QUITs immediately; the same pattern applies
+  to STDFMT / STDARGS but is not yet ported there (tracked in
+  TOOLCHAIN-FINDINGS).
 - **Auxiliary tracks A3 / A4 / A5 / A6** (per impl-plan §3.5).
   - **A3**: curated JSON conformance corpus at
     `tests/conformance/json/` — 23 `y_*` (must-parse), 15 `n_*`

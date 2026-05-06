@@ -21,7 +21,7 @@ holds the background and rationale; this document holds the work.
 | Phase 0 — bootstrap | **done (2026-04-30)** | — |
 | Phase 1 — pure-M quick wins | **done (2026-05-05)** — `v0.1.0` shipped (9 modules: STDASSERT, STDUUID, STDB64, STDHEX, STDFMT, STDLOG, STDDATE, STDCSV, STDARGS) | `v0.1.0` |
 | Phase 1b — TDD primitives | **in progress** — STDMOCK (`v0.1.2`) + STDSEED (`v0.1.3`) green; STDFIX (`v0.1.1`) pending | → M1 |
-| Phase 2 — pure-M heavy lifting | **in progress** — STDCOLL green; STDREGEX scaffolded; STDJSON / STDURL pending | → `v0.2.0` |
+| Phase 2 — pure-M heavy lifting | **in progress** — STDCOLL ✅ green; STDURL ✅ green; STDREGEX ✅ engine green (Passes A–E + raise-helper fix; non-engine items in flight per TODO §"In flight"); STDJSON substance landed and observed-healthy (53 consecutive `ok` mid-stream before m-cli's per-suite budget; `0/0` was a runner-timeout artifact, not a real failure — see memory `project_m_stdlib.md`) | → `v0.2.0` |
 | Phase 3 — host-call integrations | not started | → `v0.3.0` |
 
 **Next concrete unit of work:** Phase 1b sequencing — STDFIX (`v0.1.1`)
@@ -764,7 +764,7 @@ Not started until `v0.1.0` is tagged.
 | Tag | Module | Routine | LoC est. | Status |
 |---|---|---|---:|---|
 | `v0.1.x` | JSON parser/serialiser (RFC 8259) | `STDJSON.m` | ~1500 | |
-| `v0.1.x` | Regex (Thompson-NFA, YDB; wraps `$MATCH`/`$LOCATE` on IRIS) | `STDREGEX.m` | ~2000 | |
+| `v0.1.x` | Regex (Thompson-NFA, YDB; wraps `$MATCH`/`$LOCATE` on IRIS) | `STDREGEX.m` | ~2000 | ✅ engine green 2026-05-05 (track L12) — 90/90 assertions, 0 lint errors. Passes A–E plus the raise-helper fix all landed (commits `cfce923` `3abf7e8` `491eb38` `c51a394` `48da86e`). Non-engine items per TODO §"In flight": coverage gate, real-project validation, IRIS dispatch (fail-soft), v0.2.0 sync. |
 | `v0.1.x` | Collections (Set, Map, Stack, Queue, Deque, Heap, OrderedDict) | `STDCOLL.m` | ~600 | ✅ green 2026-05-05 (track L13) — 116/116 assertions, 51/51 labels (100%), 0 lint errors. |
 | `v0.1.x` | URL parsing + percent-encoding (RFC 3986) | `STDURL.m` | ~250 | |
 | `v0.2.0` | Phase 2 release | — | — | |

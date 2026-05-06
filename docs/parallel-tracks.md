@@ -108,13 +108,14 @@ All four tracks mutually independent.
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
 | **L11** | v0.2.0 | STDJSON | everything | ✅ **Landed on `main`** (commit `4144130`); awaits `v0.2.0` tag. RFC 8259 parser + serialiser; consumes the curated A3 corpus at `tests/conformance/json/`. Storage convention: one M tree node per JSON value (`o` / `a` / `s:` / `n:` / `t` / `f` / `z`). |
-| **L12** | v0.2.0 | STDREGEX | everything | 🟡 **In progress** (target tag `v0.2.0`). API skeleton + TDD-red staked (commit `fb2fda9`). Pass A — lexer + parser → AST — landed (commit `cfce923`); `compile()` rejects out-of-scope features (back-refs, lookaround, named groups, Unicode property classes, inline modifiers, possessive/lazy quantifiers) with `U-STDREGEX-UNSUPPORTED`. Passes B–E (NFA construction, simulation, capture tracking, findall/replace/split) outstanding; engine entry points remain safe-default stubs until then. Engine: Thompson-NFA on YDB; `$match` / `$locate` on IRIS. |
+| **L12** | v0.2.0 | STDREGEX | everything | ✅ **Engine landed on `main`** (target tag `v0.2.0`). API skeleton + TDD-red staked (`fb2fda9`); Pass A lexer/parser → AST (`cfce923`); Pass B Thompson NFA + `raise()` helper fix for the long-latent `$ECODE`/`$ETRAP`/M17 corruption (`3abf7e8`); Pass C Pike-style match/search/find (`491eb38`); Pass D capture groups + greedy semantics via parallel cap-aware simulator (`c51a394`); Pass E findall / replace / split with `\1..\9` backref expansion (`48da86e`). **STDREGEXTST 90/90 assertions green; 0 lint errors.** Out-of-scope features (back-refs in pattern, lookaround, named groups, Unicode property classes, inline modifiers, possessive/lazy quantifiers) are rejected with `U-STDREGEX-UNSUPPORTED`. Engine: Thompson-NFA on YDB; `$MATCH` / `$LOCATE` wrap on IRIS for the simple-pattern subset (full IRIS pass deferred — fail-soft via the existing `iris-portability-check` CI job). Outstanding non-engine items per TODO §"In flight": coverage gate, real-project validation, v0.2.0 sync. |
 | **L13** | v0.2.0 | STDCOLL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. Set/Map/Stack/Queue/Deque/Heap/OrderedDict over caller-owned arrays. 116/116 assertions; 51/51 labels (100%); 0 lint. |
 | **L14** | v0.2.0 | STDURL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. RFC 3986 parse / build / encode / decode / valid / normalize / resolve. 150/150 assertions; 21/21 labels (100%); 0 lint. RFC 3986 §5.4 reference-resolution corpus at `tests/conformance/url/`. STDHTTP consumes in Phase 3. |
 
-**Phase 2 status:** 3 of 4 tracks landed on `main`; L12 mid-pipeline
-(Pass A done, B–E outstanding). `v0.2.0` tag waits on L12 completion
-plus the L4 / L10 add-ons listed in §5.
+**Phase 2 status:** all 4 tracks landed on `main` (L11 STDJSON, L12
+STDREGEX engine, L13 STDCOLL, L14 STDURL). `v0.2.0` tag waits on
+L12's non-engine items (coverage gate, real-project validation) plus
+the L4 / L10 add-ons listed in §5.
 
 ### 3.4 m-cli companion tracks
 
@@ -195,7 +196,7 @@ intermediate `v0.0.x` / `v0.1.x` exists as a labelled commit on
 Phase 1   (L1–L7, L4b)                     ✅ ALL SHIPPED — rolled up under v0.1.0
 Phase 1b  (L8, L9, L10)                    ✅ ALL SHIPPED — v0.1.1 / v0.1.2 / v0.1.3
 Phase 2   L11 STDJSON                      ✅ landed on main (awaits v0.2.0 tag)
-          L12 STDREGEX                     🟡 Pass A done; Passes B–E outstanding
+          L12 STDREGEX                     ✅ engine landed on main (awaits v0.2.0 tag; non-engine items in flight)
           L13 STDCOLL                      ✅ landed on main (awaits v0.2.0 tag)
           L14 STDURL                       ✅ landed on main (awaits v0.2.0 tag)
 m-cli     C1 dynamic ^TESTRUN protocol     ✅ shipped
@@ -210,12 +211,13 @@ STDASSERT V1, V2, V3                       — see §3.6
 Parent    P1, P2, P3                       — see §3.7
 ```
 
-Active stdlib work right now reduces to **L12 STDREGEX** (Passes B–E)
+Active stdlib work right now reduces to **L12 STDREGEX non-engine
+items** (coverage gate, real-project validation, IRIS dispatch)
 plus the v0.2.0 add-ons listed in §5 (STDLOG JSON-line output,
 STDSEED `LOADJSON`). Everything else of `v0.2.0`-eligible work is
-already on `main`. Phase 3 cannot start until L12 closes (release
-sync) and the build-callouts harness (A6 — already shipped) is
-exercised by its first consumer.
+already on `main`. Phase 3 cannot start until the v0.2.0 release
+sync closes and the build-callouts harness (A6 — already shipped)
+is exercised by its first consumer.
 
 What you **cannot** parallelise:
 
@@ -253,11 +255,14 @@ zero-blocked, ready-to-dispatch tracks today are:
 
 **Highest leverage** (closes the v0.2.0 release tag):
 
-- **L12 STDREGEX Passes B–E** — only stdlib work blocking `v0.2.0`.
-  Pass A (lexer + parser → AST) landed in `cfce923`; Pass B (NFA
-  construction from AST) is the next concrete deliverable. Engine
-  entry points (`match` / `search` / `find` / `findall` / `groups` /
-  `replace` / `split`) currently return safe-default stubs.
+- **L12 STDREGEX non-engine items** — engine landed in commits
+  `3abf7e8` (Pass B + raise-helper fix), `491eb38` (Pass C
+  match/search/find), `c51a394` (Pass D captures + greedy), `48da86e`
+  (Pass E findall/replace/split); STDREGEXTST 90/90 green. Remaining
+  to close `v0.2.0`: `make coverage --min-percent=85` STDREGEX-only
+  gate, real-project validation per §10.1, IRIS `$MATCH`/`$LOCATE`
+  dispatch (fail-soft). Module doc shipped at
+  `docs/modules/stdregex.md`.
 - **STDLOG JSON-line add-on** — small follow-on once L11 STDJSON is
   consumable; emits one JSON object per log line via `STDJSON.encode`.
 - **STDSEED `LOADJSON` add-on** — replaces the
