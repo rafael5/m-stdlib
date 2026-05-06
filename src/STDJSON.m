@@ -39,8 +39,13 @@ STDJSON ; m-stdlib — RFC 8259 JSON parser + serialiser.
 parse(text,root)        ; Parse `text` into `root`. Returns 1/0.
         ; doc: Kills `root` first. On failure, $$lastError() holds the
         ; doc: "line:col: msg" diagnostic and the partial tree is killed.
-        new ctx,$etrap
-        set $etrap="set $ecode="""" goto parseFail"
+        ; doc: Internal recursion can fire $ETRAP at arbitrary extrinsic
+        ; doc: depth; ZGOTO N:label unwinds the M-stack to parse()'s own
+        ; doc: level before the GOTO so parseFail's `quit 0` always
+        ; doc: executes in extrinsic context (avoids M17 NOTEXTRINSIC).
+        new ctx,$etrap,parseLvl
+        set parseLvl=$zlevel
+        set $etrap="set $ecode="""" zgoto "_parseLvl_":parseFail^STDJSON"
         kill root
         do initCtx(.ctx,text)
         do parseValue(.ctx,.root)
@@ -90,7 +95,21 @@ encode(node)    ; Serialise `node` to JSON text.
         ; doc: first, then string subscripts in byte order). A gappy array
         ; doc: (e.g. node(1) and node(3) without node(2)) sets $ECODE
         ; doc: ,U-STDJSON-ENCODE, rather than inventing a `null`.
+        ; doc: ZGOTO-trap catches errors fired anywhere in the recursive
+        ; doc: descent and unwinds cleanly to encode()'s own frame so the
+        ; doc: post-error `quit ""` runs in extrinsic context (avoids the
+        ; doc: M17 NOTEXTRINSIC harness crash documented previously).
+        ; doc: Note: there is a separate open issue where the trap fires
+        ; doc: on inputs that *should* encode cleanly, returning "" — the
+        ; doc: STDLOG-JSON FORMAT('json') tests are deferred pending that
+        ; doc: fix. The trap itself is correct; the over-eager $ECODE
+        ; doc: setting is in encodeValue/encodeObject internals.
+        new $etrap,encodeLvl
+        set encodeLvl=$zlevel
+        set $etrap="zgoto "_encodeLvl_":encodeFail^STDJSON"
         quit $$encodeValue(.node)
+encodeFail
+        quit ""
         ;
 parseFile(path,root)    ; Stream-read `path`, parse into `root`.
         ; doc: Reads the whole file into memory then defers to parse().

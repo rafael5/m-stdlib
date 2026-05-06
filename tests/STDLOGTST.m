@@ -43,12 +43,15 @@ STDLOGTST       ; Test suite for STDLOG (v0.0.4).
         do tFatalEntryEmitsFatal(.pass,.fail)
         ;
         ; ---- json format ----
-        ; STDASSERT.raises P1 fix landed (ZGOTO-based unwind); the
-        ; tFormatInvalidRaises test should now be safe. The remaining
-        ; six tests rely on $$encode^STDJSON's recursive descent, whose
-        ; crash signature is independent of the raises P1 — see
-        ; TOOLCHAIN-FINDINGS.md follow-up. Re-enable once that distinct
-        ; encode-chain crash is resolved.
+        ; ZGOTO traps in $$encode^STDJSON and $$parse^STDJSON now make
+        ; the underlying crash visible (rc=143/silent → rc=1 with TAP
+        ; assertions). Six emission tests still fail because the trap
+        ; is firing on what *should* be clean input — encodeValue or
+        ; encodeObject is setting $ECODE on a healthy 4-key string-only
+        ; object tree. Tracked as a follow-up; the FORMAT^STDLOG public
+        ; API ships intact, the kv path is fully exercised, and
+        ; tFormatInvalidRaises (raises-driven) now passes thanks to the
+        ; STDASSERT.raises P1 fix in `9ee9724`.
         do tFormatDefaultIsKv(.pass,.fail)
         do tFormatInvalidRaises(.pass,.fail)
         ; do tFormatJsonEmitsValidJson(.pass,.fail)

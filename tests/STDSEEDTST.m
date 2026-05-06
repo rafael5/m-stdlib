@@ -37,13 +37,12 @@ STDSEEDTST      ; Test suite for STDSEED (v0.1.3).
         do tValidateDoesNotInvokeFiler(.pass,.fail)
         ;
         ; ---- LOADJSON stub ----
-        ; STDASSERT.raises P1 fix landed (commit `9ee9724`); re-running
-        ; these tests via scripts/safe-test.sh confirmed they still hang
-        ; the harness for ~10 minutes per attempt with no TAP output —
-        ; the failure is in $$parse^STDJSON's extrinsic-chain unwind
-        ; (sibling of the open $$encode^STDJSON P1), not in raises. The
-        ; wrapper retried after recovery; same hang. Defer until the
-        ; STDJSON-encode/parse ZGOTO-unwind fix lands.
+        ; STDJSON parse() now has a ZGOTO-unwind trap (commit pending in
+        ; this same series) so harness no longer crashes silently — but
+        ; tParseObjectSinglePair and onwards fail in STDJSONTST too, with
+        ; parse() returning 0 on what should be valid `{"k":"v"}` input.
+        ; Same root cause likely shared by these loadJson tests; defer
+        ; until parseObject() debug pass finishes.
         ; do tLoadJsonStubFilerReceivesEntry(.pass,.fail)
         ; do tLoadJsonMultipleEntriesAllDispatched(.pass,.fail)
         ; do tLoadJsonNoFieldsKeyIsLegal(.pass,.fail)
