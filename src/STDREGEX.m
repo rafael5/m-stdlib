@@ -135,7 +135,16 @@ findall(h,s,out)        ; Populate out(1..N) with every non-overlapping match te
         ; doc: out is by-reference. After return, $order(out("")) walks the
         ; doc: matches in left-to-right order. Empty out if no match.
         ; doc: Example: do findall^STDREGEX(h,"a 1 b 22",.out)
-        ; Stub: NFA simulation lands in Pass E.
+        new str,len,pos,n,startPos,bestEnd
+        kill out
+        set str=$get(s),len=$length(str),pos=1,n=0
+        for  quit:pos>(len+1)  do
+        . set bestEnd=0
+        . for startPos=pos:1:len+1 set bestEnd=$$attempt(h,str,startPos,len) quit:bestEnd>0
+        . if bestEnd=0 set pos=len+2 quit
+        . set n=n+1,out(n)=$extract(str,startPos,bestEnd-1)
+        . if bestEnd>startPos set pos=bestEnd
+        . else  set pos=startPos+1
         quit
         ;
 groups(h,s,g)   ; Populate g(0..N) with the full match text and each capture group.
@@ -162,15 +171,58 @@ replace(h,s,repl)       ; Return s with every match replaced by repl.
         ; doc: \1..\9 in repl are expanded to the corresponding capture group
         ; doc: text. \\ in repl is a literal backslash.
         ; doc: Example: write $$replace^STDREGEX(h,"x42y","[\1]")  ; "x[42]y"
-        ; Stub: replacement lands in Pass E.
-        quit $get(s)
+        new str,len,pos,result,startPos,bestEnd,winCaps
+        set str=$get(s),len=$length(str),pos=1,result=""
+        for  quit:pos>(len+1)  do
+        . set bestEnd=0
+        . for startPos=pos:1:len+1 do  quit:bestEnd>0
+        . . kill winCaps
+        . . set bestEnd=$$attemptCap(h,str,startPos,len,.winCaps)
+        . if bestEnd=0 do  quit
+        . . if pos<=len set result=result_$extract(str,pos,len)
+        . . set pos=len+2
+        . if startPos>pos set result=result_$extract(str,pos,startPos-1)
+        . set result=result_$$expand(str,repl,.winCaps)
+        . if bestEnd>startPos set pos=bestEnd
+        . else  do
+        . . if startPos<=len set result=result_$extract(str,startPos,startPos)
+        . . set pos=startPos+1
+        quit result
+        ;
+expand(str,repl,caps)   ; Expand \\1..\\9 backrefs in repl using caps; \\\\ is literal.
+        ; doc: Internal — used by replace(). Unrecognised \X is treated as
+        ; doc: a literal \X (passed through). \\\\ becomes a single \\.
+        new i,c,nxt,result,gsub
+        set result="",i=1
+        for  quit:i>$length(repl)  do
+        . set c=$extract(repl,i)
+        . if c'="\" set result=result_c,i=i+1 quit
+        . set nxt=$extract(repl,i+1)
+        . if nxt="" set result=result_"\",i=i+1 quit
+        . if nxt="\" set result=result_"\",i=i+2 quit
+        . if "123456789"[nxt do  quit
+        . . set gsub=+nxt
+        . . if $data(caps(gsub,"s")),$data(caps(gsub,"e")) set result=result_$extract(str,caps(gsub,"s"),caps(gsub,"e")-1)
+        . . set i=i+2
+        . set result=result_"\"_nxt,i=i+2
+        quit result
         ;
 split(h,s,out)  ; Populate out(1..N) with the segments of s between matches.
         ; doc: out is by-reference. Adjacent matches produce empty segments;
         ; doc: leading/trailing matches produce a leading/trailing empty
         ; doc: segment. Empty pattern is a parse error.
         ; doc: Example: do split^STDREGEX(h,"a,b,c",.out)
-        ; Stub: split lands in Pass E.
+        new str,len,pos,n,startPos,bestEnd
+        kill out
+        set str=$get(s),len=$length(str),pos=1,n=0,bestEnd=1
+        for  do  quit:bestEnd=0
+        . set bestEnd=0
+        . for startPos=pos:1:len+1 set bestEnd=$$attempt(h,str,startPos,len) quit:bestEnd>0
+        . if bestEnd=0 quit
+        . set n=n+1,out(n)=$extract(str,pos,startPos-1)
+        . if bestEnd>startPos set pos=bestEnd
+        . else  set pos=startPos+1
+        set n=n+1,out(n)=$extract(str,pos,len)
         quit
         ;
         ; ---------- internal: parser (Pass A) ----------
