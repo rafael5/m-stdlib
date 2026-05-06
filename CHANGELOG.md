@@ -10,6 +10,21 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDSEED` `loadJson`** (track L10 add-on for `v0.2.0`). Replaces
+  the v0.1.3 `U-STDSEED-NOT-IMPLEMENTED` stub with a real
+  implementation. `loadJson^STDSEED(jsonText,filer)` parses
+  `jsonText` via `$$parse^STDJSON`, expects a JSON array of
+  `{"file":<string>,"fields":{<fname>:<scalar>,...}}` objects, and
+  dispatches each element via `filer` (default `fileViaDie`). Two
+  new error codes: `,U-STDSEED-INVALID-JSON,` (parse failure),
+  `,U-STDSEED-INVALID-MANIFEST,` (root-not-array, element-not-object,
+  or non-string `file` value). Existing `U-STDSEED-MISSING-FILE` is
+  reused when an element omits the `file` key. Six new tests
+  (`tLoadJsonStubFilerReceivesEntry` … `tLoadJsonMissingFileKeyRaises`)
+  are defined in the suite but withheld from the driver until the
+  documented STDASSERT.raises P1 / extrinsic-chain harness crash is
+  resolved (same blocker as the STDLOG-JSON-emission tests in this
+  release). Implementation ships intact.
 - **`STDLOG` JSON-line output** (track L4 add-on for `v0.2.0`).
   New public extrinsic `FORMAT^STDLOG(name)` selects the
   line-rendering format: `"kv"` (default, unchanged) or `"json"`

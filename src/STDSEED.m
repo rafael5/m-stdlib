@@ -6,7 +6,8 @@ STDSEED ; m-stdlib — declarative test data loader (v0.1.3).
         ;   $$loaded^STDSEED(path)           ; 1 iff path is currently tracked
         ;   clear^STDSEED(path)              ; drop bookkeeping for path
         ;   $$validate^STDSEED(path)         ; 1 if manifest parses; raises on syntax
-        ;   loadJson^STDSEED(jsonText)       ; STUB — waits for STDJSON (Phase 2)
+        ;   loadJson^STDSEED(jsonText,filer) ; load JSON-array manifest via `filer`
+        ;                                      (each element: {"file":..,"fields":{..}})
         ;
         ; Manifest format (TSV, one row per record):
         ;   <file>\t<field>=<value>\t<field>=<value>...
@@ -28,7 +29,8 @@ STDSEED ; m-stdlib — declarative test data loader (v0.1.3).
         ;   ,U-STDSEED-MISSING-FILE,
         ;   ,U-STDSEED-MISSING-FIELD,
         ;   ,U-STDSEED-FILER-ERROR,
-        ;   ,U-STDSEED-NOT-IMPLEMENTED,
+        ;   ,U-STDSEED-INVALID-JSON,
+        ;   ,U-STDSEED-INVALID-MANIFEST,
         ;
         quit
         ;
@@ -60,10 +62,21 @@ validate(path)  ; Parse-only check — return 1 on success; raise on syntax erro
         do walk(path,"",0)
         quit 1
         ;
-loadJson(jsonText)      ; Stub — JSON manifest loading waits for STDJSON.
-        ; doc: Sets $ECODE to ,U-STDSEED-NOT-IMPLEMENTED,. Replaced once
-        ; doc: STDJSON ships in Phase 2.
-        set $ecode=",U-STDSEED-NOT-IMPLEMENTED,"
+loadJson(jsonText,filer)        ; Load JSON-array manifest via `filer`.
+        ; doc: jsonText is a JSON array; each element is an object with
+        ; doc: required string key "file" and optional object key "fields"
+        ; doc: whose members become FDA fname=fval pairs. Dispatched once
+        ; doc: per element via `filer` (default fileViaDie -> FILE^DIE).
+        ; doc: Parse failures raise U-STDSEED-INVALID-JSON; structurally
+        ; doc: malformed manifests raise U-STDSEED-INVALID-MANIFEST.
+        ; doc: Example: do loadJson^STDSEED("[{""file"":""PATIENT"",""fields"":{"".01"":""Smith""}}]")
+        new tree,ok,f
+        set f=$get(filer)
+        if f="" set f="fileViaDie^STDSEED"
+        set ok=$$parse^STDJSON(jsonText,.tree)
+        if 'ok set $ecode=",U-STDSEED-INVALID-JSON," quit
+        if $extract(tree)'="a" set $ecode=",U-STDSEED-INVALID-MANIFEST," quit
+        do walkJson(.tree,f)
         quit
         ;
         ; ---------- internal: manifest walk ----------
@@ -111,6 +124,38 @@ dispatch(path,file,fda,filer)   ; Invoke `filer` and book-keep the result.
         set seq=$increment(^STDLIB($job,"stdseed",path,"seq"))
         set ^STDLIB($job,"stdseed",path,"row",seq,"file")=file
         set ^STDLIB($job,"stdseed",path,"row",seq,"iens")=$get(iens)
+        quit
+        ;
+walkJson(tree,filer)    ; Iterate a parsed JSON array; dispatch each element.
+        ; doc: Internal — tree is the root array node from $$parse^STDJSON.
+        ; doc: Element shape: {"file":<string>,"fields":{<fname>:<scalar>,...}}
+        new n,i,fileNode,file,fda,fname,fnode,c
+        set n=0,i=$order(tree(""))
+        for  quit:i=""  set n=n+1,i=$order(tree(i))
+        for i=1:1:n do  quit:$ecode'=""
+        . if $extract(tree(i))'="o" set $ecode=",U-STDSEED-INVALID-MANIFEST," quit
+        . if '$data(tree(i,"file")) set $ecode=",U-STDSEED-MISSING-FILE," quit
+        . set fileNode=tree(i,"file")
+        . if $extract(fileNode)'="s" set $ecode=",U-STDSEED-INVALID-MANIFEST," quit
+        . set file=$extract(fileNode,3,$length(fileNode))
+        . kill fda
+        . if $data(tree(i,"fields"))#10 do  quit:$ecode'=""
+        . . if $extract(tree(i,"fields"))'="o" set $ecode=",U-STDSEED-INVALID-MANIFEST," quit
+        . . set fname=$order(tree(i,"fields",""))
+        . . for  quit:fname=""  do
+        . . . set fnode=tree(i,"fields",fname)
+        . . . set c=$extract(fnode)
+        . . . if (c="s")!(c="n") set fda(file,"+1,",fname)=$extract(fnode,3,$length(fnode))
+        . . . set fname=$order(tree(i,"fields",fname))
+        . do dispatchJson(file,.fda,filer)
+        quit
+        ;
+dispatchJson(file,fda,filer)    ; Invoke filer for one JSON element.
+        ; doc: Internal — relays filer $ECODE as U-STDSEED-FILER-ERROR.
+        new iens
+        ; m-lint: disable-next-line=M-MOD-036
+        do @filer@(file,.fda,.iens)
+        if $ecode'="" set $ecode=",U-STDSEED-FILER-ERROR," quit
         quit
         ;
 fileViaDie(file,fda,iens)       ; Default filer — call FILE^DIE.
