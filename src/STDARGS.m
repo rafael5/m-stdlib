@@ -58,7 +58,7 @@ addflag(p,long,short,action,dest)       ; Register a flag.
         ; doc: sets $ECODE to ,U-STDARGS-UNKNOWN-ACTION,. short may be empty.
         ; doc: Example: do addflag^STDARGS(p,"--verbose","-v","store_true","verbose")
         new n
-        if action'="store_true",action'="store",action'="count",action'="append" set $ecode=",U-STDARGS-UNKNOWN-ACTION," quit
+        if action'="store_true",action'="store",action'="count",action'="append" do raise("UNKNOWN-ACTION") quit
         set ^STDLIB($job,"stdargs",p,"flag",long,"short")=$get(short)
         set ^STDLIB($job,"stdargs",p,"flag",long,"action")=action
         set ^STDLIB($job,"stdargs",p,"flag",long,"dest")=dest
@@ -142,7 +142,7 @@ checkPositionals(p,ns)  ; Confirm every registered positional was filled.
         set n=0
         for  set n=$order(^STDLIB($job,"stdargs",p,"pos",n)) quit:n=""  do
         . set dest=$get(^STDLIB($job,"stdargs",p,"pos",n,"dest"))
-        . if '$data(ns(dest)) set $ecode=",U-STDARGS-MISSING-POSITIONAL,"
+        . if '$data(ns(dest)) do raise("MISSING-POSITIONAL")
         quit
         ;
         ; ---------- internal: walker ----------
@@ -154,7 +154,7 @@ walk(p,argline,ns)      ; Walk tokens of argline; dispatch flags / positionals /
         ; Sub-command dispatch: any sub registered → first token must match.
         if $data(^STDLIB($job,"stdargs",p,"sub")),n>0 do  quit
         . set subname=tokens(1)
-        . if '$data(^STDLIB($job,"stdargs",p,"sub",subname)) set $ecode=",U-STDARGS-UNKNOWN-SUBCOMMAND," quit
+        . if '$data(^STDLIB($job,"stdargs",p,"sub",subname)) do raise("UNKNOWN-SUBCOMMAND") quit
         . set subP=^STDLIB($job,"stdargs",p,"sub",subname)
         . set ns("__sub__")=subname
         . set subRest=""
@@ -188,16 +188,16 @@ handleLong(p,tok,ns,tokens,i,n) ; Process a "--name" token.
         ; doc: Internal — dispatches by action; advances i for store/append.
         new long,action,dest,k
         set long=tok
-        if '$data(^STDLIB($job,"stdargs",p,"flag",long,"action")) set $ecode=",U-STDARGS-UNKNOWN-FLAG," quit
+        if '$data(^STDLIB($job,"stdargs",p,"flag",long,"action")) do raise("UNKNOWN-FLAG") quit
         set action=^STDLIB($job,"stdargs",p,"flag",long,"action")
         set dest=^STDLIB($job,"stdargs",p,"flag",long,"dest")
         if action="store_true" set ns(dest)=1 quit
         if action="count" set ns(dest)=$get(ns(dest))+1 quit
         if action="store" do  quit
-        . if i>=n set $ecode=",U-STDARGS-MISSING-VALUE," quit
+        . if i>=n do raise("MISSING-VALUE") quit
         . set i=i+1,ns(dest)=tokens(i)
         if action="append" do  quit
-        . if i>=n set $ecode=",U-STDARGS-MISSING-VALUE," quit
+        . if i>=n do raise("MISSING-VALUE") quit
         . set i=i+1
         . set k=$increment(ns(dest,0))
         . set ns(dest,k)=tokens(i)
@@ -210,27 +210,27 @@ handleShort(p,tok,ns,tokens,i,n)        ; Process a "-x" or grouped "-xyz" token
         set body=$extract(tok,2,$length(tok)),len=$length(body)
         if len=1 do  quit
         . set short=tok
-        . if '$data(^STDLIB($job,"stdargs",p,"short",short)) set $ecode=",U-STDARGS-UNKNOWN-FLAG," quit
+        . if '$data(^STDLIB($job,"stdargs",p,"short",short)) do raise("UNKNOWN-FLAG") quit
         . set long=^STDLIB($job,"stdargs",p,"short",short)
         . set action=^STDLIB($job,"stdargs",p,"flag",long,"action")
         . set dest=^STDLIB($job,"stdargs",p,"flag",long,"dest")
         . if action="store_true" set ns(dest)=1 quit
         . if action="count" set ns(dest)=$get(ns(dest))+1 quit
         . if action="store" do  quit
-        . . if i>=n set $ecode=",U-STDARGS-MISSING-VALUE," quit
+        . . if i>=n do raise("MISSING-VALUE") quit
         . . set i=i+1,ns(dest)=tokens(i)
         . if action="append" do  quit
-        . . if i>=n set $ecode=",U-STDARGS-MISSING-VALUE," quit
+        . . if i>=n do raise("MISSING-VALUE") quit
         . . set i=i+1
         . . set k=$increment(ns(dest,0))
         . . set ns(dest,k)=tokens(i)
         for j=1:1:len  quit:$ecode'=""  do
         . set short="-"_$extract(body,j)
-        . if '$data(^STDLIB($job,"stdargs",p,"short",short)) set $ecode=",U-STDARGS-UNKNOWN-FLAG," quit
+        . if '$data(^STDLIB($job,"stdargs",p,"short",short)) do raise("UNKNOWN-FLAG") quit
         . set long=^STDLIB($job,"stdargs",p,"short",short)
         . set action=^STDLIB($job,"stdargs",p,"flag",long,"action")
         . set dest=^STDLIB($job,"stdargs",p,"flag",long,"dest")
-        . if action'="count" set $ecode=",U-STDARGS-UNKNOWN-FLAG," quit
+        . if action'="count" do raise("UNKNOWN-FLAG") quit
         . set ns(dest)=$get(ns(dest))+1
         quit
         ;
@@ -242,3 +242,13 @@ assignPositional(p,posIdx,tok,ns)       ; Assign tok to the posIdx-th positional
         set dest=^STDLIB($job,"stdargs",p,"pos",posIdx,"dest")
         set ns(dest)=tok
         quit
+        ;
+raise(err)      ; Raise a U-STDARGS-<err> error code via a fresh frame.
+        ; doc: Internal — fires the caller's $ETRAP from a nested frame
+        ; doc: so the trap's QUIT-with-empty-$ECODE resumes execution at
+        ; doc: a known safe point in the caller, not in the middle of
+        ; doc: post-error cleanup. Same pattern as STDREGEX.raise (added
+        ; doc: in L12 Pass B).
+        set $ecode=",U-STDARGS-"_err_","
+        quit
+        ;

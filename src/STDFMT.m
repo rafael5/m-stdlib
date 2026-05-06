@@ -70,11 +70,13 @@ render(template,args)   ; Walk template; expand placeholders.
         . . . if $extract(template,j)="{" set depth=depth+1
         . . . if $extract(template,j)="}" set depth=depth-1
         . . . if depth>0 set j=j+1
-        . . if depth'=0 set $ecode=",U-STDFMT-UNCLOSED-BRACE," quit
+        . . if depth'=0 do raise("UNCLOSED-BRACE")
+        . . if depth'=0 quit
         . . set spec=$extract(template,i+1,j-1)
         . . set out=out_$$expand(spec,.args,.autoIdx)
         . . set i=j+1
-        . if c="}" set $ecode=",U-STDFMT-UNESCAPED-RBRACE," quit
+        . if c="}" do raise("UNESCAPED-RBRACE")
+        . if c="}" quit
         . set out=out_c
         . set i=i+1
         quit out
@@ -96,7 +98,8 @@ lookup(args,field,autoIdx)      ; Resolve field to argument value.
         if field="" set key=autoIdx,autoIdx=autoIdx+1
         else  if field?1.N set key=+field
         else  set key=field
-        if '$data(args(key)) set $ecode=",U-STDFMT-MISSING-ARG," quit ""
+        if '$data(args(key)) do raise("MISSING-ARG")
+        if '$data(args(key)) quit ""
         quit args(key)
         ;
         ; ---------- internal: format spec ----------
@@ -156,7 +159,7 @@ convert(val,type,precision)     ; Convert val to its rendered string per type.
         if type="X" quit $$toBase(+val,16,"0123456789ABCDEF")
         if type="o" quit $$toBase(+val,8,"01234567")
         if type="b" quit $$toBase(+val,2,"01")
-        set $ecode=",U-STDFMT-UNKNOWN-TYPE,"
+        do raise("UNKNOWN-TYPE")
         quit ""
         ;
 toBase(n,base,alpha)    ; Convert integer n to a string in base via alpha.
@@ -193,3 +196,13 @@ repeat(c,n)     ; Return char c repeated n times.
         set out=""
         for i=1:1:n set out=out_c
         quit out
+        ;
+raise(err)      ; Raise a U-STDFMT-<err> error code via a fresh frame.
+        ; doc: Internal — fires the caller's $ETRAP from a nested frame
+        ; doc: so the trap's QUIT-with-empty-$ECODE resumes execution at
+        ; doc: a known safe point in the caller (a guarded quit), not in
+        ; doc: the middle of post-error cleanup. Same pattern as
+        ; doc: STDREGEX.raise (added in L12 Pass B).
+        set $ecode=",U-STDFMT-"_err_","
+        quit
+        ;
