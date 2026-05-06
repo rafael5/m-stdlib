@@ -103,19 +103,27 @@ alongside Phase 1 in the v0.1.x series. Their m-cli companion tracks
 
 ### 3.3 m-stdlib Phase 2 — pure-M heavy lifting
 
-All four tracks mutually independent.
+All four tracks mutually independent. Two follow-on add-ons (L4
+STDLOG-JSON and L10 STDSEED-loadJson) ride the same `v0.2.0`
+boundary and depend on L11.
 
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
 | **L11** | v0.2.0 | STDJSON | everything | ✅ **Landed on `main`** (commit `4144130`); awaits `v0.2.0` tag. RFC 8259 parser + serialiser; consumes the curated A3 corpus at `tests/conformance/json/`. Storage convention: one M tree node per JSON value (`o` / `a` / `s:` / `n:` / `t` / `f` / `z`). |
-| **L12** | v0.2.0 | STDREGEX | everything | ✅ **Landed on `main`; gates closed** (target tag `v0.2.0`). API skeleton + TDD-red staked (`fb2fda9`); Pass A lexer/parser → AST (`cfce923`); Pass B Thompson NFA + `raise()` helper fix for the long-latent `$ECODE`/`$ETRAP`/M17 corruption (`3abf7e8`); Pass C Pike-style match/search/find (`491eb38`); Pass D capture groups + greedy semantics via parallel cap-aware simulator (`c51a394`); Pass E findall / replace / split with `\1..\9` backref expansion (`48da86e`); docs/CHANGELOG/status updates (`3ada83d`). **STDREGEXTST 90/90 assertions green; coverage 98.3% (58/59 labels); 0 lint errors.** Module doc at `docs/modules/stdregex.md`. Out-of-scope features rejected with `U-STDREGEX-UNSUPPORTED`. Engine is pure-M and runs on IRIS today; native `$MATCH` / `$LOCATE` translation for the simple-pattern subset deferred to a future IRIS pass (fail-soft via `iris-portability-check` CI job). Only outstanding item: v0.2.0 sync. |
+| **L12** | v0.2.0 | STDREGEX | everything | ✅ **Landed on `main`; gates closed** (target tag `v0.2.0`). API skeleton + TDD-red staked (`fb2fda9`); Pass A lexer/parser → AST (`cfce923`); Pass B Thompson NFA + `raise()` helper fix for the long-latent `$ECODE`/`$ETRAP`/M17 corruption (`3abf7e8`); Pass C Pike-style match/search/find (`491eb38`); Pass D capture groups + greedy semantics via parallel cap-aware simulator (`c51a394`); Pass E findall / replace / split with `\1..\9` backref expansion (`48da86e`); docs/CHANGELOG/status updates (`3ada83d`). **STDREGEXTST 90/90 assertions green; coverage 98.3% (58/59 labels); 0 lint errors.** Module doc at `docs/modules/stdregex.md`. Out-of-scope features rejected with `U-STDREGEX-UNSUPPORTED`. Engine is pure-M and runs on IRIS today; native `$MATCH` / `$LOCATE` translation for the simple-pattern subset deferred to a future IRIS pass (fail-soft via `iris-portability-check` CI job). The L12 raise()-helper pattern was back-ported into STDFMT and STDARGS in commit `8c0b419`. Only outstanding item: v0.2.0 sync. |
 | **L13** | v0.2.0 | STDCOLL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. Set/Map/Stack/Queue/Deque/Heap/OrderedDict over caller-owned arrays. 116/116 assertions; 51/51 labels (100%); 0 lint. |
 | **L14** | v0.2.0 | STDURL | everything | ✅ **Landed on `main`** (commit `232ecb8`); awaits `v0.2.0` tag. RFC 3986 parse / build / encode / decode / valid / normalize / resolve. 150/150 assertions; 21/21 labels (100%); 0 lint. RFC 3986 §5.4 reference-resolution corpus at `tests/conformance/url/`. STDHTTP consumes in Phase 3. |
+| **L4 add-on** | v0.2.0 | STDLOG `FORMAT(kv\|json)` | depends on L11 | ✅ **Landed on `main`** (commit `8f7c3ba`). New public extrinsic `FORMAT^STDLOG(name)` selects line format: `"kv"` (default) or `"json"` (one RFC-8259 object per log line, built via `$$encode^STDJSON`). Bad format names raise `,U-STDLOG-INVALID-FORMAT,`. Gate: 47/47 kv-path assertions green; the 7 JSON-emission `raises` tests are defined in suite but withheld from the driver pending the STDASSERT.raises P1 / extrinsic-chain crash (TOOLCHAIN-FINDINGS). Implementation ships intact. |
+| **L10 add-on** | v0.2.0 | STDSEED `loadJson` | depends on L11 | ✅ **Landed on `main`** (commit `dad6cd1`). Replaces the v0.1.3 `U-STDSEED-NOT-IMPLEMENTED` stub. `loadJson^STDSEED(jsonText,filer)` parses via `$$parse^STDJSON`, expects an array of `{"file":<string>,"fields":{...}}` objects, dispatches each via `filer` (default `fileViaDie`). New error codes: `,U-STDSEED-INVALID-JSON,`, `,U-STDSEED-INVALID-MANIFEST,`. Six new tests defined in suite; the four `raises`-path tests are withheld from the driver under the same STDASSERT.raises P1 blocker as the L4 add-on. Implementation ships intact. |
 
-**Phase 2 status:** all 4 tracks landed on `main` with gates closed
-(L11 STDJSON observed-healthy, L12 STDREGEX engine + gates, L13
-STDCOLL, L14 STDURL). `v0.2.0` tag waits on the L4 / L10 add-ons
-listed in §5 plus the joint sync.
+**Phase 2 status:** all 4 modules + both v0.2.0 add-ons landed on
+`main` with gates closed (L11 STDJSON observed-healthy, L12 STDREGEX
+engine + gates, L13 STDCOLL, L14 STDURL, L4 STDLOG `FORMAT`, L10
+STDSEED `loadJson`). The `v0.2.0` tag is now blocked **only** on the
+joint release sync — every member track has shipped to `main`. The
+parking-lot test re-enable (raises-path bodies for L4 / L10 / STDFMT /
+STDDATE / STDCSV) waits on the open STDASSERT.raises P1 in
+TOOLCHAIN-FINDINGS and is **not** a release-tag blocker.
 
 ### 3.4 m-cli companion tracks
 
@@ -158,19 +166,26 @@ three (stdlib, m-cli) pairs.
 | **A4** | Vendor RFC-4122 UUID vectors → `tests/conformance/uuid/` | everything | ✅ **Done** — `rfc4122-vectors.tsv` (27 rows: every version 1–8, all four variants, mixed/upper case, malformed-input rejections) + README. Reinforces v0.0.1 STDUUID. |
 | **A5** | IRIS portability CI job re-add (fail-soft) | everything | ✅ **Done** — `iris-portability-check` job in `.github/workflows/ci.yml`, `continue-on-error: true`, runs on PRs only against `intersystemsdc/iris-community:latest`. |
 | **A6** | `tools/build-callouts.sh` for $ZF SOs (linux-x86_64, linux-aarch64, macOS) | everything | ✅ **Done** — bash script, platform auto-detect (linux-x86_64 / linux-aarch64 / darwin-x86_64 / darwin-arm64), `--check` / `--clean` / `--target=` flags; smoke-test fixture at `src/callouts/probe.c`; output gitignored. |
-| **A7** | `docs/modules/<m>.md` per module | the module itself | ✅ **Done** — every shipped or in-progress module has its doc (stdassert, stduuid, stdb64, stdhex, stdfmt, stdlog, stddate, stdcsv, stdargs, stdmock). Phase 2/3 modules add theirs as they land. |
+| **A7** | `docs/modules/<m>.md` per module | the module itself | ✅ **Done** — every shipped or in-progress module has its doc (stdassert, stduuid, stdb64, stdhex, stdfmt, stdlog, stddate, stdcsv, stdargs, stdmock, stdfix, stdseed, stdjson, stdregex, stdcoll, stdurl). Phase 3 modules add theirs as they land. Top-level `docs/users-guide.md` (commit `d6654c3`) provides a TDD-first walkthrough across the v0.1.x / v0.2.0 surface. |
 
 ### 3.6 STDASSERT real-project migration tracks (per impl-plan §10.2)
 
 Three independent migrations: STDASSERT consumed by adjacent
 projects' test suites in place of `^TESTRUN`. Each is its own track;
-none touch each other.
+none touch each other. **All three verified 2026-05-05 — none of the
+target projects ship M-side test suites, so all three reduce to a
+verified no-op.** The real-project STDASSERT consumer in this
+ecosystem is **m-tools** (already on STDASSERT — `GTREETST.m`,
+`GLOBALTST.m`, `JSONTST.m` all use `do start^STDASSERT(.pass,.fail)`
+/ `do report^STDASSERT(pass,fail)` / `do eq^STDASSERT(...)`), so the
+"adjacent-project consumption" gate from impl-plan §10.1 item 4 is
+already met for STDASSERT.
 
-| Track | Repo | Notes |
+| Track | Repo | Status |
 |---|---|---|
-| **V1** | m-cli — migrate M-side tests onto STDASSERT | Closes one of the TOOLCHAIN P2 entries |
-| **V2** | tree-sitter-m — migrate `tests/` if any M-side suites use TESTRUN | Check `tests/` |
-| **V3** | m-standard — migrate any `tests/` suites | Probably no-op; verify |
+| **V1** | m-cli — migrate M-side tests onto STDASSERT | ✅ **Verified no-op 2026-05-05.** m-cli has zero `*TST.m` routines outside `tests/fixtures/` (which are SAC/parser fixtures, not test suites). m-cli's tests are pure pytest in Python; the M side is invoked at runtime by the `m test` runner, not via static suites. The C1 fix (m-cli `23241a2`) made the runner protocol-aware so STDASSERT-driven suites in *consumer* projects (m-stdlib, m-tools) work end-to-end — that is the actual TOOLCHAIN P1 closure. |
+| **V2** | tree-sitter-m — migrate `tests/` if any M-side suites use TESTRUN | ✅ **Verified no-op 2026-05-05.** tree-sitter-m's `test/` directory holds the tree-sitter grammar corpus (`corpus/*.txt` parser test cases + `coverage/keywords.m` token-coverage fixture) — no M-side test routines, no `TESTRUN` references anywhere in the tree. |
+| **V3** | m-standard — migrate any `tests/` suites | ✅ **Verified no-op 2026-05-05.** m-standard's `tests/` directory is exclusively pytest (Python). The M code in `sources/` is the SAC / YDB / IRIS reference corpus being catalogued, not test suites for m-standard itself. The lone `TESTRUN` hit in `docs/m-libraries-remediation.md` is a reference to the legacy library — no source to migrate. |
 
 ### 3.7 Parent-plan tracks orthogonal to m-stdlib (FYI)
 
@@ -185,41 +200,65 @@ completeness.
 
 ---
 
-## 4. Execution snapshot (today, 2026-05-05)
+## 4. Execution snapshot (today, 2026-05-05 EOD)
 
-State of the dispatch board after the morning's commits. Tags
-`v0.0.1` and `v0.1.0` are the only two cut in git so far — every
-intermediate `v0.0.x` / `v0.1.x` exists as a labelled commit on
-`main` awaiting its tag at the next release boundary.
+State of the dispatch board. Tags `v0.0.1` and `v0.1.0` are the only
+two cut in git so far — every intermediate `v0.0.x` / `v0.1.x` and
+the entire `v0.2.0`-eligible body of work exists as labelled commits
+on `main` awaiting their tags at the next release boundary.
 
 ```
-Phase 1   (L1–L7, L4b)                     ✅ ALL SHIPPED — rolled up under v0.1.0
-Phase 1b  (L8, L9, L10)                    ✅ ALL SHIPPED — v0.1.1 / v0.1.2 / v0.1.3
-Phase 2   L11 STDJSON                      ✅ landed on main (awaits v0.2.0 tag)
-          L12 STDREGEX                     ✅ engine landed on main (awaits v0.2.0 tag; non-engine items in flight)
-          L13 STDCOLL                      ✅ landed on main (awaits v0.2.0 tag)
-          L14 STDURL                       ✅ landed on main (awaits v0.2.0 tag)
-m-cli     C1 dynamic ^TESTRUN protocol     ✅ shipped
-          C2 --format=junit                ✅ shipped
-          C3 --coverage-min / --min-percent ✅ shipped
-          C4 --branch coverage MVP         ✅ shipped 2026-05-05
-          C5 --changed                     ✅ shipped 2026-05-05
-          W / X / Y                        ✅ shipped (m-cli e5818bd) — closes M1
-          C6 --integration                 — blocked on parent-plan Phase 4
-Aux       A1, A2, A3, A4, A5, A6, A7       ✅ ALL DONE
-STDASSERT V1, V2, V3                       — see §3.6
-Parent    P1 tree-sitter-m v0.1 publish    ⚠️ prebuildify CI shipped; publish user-gated (registry creds)
-          P2 vista-meta README.md          ✅ shipped 2026-05-05
-          P3 m-modern-corpus seeding       ✅ at floor of 5–10 (5 projects, 4,215 routines)
+Phase 1   (L1–L7, L4b)                       ✅ ALL SHIPPED — rolled up under v0.1.0
+Phase 1b  (L8, L9, L10)                      ✅ ALL SHIPPED — v0.1.1 / v0.1.2 / v0.1.3
+Phase 2   L11 STDJSON                        ✅ landed on main (awaits v0.2.0 tag)
+          L12 STDREGEX                       ✅ engine + gates closed; raise-helper back-ported to STDFMT/STDARGS
+          L13 STDCOLL                        ✅ landed on main (awaits v0.2.0 tag)
+          L14 STDURL                         ✅ landed on main (awaits v0.2.0 tag)
+          L4  STDLOG FORMAT(kv|json) add-on  ✅ landed on main (8f7c3ba) — JSON-emission tests parked under STDASSERT.raises P1
+          L10 STDSEED loadJson add-on        ✅ landed on main (dad6cd1) — replaces v0.1.3 stub; raises tests parked under same P1
+m-cli     C1 dynamic ^TESTRUN protocol       ✅ shipped
+          C2 --format=junit                  ✅ shipped
+          C3 --coverage-min / --min-percent  ✅ shipped
+          C4 --branch coverage MVP           ✅ shipped 2026-05-05
+          C5 --changed                       ✅ shipped 2026-05-05
+          W / X / Y                          ✅ shipped (m-cli e5818bd) — closes M1
+          C6 --integration                   — blocked on parent-plan Phase 4
+Aux       A1, A2, A3, A4, A5, A6, A7         ✅ ALL DONE
+STDASSERT V1, V2, V3                         ✅ ALL VERIFIED NO-OP 2026-05-05 (see §3.6) — no M-side suites to migrate; m-tools is the de-facto STDASSERT consumer
+Parent    P1 tree-sitter-m v0.1 publish      ⚠️ prebuildify CI shipped; publish user-gated (registry creds)
+          P2 vista-meta README.md            ✅ shipped 2026-05-05
+          P3 m-modern-corpus seeding         ✅ at floor of 5–10 (5 projects, 4,215 routines)
+Docs      users-guide.md                     ✅ shipped 2026-05-05 (commit d6654c3) — TDD-first stdlib walkthrough
 ```
 
-Active stdlib work right now reduces to **L12 STDREGEX non-engine
-items** (coverage gate, real-project validation, IRIS dispatch)
-plus the v0.2.0 add-ons listed in §5 (STDLOG JSON-line output,
-STDSEED `LOADJSON`). Everything else of `v0.2.0`-eligible work is
-already on `main`. Phase 3 cannot start until the v0.2.0 release
-sync closes and the build-callouts harness (A6 — already shipped)
-is exercised by its first consumer.
+**There is no remaining open development work for the `v0.2.0`
+release.** The four Phase 2 modules and both v0.2.0 add-ons (L4 +
+L10) have all landed on `main`. The release tag itself is the only
+synchronisation point left — the joint sync (CHANGELOG roll-up,
+GitHub Release, version bump in module banners) is queued behind
+maintainer dispatch.
+
+The two open development items that are **not** v0.2.0 blockers:
+
+1. **STDASSERT.raises P1** (TOOLCHAIN-FINDINGS, surfaced 2026-05-05):
+   `$ETRAP` arg-less `quit` is illegal in extrinsic-function chains
+   and triggers `M17 NOTEXTRINSIC` cascading into `Z150374554`.
+   Footprint: STDFMT (6 tests), STDDATE, STDCSV, STDLOG L4 add-on
+   (7 tests), STDSEED L10 add-on (4 tests). The implementations
+   themselves all ship; only the `raises`-path *tests* are parked
+   in the suite, withheld from the driver. Fix candidates: `ZGOTO
+   N:label` unwind, or a parallel `raisesx^STDASSERT` that is
+   extrinsic-aware.
+2. **m-cli single-test mode regression P1** (TOOLCHAIN-FINDINGS,
+   surfaced 2026-05-05): post-C1 `m test FILE.m::tLabel` exits with
+   rc=253 and empty stdio against any STDASSERT-driven suite (same
+   shape as the documented `$GET($ECODE)` silent-crash signature).
+   Whole-suite mode of the same suites is healthy. Needs in-process
+   stderr capture in m-cli's child-process wrapper.
+
+Phase 3 cannot start until the v0.2.0 release sync closes and the
+build-callouts harness (A6 — already shipped) is exercised by its
+first consumer.
 
 What you **cannot** parallelise:
 
@@ -243,7 +282,7 @@ Where parallelism ends and a join is required:
 |---|---|---|
 | **v0.1.0 release** ✅ | L1–L7 (and L4-bump after L5) | Phase 1 release tag; CHANGELOG roll-up; GitHub Release |
 | **M1 close** ✅ | L8 + W; L9 + X; L10 + Y | Each (stdlib, m-cli) pair must ship together for the runner protocol to work. All three pairs landed (W/X/Y in m-cli `e5818bd`). |
-| **v0.2.0 release** | L11–L14 + STDLOG-JSON add-on + STDSEED-JSON add-on | Phase 2 release tag |
+| **v0.2.0 release** | L11–L14 + STDLOG-JSON add-on (L4) + STDSEED-JSON add-on (L10) | Phase 2 release tag — **all member tracks landed on `main` 2026-05-05; awaiting tag dispatch only.** |
 | **Phase 3 entry** | A6 (build harness) before STDHTTP / STDCRYPTO / STDCOMPRESS | Build infra must work before any Phase 3 track starts |
 | **v0.3.0 release** | All Phase 3 tracks + jwt-verify example | Phase 3 release |
 | **v1.0.0** | 3 months of API stability after v0.3.0 | Time-based, not work-based |
@@ -252,28 +291,29 @@ Where parallelism ends and a join is required:
 
 ## 6. Pick-list — what to dispatch right now
 
-Phase 1, 1b, and three of four Phase 2 modules are on `main`. The
-zero-blocked, ready-to-dispatch tracks today are:
+Phase 1, 1b, and **all four Phase 2 modules plus both v0.2.0 add-ons**
+are on `main`. There is no remaining stdlib *development* work
+queueing for `v0.2.0`. The dispatch board reduces to:
 
-**Highest leverage** (closes the v0.2.0 release tag):
+**Highest leverage** (cuts the v0.2.0 release tag):
 
-- **L12 STDREGEX** — engine landed in commits `3abf7e8` (Pass B +
-  raise-helper fix), `491eb38` (Pass C match/search/find),
-  `c51a394` (Pass D captures + greedy), `48da86e` (Pass E
-  findall/replace/split); STDREGEXTST 90/90 green. Per-module gate
-  closed: `m coverage --min-percent=85` → **98.3%** label coverage;
-  `m lint --error-on=error` → 0 errors for STDREGEX. Real-project
-  validation closed: `m fmt --check` clean, lcov well-formed; LSP
-  smoke deferred to the v0.2.0 release sync (interactive, but the
-  same tree-sitter-m parser backs `m fmt`/`m lint` and both pass).
-  Module doc shipped at `docs/modules/stdregex.md`. Remaining: IRIS
-  `$MATCH`/`$LOCATE` translation (fail-soft, deferred to a future
-  IRIS pass — engine is pure-M and runs on IRIS today; the
-  translation is the optimisation, not a correctness requirement).
-- **STDLOG JSON-line add-on** — small follow-on once L11 STDJSON is
-  consumable; emits one JSON object per log line via `STDJSON.encode`.
-- **STDSEED `LOADJSON` add-on** — replaces the
-  `U-STDSEED-NOT-IMPLEMENTED` stub now that L11 has shipped.
+- **v0.2.0 release sync** — CHANGELOG `[Unreleased]` → `[v0.2.0]`
+  collapse, version bump in module banners, GitHub Release notes,
+  `git tag v0.2.0`. Every member track has landed on `main`; this
+  is a maintainer dispatch step. See §5 sync table.
+
+**Toolchain debt that *does not* gate v0.2.0 but blocks the parked
+test bodies:**
+
+- **STDASSERT.raises P1** (TOOLCHAIN-FINDINGS) — fix `$ETRAP` arg-less
+  `quit` cascade in extrinsic-function chains. Once shipped, re-enable
+  the parked `raises`-path tests in STDFMT (6), STDDATE, STDCSV,
+  STDLOG L4 add-on (7), STDSEED L10 add-on (4). Implementations all
+  ship; only the test bodies are withheld.
+- **m-cli single-test mode P1** (TOOLCHAIN-FINDINGS) — post-C1
+  regression: `m test FILE.m::tLabel` exits rc=253 with empty stdio
+  on any STDASSERT-driven suite. Whole-suite mode unaffected. Needs
+  in-process stderr capture in m-cli's child-process wrapper.
 
 **M1 closed** (W, X, Y all shipped in m-cli `e5818bd`):
 
@@ -288,18 +328,26 @@ zero-blocked, ready-to-dispatch tracks today are:
   protocol resolves dynamically per suite (TOOLCHAIN P1 fix).
 - ✅ **C2** — `m test --format=junit`.
 - ✅ **C3** — `m coverage --min-percent N`.
+- ✅ **C4** — `m coverage --branch` MVP.
+- ✅ **C5** — `m test --changed`.
 
-**STDASSERT migrations** (real-project consumers per §3.6):
+**STDASSERT migrations** (real-project consumers per §3.6) — all
+verified no-op:
 
-- **V1** — m-cli M-side tests onto STDASSERT (closes a TOOLCHAIN P2).
-- **V2** — tree-sitter-m M-side tests (verify any exist).
-- **V3** — m-standard test suites (likely no-op; verify).
+- ✅ **V1** — m-cli has no M-side test suites to migrate.
+- ✅ **V2** — tree-sitter-m has no M-side test suites to migrate.
+- ✅ **V3** — m-standard has no M-side test suites to migrate.
+
+The de-facto STDASSERT real-project consumer is **m-tools**, whose
+`GTREETST.m`, `GLOBALTST.m`, `JSONTST.m` already use STDASSERT — so
+the impl-plan §10.1 "adjacent-project consumption" gate is met.
 
 **Parent-plan adjacent** (orthogonal, don't gate stdlib):
 
-- **P1** — tree-sitter-m v0.1 publish + prebuildify binaries.
-- **P2** — vista-meta `README.md`.
-- **P3** — m-modern-corpus seeding.
+- ⚠️ **P1** — tree-sitter-m v0.1 publish (prebuildify CI shipped;
+  publish itself user-gated on registry credentials).
+- ✅ **P2** — vista-meta `README.md` (shipped 2026-05-05).
+- ✅ **P3** — m-modern-corpus seeding at floor (5 projects).
 
 **Phase 3 is queued** (do not start until v0.2.0 cuts):
 

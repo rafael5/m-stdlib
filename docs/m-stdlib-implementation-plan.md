@@ -748,12 +748,28 @@ For every module, after unit tests pass, do all four:
 When STDASSERT lands in `v0.0.1`, file follow-up issues to migrate
 existing `^TESTRUN`-using suites onto STDASSERT:
 
-- [ ] m-cli — file P2 issue
-- [ ] tree-sitter-m — file P2 issue
-- [ ] m-standard — file P2 issue if applicable (check `tests/`)
+- [x] m-cli — **verified no-op 2026-05-05.** m-cli has no `*TST.m`
+  routines outside `tests/fixtures/` (which are SAC/parser fixtures,
+  not test suites). m-cli's own tests are pure pytest in Python; M
+  is invoked at runtime by the `m test` runner against *consumer*
+  suites. The C1 fix (m-cli `23241a2`) made the runner protocol-
+  aware so STDASSERT-driven suites in consumer projects work end-
+  to-end — that is the actual TOOLCHAIN P1 closure.
+- [x] tree-sitter-m — **verified no-op 2026-05-05.** `test/` holds
+  the tree-sitter grammar corpus only (`corpus/*.txt` parser cases +
+  `coverage/keywords.m` token-coverage fixture). No `TESTRUN`
+  references anywhere in the tree.
+- [x] m-standard — **verified no-op 2026-05-05.** `tests/` is
+  exclusively pytest (Python). M code in `sources/` is the SAC / YDB
+  / IRIS reference corpus being catalogued, not test suites. The
+  lone `TESTRUN` hit in `docs/m-libraries-remediation.md` is a
+  reference to the legacy library — no source to migrate.
 
-These are not blockers for m-stdlib progression but they are the
-canonical real-project exercise for STDASSERT itself.
+The de-facto STDASSERT real-project consumer in this ecosystem is
+**m-tools** — `GTREETST.m`, `GLOBALTST.m`, `JSONTST.m` all use
+`do start^STDASSERT(.pass,.fail)` / `do report^STDASSERT(pass,fail)`
+/ `do eq^STDASSERT(...)`. The §10.1 item-4 gate (adjacent-project
+consumption) is satisfied via m-tools.
 
 ---
 

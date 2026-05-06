@@ -2,7 +2,7 @@
 # Machine-readable project descriptor — schema v1 (2026-05-05).
 name: m-stdlib
 kind: [m-library, library]
-status: active                             # v0.0.1 shipped 2026-04-30; v0.0.2 in progress
+status: active                             # v0.1.0 shipped 2026-05-05; v0.2.0 fully landed on main awaiting tag
 languages: [mumps]
 
 runtime:
@@ -23,10 +23,10 @@ exposes:
   m_routines:
     - "STDASSERT.m (assertions; v0.0.1)"
     - "STDUUID.m (UUID gen; v0.0.1)"
+    - "STDB64.m, STDHEX.m, STDFMT.m, STDLOG.m, STDDATE.m, STDCSV.m, STDARGS.m (v0.1.0)"
+    - "STDFIX.m (v0.1.1), STDMOCK.m (v0.1.2), STDSEED.m (v0.1.3) — Phase 1b TDD primitives"
+    - "STDJSON.m, STDREGEX.m, STDCOLL.m, STDURL.m (v0.2.0; landed on main)"
   planned_routines:
-    - "STDB64, STDHEX (v0.0.2)"
-    - "STDFMT, STDLOG, STDDATE, STDCSV, STDARGS (v0.1.0)"
-    - "STDJSON, STDREGEX, STDCOLL, STDURL (v0.2.0)"
     - "STDHTTP, STDCRYPTO, STDCOMPRESS via $ZF (v0.3.0)"
   formats_produced: []                     # runtime library, no file outputs
 
@@ -66,8 +66,24 @@ See [README.md](README.md) for the phase plan.
 
 ## Status (2026-05-05)
 
-- v0.0.1 shipped 2026-04-30: STDASSERT (full) + STDUUID. 166/166 assertions pass; 22/22 labels covered (100% per `m coverage`); 0 lint findings (`m lint`).
-- v0.0.2 in progress: STDB64 + STDHEX.
+- v0.0.1 shipped 2026-04-30: STDASSERT (full) + STDUUID.
+- **v0.1.0 shipped 2026-05-05** (Phase 1 release tag — commit `3cf84f2`).
+  Rolls up tracks L1–L7 + L4b: STDB64, STDHEX, STDFMT, STDLOG, STDDATE,
+  STDCSV, STDARGS — all green, all 100% label coverage, 0 lint.
+- v0.1.1 (STDFIX), v0.1.2 (STDMOCK), v0.1.3 (STDSEED): Phase 1b TDD
+  primitives — labelled commits on `main`, awaiting batch tag.
+- **Phase 2 fully landed on `main`, awaiting `v0.2.0` tag**: STDJSON
+  (L11), STDREGEX (L12), STDCOLL (L13), STDURL (L14), plus STDLOG L4
+  add-on (`FORMAT(kv|json)`) and STDSEED L10 add-on (`loadJson`). All
+  implementations green; some `raises`-path test bodies parked pending
+  the open STDASSERT.raises P1 fix in TOOLCHAIN-FINDINGS (not a v0.2.0
+  blocker).
+- m-cli companion tracks C1–C5 + W/X/Y all shipped; M1 closed.
+- STDASSERT migrations V1/V2/V3 verified no-op 2026-05-05 — none of
+  m-cli, tree-sitter-m, m-standard ship M-side test suites; m-tools
+  is the de-facto STDASSERT consumer.
+
+See `docs/parallel-tracks.md` for the live dispatch board.
 
 ## Architectural rule
 
