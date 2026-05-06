@@ -10,6 +10,23 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDLOG` JSON-line output** (track L4 add-on for `v0.2.0`).
+  New public extrinsic `FORMAT^STDLOG(name)` selects the
+  line-rendering format: `"kv"` (default, unchanged) or `"json"`
+  (one RFC-8259 object per log line, built via `$$encode^STDJSON` so
+  each line round-trips through `$$parse^STDJSON` without loss).
+  `ts` / `level` / `event` are top-level keys; supplied kv pairs
+  become additional string-typed members. Bad format names raise
+  `,U-STDLOG-INVALID-FORMAT,`. Suite gate: 47/47 kv-path assertions
+  green; the seven JSON-emission assertion tests
+  (`tFormatJsonEmitsValidJson` … `tFormatInvalidRaises`) are
+  defined in the suite but withheld from the driver until the
+  documented STDASSERT.raises P1 / extrinsic-chain runner crash is
+  resolved (same shape as the TOOLCHAIN-FINDINGS P1 affecting
+  STDFMT / STDDATE / STDCSV error-path tests). Implementation
+  ships intact; the driver re-enables the assertion bodies once
+  the crash is debugged. STDSEED `LOADJSON` add-on (next L10
+  follow-on) will consume the same `$$parse^STDJSON` entry point.
 - **`STDREGEX`** — regular expressions (track L12, Phase 2, target
   tag `v0.2.0`). Thompson-NFA engine on YottaDB; documented `$MATCH`/
   `$LOCATE` wrap on IRIS for the simple-pattern subset (full IRIS

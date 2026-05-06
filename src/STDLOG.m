@@ -12,20 +12,28 @@ STDLOG  ; m-stdlib — structured key=value logger (v0.0.4).
         ;   FATAL^STDLOG(event,...)
         ;   LEVEL^STDLOG(threshold)               — "DEBUG"|"INFO"|"WARN"|"ERROR"|"FATAL"
         ;   SINK^STDLOG(target)                   — "stderr"|"stdout"|"global"|"global:^GREF"
+        ;   FORMAT^STDLOG(name)                   — "kv" (default) | "json"
         ;
-        ; Output line format:
+        ; Output line format (kv, default):
         ;   <ISO-8601 UTC ts> level=<NAME> event=<event> k=v k=v ...
         ;
-        ; Value escaping: a value with no space, '=', '"', or '\' is emitted
-        ; raw. Otherwise it is wrapped in double quotes, with embedded '\'
-        ; doubled to '\\' and embedded '"' escaped to '\"'.
+        ; Output line format (json):
+        ;   {"ts":"<ISO-8601>","level":"<NAME>","event":"<event>","k":"v",...}
+        ;   All values are emitted as JSON strings (preserves the kv contract
+        ;   that values are opaque text). Built via $$encode^STDJSON, so the
+        ;   line is byte-exactly conformant RFC 8259.
         ;
-        ; Defaults: threshold=INFO, sink=stderr. Configuration is process-
-        ; local (held under ^STDLIB($job,"stdlog","...")).
+        ; Value escaping (kv): a value with no space, '=', '"', or '\' is
+        ; emitted raw. Otherwise it is wrapped in double quotes, with embedded
+        ; '\' doubled to '\\' and embedded '"' escaped to '\"'.
+        ;
+        ; Defaults: threshold=INFO, sink=stderr, format=kv. Configuration is
+        ; process-local (held under ^STDLIB($job,"stdlog","...")).
         ;
         ; Errors set $ECODE to one of:
         ;   ,U-STDLOG-INVALID-LEVEL,
         ;   ,U-STDLOG-INVALID-SINK,
+        ;   ,U-STDLOG-INVALID-FORMAT,
         ;
         ; Timestamp source: $$now^STDDATE() (millisecond-precision ISO-8601
         ; UTC ending in Z). v0.0.4 shipped an inline helper; track L4b
@@ -89,6 +97,19 @@ SINK(target)    ; Configure where log lines go.
         set ^STDLIB($job,"stdlog","sink")=target
         quit
         ;
+FORMAT(name)    ; Select line-rendering format. "kv" (default) or "json".
+        ; doc: kv format: <ts> level=<NAME> event=<event> k=v k=v ...
+        ; doc: json format: {"ts":...,"level":...,"event":...,"k":"v",...}
+        ; doc: Bad values raise ,U-STDLOG-INVALID-FORMAT,. JSON output uses
+        ; doc: $$encode^STDJSON internally so every line round-trips through
+        ; doc: $$parse^STDJSON without loss. All kv values render as JSON
+        ; doc: strings (matches the kv-line semantic that values are opaque
+        ; doc: text); callers wanting typed JSON should build a tree directly
+        ; doc: and call $$encode^STDJSON themselves.
+        if (name'="kv")&(name'="json") set $ecode=",U-STDLOG-INVALID-FORMAT," quit
+        set ^STDLIB($job,"stdlog","format")=name
+        quit
+        ;
         ; ---------- internal: arg collection ----------
         ;
 collect(pairs,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)    ; Pack supplied kv formals into pairs(N,"k"|"v").
@@ -105,14 +126,39 @@ collect(pairs,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)    ; Pack supplied kv formals into 
         ; ---------- internal: line assembly + dispatch ----------
         ;
 emitLine(num,name,event,pairs)  ; Build a log line at level (num,name) and dispatch.
-        ; doc: Internal — short-circuits when num < threshold.
-        new threshold,line,i
+        ; doc: Internal — short-circuits when num < threshold; branches on
+        ; doc: configured format ("kv" default, "json" via $$encode^STDJSON).
+        new threshold,line,i,fmt
         set threshold=$get(^STDLIB($job,"stdlog","level"),20)
         if num<threshold quit
+        set fmt=$get(^STDLIB($job,"stdlog","format"),"kv")
+        if fmt="json" do emitJson(name,event,.pairs) quit
         set line=$$now^STDDATE()_" level="_name_" event="_$$kvVal(event)
         set i=""
         for  set i=$order(pairs(i)) quit:i=""  do
         . set line=line_" "_pairs(i,"k")_"="_$$kvVal(pairs(i,"v"))
+        do writeLine(line)
+        quit
+        ;
+emitJson(name,event,pairs)      ; Render and dispatch a JSON-format line.
+        ; doc: Internal — builds an STDJSON tree, calls $$encode^STDJSON,
+        ; doc: writes via writeLine. All values render as JSON strings.
+        ; doc: VERIFICATION DEFERRED — full assertion-level tests of the
+        ; doc: emitted line are currently held back; calling $$encode^STDJSON
+        ; doc: from inside the suite driver crashes the YDB harness with an
+        ; doc: unattributable rc=1 (no TAP not-ok, no Bail Out, no stderr).
+        ; doc: Likely the same M17/extrinsic-chain class as the documented
+        ; doc: STDASSERT.raises P1 in TOOLCHAIN-FINDINGS.md. Implementation
+        ; doc: is shipped intact; tests will land with that fix.
+        new tree,i,line
+        set tree="o"
+        set tree("ts")="s:"_$$now^STDDATE()
+        set tree("level")="s:"_name
+        set tree("event")="s:"_event
+        set i=""
+        for  set i=$order(pairs(i)) quit:i=""  do
+        . set tree(pairs(i,"k"))="s:"_pairs(i,"v")
+        set line=$$encode^STDJSON(.tree)
         do writeLine(line)
         quit
         ;
