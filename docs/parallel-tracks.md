@@ -177,11 +177,11 @@ none touch each other.
 These don't touch m-stdlib but unblock its consumers. Listed for
 completeness.
 
-| Track | Work | Owner repo |
-|---|---|---|
-| **P1** | tree-sitter-m v0.1 publish + prebuildify binaries | tree-sitter-m |
-| **P2** | vista-meta README.md | vista-meta |
-| **P3** | m-modern-corpus seeding (5–10 non-VA M projects) | m-modern-corpus |
+| Track | Work | Owner repo | Status |
+|---|---|---|---|
+| **P1** | tree-sitter-m v0.1 publish + prebuildify binaries | tree-sitter-m | ⚠️ **Prep done; publish user-gated.** Pre-flight runbook lives in `tree-sitter-m/RELEASE.md`; prebuildify CI workflow shipped at `.github/workflows/prebuilds.yml` (matrix builds Linux/macOS/Windows × x64/arm64 prebuilt N-API binaries on tag push, attaches to GitHub Release). Actual `npm publish` / `cargo publish` / `twine upload` requires registry credentials (npm 2FA, cargo token, PyPI API token) that only the maintainer holds — irreversible once done, so cannot be automated from a session. To complete: maintainer runs §0–§7 of RELEASE.md from a clean `main`. |
+| **P2** | vista-meta README.md | vista-meta | ✅ **Shipped 2026-05-05** — `vista-meta/README.md` authored as a thin landing page pointing at `docs/vista-meta-guide.md`. Covers thesis, ships table, requirements, quick-start, runtime layout, doc index, PIKS one-paragraph summary, license, and companion projects. Closes the `docs.primary` gap noted in the project descriptor. |
+| **P3** | m-modern-corpus seeding (5–10 non-VA M projects) | m-modern-corpus | ✅ **At floor of target range; closed.** 5 non-VA M projects, 4,215 routines, ~14 MB total: `ewd/` 86, `mgsql/` 36, `m-web-server/` 23, `ydbocto-aux/` 21, `ydbtest/` 4,049. Per the corpus CLAUDE.md this is a one-time snapshot — re-sync deliberately if upstreams ship material changes. Growing toward 10 is a separate, scope-bounded decision (which projects, license review). |
 
 ---
 
@@ -208,7 +208,9 @@ m-cli     C1 dynamic ^TESTRUN protocol     ✅ shipped
           C6 --integration                 — blocked on parent-plan Phase 4
 Aux       A1, A2, A3, A4, A5, A6, A7       ✅ ALL DONE
 STDASSERT V1, V2, V3                       — see §3.6
-Parent    P1, P2, P3                       — see §3.7
+Parent    P1 tree-sitter-m v0.1 publish    ⚠️ prebuildify CI shipped; publish user-gated (registry creds)
+          P2 vista-meta README.md          ✅ shipped 2026-05-05
+          P3 m-modern-corpus seeding       ✅ at floor of 5–10 (5 projects, 4,215 routines)
 ```
 
 Active stdlib work right now reduces to **L12 STDREGEX non-engine
