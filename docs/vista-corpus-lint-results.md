@@ -273,9 +273,49 @@ tree-sitter-m as concrete grammar issues.
 | tree-sitter-m | Triage the 376 parse-error files; group by grammar-gap shape and open issues. | Tiny scope (1 % of corpus); high-leverage since VistA is the canonical reference corpus for the grammar. |
 | m-stdlib | Reference this document in `users-guide.md` §6.5 (Portability open questions) under "VistA real-corpus validation". | Concrete evidence that the lint chain works against the canonical legacy corpus, and what work remains before it's CI-gateable. |
 
-## 8. Cross-references
+## 8. Validation results — 2026-05-06
+
+After landing the recommended fixes (m-cli commit `4b082d0`,
+tree-sitter-m commit `80d933f`, m-stdlib commit `37046c3`), the
+canonical VistA corpus was re-linted and the false-positive
+closures measured directly:
+
+| Rule | Baseline | After fix | Closed | % closure |
+|---|---:|---:|---:|---:|
+| **M-MOD-024** (Kernel-locals) | 487,102 | 383,914 | 103,188 | **21 %** |
+| **M-XINDX-007** (trusted-routines) | 16,385 | 1,642 | 14,743 | **90 %** |
+| **M-XINDX-049** ($TEXT heuristic) | 160,768 | 52,556 | 108,212 | **67 %** |
+| Combined three-rule total | 664,255 | 438,112 | 226,143 | **34 %** |
+
+**`vista-full` profile, full canonical corpus, all allowlists active**:
+
+- Before recommended config: ~268,000 findings (xindex + vista + sac
+  union with no allowlists) including ~17,000 errors.
+- **After**: **131,603 findings** (2,188 E / 24,073 W / 90,683 S /
+  14,659 I).
+- Net delta: **51 % overall reduction**, **87 % reduction in actionable
+  errors** (16,931 → 2,188).
+
+The `default` profile's M-MOD-024 false-positive class (the largest
+pain point at 487K firings) drops by 21 % from the Kernel-locals
+allowlist alone. Remaining 384K M-MOD-024 firings include reads of
+Y / X / DTOUT / DUOUT (post-call locals from `^DIR` / `^DIC`
+interactions — deliberately NOT in the universal-entry allowlist
+because they're only defined post-call, and a flat allowlist would
+mask "use-before-call" bugs) plus genuine app-level uninitialized
+reads. A more aggressive call-aware rule that infers Y/etc. as
+post-`D ^DIR` defined would close most of the remainder; that's a
+separate piece of cross-routine analysis.
+
+Per-file evidence kept under `~/data/m-stdlib/test-runs.log` per
+the safe-test wrapper convention.
+
+## 9. Cross-references
 
 - [`modern-m-corpus-test-results.md`](modern-m-corpus-test-results.md) — non-VA companion (5 modern OSS projects, 4,209 routines).
 - [`realcode-validation.md`](realcode-validation.md) — earlier validation pass over modern corpus only.
 - [`users-guide.md`](users-guide.md) §6.5 — portability open questions.
 - m-cli `m lint --list-profiles` — canonical profile descriptions.
+- m-cli `docs/vista-lint-presets/` — drop-in `.m-cli.toml` for VistA.
+- tree-sitter-m `docs/vista-parse-error-categories.md` — parser-side triage of the 376 outliers.
+- m-stdlib `templates/m-vista-test-suite/` — STDASSERT-shaped test scaffold for VistA package modernization.
