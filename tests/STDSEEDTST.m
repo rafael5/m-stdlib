@@ -37,13 +37,13 @@ STDSEEDTST      ; Test suite for STDSEED (v0.1.3).
         do tValidateDoesNotInvokeFiler(.pass,.fail)
         ;
         ; ---- LOADJSON stub ----
-        ; STDASSERT.raises P1 fix landed (ZGOTO-based unwind). Verification
-        ; of these six loadJson tests is currently blocked by stuck mumps
-        ; processes in the shared vista-meta container (same infra issue
-        ; noted in commit 8c0b419) — `m test` returns rc=143/Terminated
-        ; before any TAP output reaches stdout. Re-enable once the
-        ; container is rundowned/restarted; the underlying ZGOTO fix
-        ; should make them green.
+        ; STDASSERT.raises P1 fix landed (commit `9ee9724`); re-running
+        ; these tests via scripts/safe-test.sh confirmed they still hang
+        ; the harness for ~10 minutes per attempt with no TAP output —
+        ; the failure is in $$parse^STDJSON's extrinsic-chain unwind
+        ; (sibling of the open $$encode^STDJSON P1), not in raises. The
+        ; wrapper retried after recovery; same hang. Defer until the
+        ; STDJSON-encode/parse ZGOTO-unwind fix lands.
         ; do tLoadJsonStubFilerReceivesEntry(.pass,.fail)
         ; do tLoadJsonMultipleEntriesAllDispatched(.pass,.fail)
         ; do tLoadJsonNoFieldsKeyIsLegal(.pass,.fail)

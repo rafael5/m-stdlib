@@ -9,7 +9,7 @@ SHELL := /bin/bash
 # m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-.PHONY: all fmt fmt-check lint test coverage check ci clean print-env seed unseed
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed
 
 # vista-meta connection contract — published by `vista-meta: make run`.
 VISTA_CONN := $(HOME)/data/vista-meta/conn.env
@@ -47,6 +47,14 @@ unseed:
 
 test:
 	$(M) test tests/
+
+# `safe-test` runs the same suites through scripts/safe-test.sh, which
+# auto-recovers from the documented vista-meta container failure modes
+# (stuck `mumps` processes, SSH MaxSessions exhaustion). Use this when
+# a previous run crashed and `make test` is now hanging on the leak.
+# Logs every attempt + recovery step to ~/data/m-stdlib/test-runs.log.
+safe-test:
+	@./scripts/safe-test.sh tests/
 
 coverage:
 	$(M) coverage --min-percent=85 --format=lcov > coverage.lcov
