@@ -1,7 +1,7 @@
 {
   "name": "m-stdlib dev",
   "build": { "dockerfile": "Dockerfile" },
-  "remoteUser": "yottadb",
+  "remoteUser": "ubuntu",
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
   ],

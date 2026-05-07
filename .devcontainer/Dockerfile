@@ -13,25 +13,28 @@ FROM yottadb/yottadb-base:latest-master
 USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3.12 python3.12-venv python3-pip git build-essential \
+        python3.12 python3.12-venv python3.12-dev python3-pip git build-essential \
         libssl-dev libcurl4-openssl-dev libsodium-dev zlib1g-dev libpcre2-dev \
         bash make ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# m-cli installed from git checkout. Swap to `pip install m-cli[lsp]`
-# once m-cli publishes (post-Phase-1 milestone).
-RUN git clone https://github.com/rafael5/m-cli /opt/m-cli && \
-    cd /opt/m-cli && \
-    python3.12 -m venv .venv && \
-    .venv/bin/pip install --upgrade pip && \
-    .venv/bin/pip install -e ".[lsp]"
+# m-cli installed from git checkout. Distribution model is git-clone-and-install
+# (no package registry).
+#
+# tree-sitter-m must be installed first: m-cli declares it as a dep, and the
+# `[tool.uv.sources]` redirect in m-cli/pyproject.toml is uv-only — pip needs
+# the local checkout already satisfied in the env before resolving m-cli.
+RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
+    git clone https://github.com/rafael5/m-cli /opt/m-cli && \
+    python3.12 -m venv /opt/m-cli/.venv && \
+    /opt/m-cli/.venv/bin/pip install --upgrade pip && \
+    /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
+    /opt/m-cli/.venv/bin/pip install -e "/opt/m-cli[lsp]"
 
-RUN /opt/m-cli/.venv/bin/pip install tree-sitter-m
-
-# Non-root user already exists in the base image (yottadb).
-USER yottadb
+# Non-root user already exists in the base image (ubuntu, uid 1000).
+USER ubuntu
 WORKDIR /workspace
 
 # Source ydb_env_set on every interactive shell so mumps/mupip are on PATH.
-RUN echo '. /opt/yottadb/current/ydb_env_set' >> /home/yottadb/.bashrc && \
-    echo 'export PATH="/opt/m-cli/.venv/bin:$PATH"' >> /home/yottadb/.bashrc
+RUN echo '. /opt/yottadb/current/ydb_env_set' >> /home/ubuntu/.bashrc && \
+    echo 'export PATH="/opt/m-cli/.venv/bin:$PATH"' >> /home/ubuntu/.bashrc
