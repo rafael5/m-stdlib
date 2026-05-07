@@ -10,6 +10,25 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDSTR`** — string helpers (track L19, phase P4 — fifth Table 2
+  promotion; was Pri 2 in the post-STDSEMVER demoted table — STDXML
+  stays at Pri 1 but is genuinely multi-session work). Public surface:
+  `pad` / `padLeft` / `padRight` (default char `" "`), `trim` /
+  `trimLeft` / `trimRight` (whitespace = ASCII space / tab / LF / CR),
+  `replaceAll` (non-overlapping, non-recursive — replacement bytes are
+  not rescanned), `split` (multi-char `sep` supported; trailing
+  separator yields trailing empty), `startsWith` / `endsWith`
+  (predicates; empty prefix/suffix always matches), `toLowerASCII` /
+  `toUpperASCII` (byte-wise `$translate` over the 26 letters; non-
+  alpha and high-bit-set bytes preserved verbatim), `repeat` (returns
+  `""` for `n ≤ 0` or empty source). Pure-M throughout — no `$Z*`
+  extensions, no STDREGEX dep. Runs unchanged on YDB and IRIS.
+  Unicode whitespace and locale-aware case folding deferred to a
+  future STDUNICODE under T17 — STDSTR v1's ASCII-only scope is the
+  right default for the `$ZCHSET=M` orbit. Test suite: 37 labels,
+  63 assertions green. Coverage: 13/13 labels (100%). `m fmt` clean;
+  `m lint --error-on=error` clean (0E 0W). Per-module doc:
+  `docs/modules/stdstr.md`.
 - **`STDSEMVER`** — Semantic Versioning 2.0.0 (track L18, phase P4 —
   fourth Table 2 promotion; was Pri 2 after the post-STDOS demote).
   Architectural pretext for an eventual M package manager. Public
