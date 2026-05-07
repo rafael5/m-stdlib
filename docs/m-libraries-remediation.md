@@ -57,14 +57,12 @@ the toolchain is production-grade.
    completion, formatting, code actions, definition, references,
    document symbols, code lens, folding, signature help, document
    highlight). A VS Code extension wires it up. **No new tools are
-   required for Phase 1.** Publication of `m-cli` (PyPI) and
-   `tree-sitter-m` (npm/PyPI/crates.io/Go) is **deliberately deferred
-   until after Phase 1.** m-stdlib is the validation harness for the
-   toolchain; shipping `0.1.0` artifacts to strangers before the API
-   surface has been stress-tested by 8 real modules just produces a
-   churn of patch releases for fixes nobody outside is waiting on. In
-   the meantime, m-stdlib's CI and devcontainer install both from git
-   checkouts (`pip install -e` from a clone) — see §8.2 and §9.1.
+   required for Phase 1.** Distribution of `m-cli` and `tree-sitter-m`
+   is git-clone-and-install: there is no plan to publish either
+   project to PyPI. m-stdlib's CI and devcontainer install both from
+   git checkouts (`pip install` from a clone) — see §8.2 and §9.1.
+   Tree-sitter-m's npm / crates.io / Go-module publication tracks
+   continue independently of any Python distribution.
 
 2. **The ANSI on-paper surface is not worth implementing in 2026.**
    §3 walks the 6 functions / 14 commands / 1 ISV item by item. None
@@ -235,7 +233,7 @@ and `m-stdlib` resources are better spent on Phase 1.
 | VS Code extension | `tree-sitter-m-vscode` | shipped |
 | Pre-commit hook scaffold | `.pre-commit-hooks.yaml` | shipped (`language: system`) |
 | Project config | `.m-cli.toml`, `[tool.m-cli]` in `pyproject.toml` | shipped |
-| Tree-sitter grammar | `tree-sitter-m` v0.1, 4 bindings green | shipped (publish pending) |
+| Tree-sitter grammar | `tree-sitter-m` v0.1, 4 bindings green | shipped |
 
 That's an unusually complete stack. The "Pythonic" half of "modern
 Pythonic dev workflow" is already in place — m-cli ships behind `uv`
@@ -654,21 +652,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev libcurl4-openssl-dev libsodium-dev zlib1g-dev libpcre2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install m-cli into a system venv. Once published, swap to `pip install m-cli`.
-RUN git clone https://github.com/rafael5/m-cli /opt/m-cli && \
-    cd /opt/m-cli && \
-    python3.12 -m venv .venv && \
-    .venv/bin/pip install -e .[lsp]
-
-# tree-sitter-m Python binding (m-cli's parser dependency)
-RUN /opt/m-cli/.venv/bin/pip install tree-sitter-m
+# Install m-cli + tree-sitter-m from git checkouts (no package registry).
+# tree-sitter-m must be installed first so its local checkout satisfies
+# m-cli's dependency declaration.
+RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
+    git clone https://github.com/rafael5/m-cli /opt/m-cli && \
+    python3.12 -m venv /opt/m-cli/.venv && \
+    /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
+    /opt/m-cli/.venv/bin/pip install -e "/opt/m-cli[lsp]"
 
 USER yottadb
 WORKDIR /workspace
 ```
-
-When `m-cli` and `tree-sitter-m` ship to PyPI, the `git clone` becomes
-`pip install m-cli[lsp]` and the image shrinks by ~150 MB.
 
 ### 8.3 Workspace settings (`.m-cli.toml`)
 
@@ -789,12 +784,18 @@ clean:
 
 ```yaml
 repos:
-  - repo: https://github.com/rafael5/m-cli       # post-publish: switch to package
-    rev: v0.1.0
+  - repo: local
     hooks:
       - id: m-fmt
+        name: m fmt --check
+        entry: /opt/m-cli/.venv/bin/m fmt --check
+        language: system
+        files: \.m$
       - id: m-lint
-        args: ["--error-on=fatal"]
+        name: m lint --error-on=fatal
+        entry: /opt/m-cli/.venv/bin/m lint --error-on=fatal
+        language: system
+        files: \.m$
 ```
 
 ### 8.7 What this lives up to
@@ -947,8 +948,7 @@ value. Both items move here:
 
 | # | Gap | Owner | Effort | Status |
 |---:|---|---|---|---|
-| 2 | Publish `m-cli` to PyPI | m-cli | hours | needs creds; defer until Phase 1 ships |
-| 3 | Publish `tree-sitter-m` to npm + PyPI + crates.io + Go module | tree-sitter-m | hours | needs creds (RELEASE.md exists); defer until Phase 1 ships |
+| 2 | Publish `tree-sitter-m` bindings (npm + crates.io + Go module) | tree-sitter-m | hours | needs creds; defer until Phase 1 ships. PyPI is not a target — `m-cli` consumes the local checkout and downstream consumers clone-and-install. |
 
 ### P1 — significant friction during development
 
@@ -983,8 +983,9 @@ value. Both items move here:
 
 - **1 P0 item** (assertion-library convention) is ~1 day and **gates
   m-stdlib's first commit**.
-- **2 post-Phase-1 items** (PyPI / npm publication) are hours each and
-  **gate the v0.1.0 public release**, not Phase 1 development itself.
+- **1 post-Phase-1 item** (tree-sitter-m npm / crates.io / Go-module
+  publication) is hours of work and gates the v0.1.0 public release,
+  not Phase 1 development itself.
 - **4 P1 items** are weeks each and can ship alongside Phase 1/2/3 as
   the need surfaces.
 - **Everything else** is opportunistic.
@@ -1224,11 +1225,12 @@ until then: m-cli keeps `^TESTRUN` recognition for as long as the
 m-cli/tree-sitter-m migration to STDASSERT is in flight. Drop it
 when m-cli no longer has any internal `^TESTRUN`-using suite.
 
-### 13.6 Pre-commit hooks — `repo: local` until m-cli is published
+### 13.6 Pre-commit hooks — `repo: local`
 
 **Answer.** Use `repo: local` pre-commit hooks that shell out to
-`/opt/m-cli/.venv/bin/m fmt` and `m lint` directly. Carry a TODO
-comment to swap to a released `repo:` once m-cli ≥ v0.1.0 publishes.
+`/opt/m-cli/.venv/bin/m fmt` and `m lint` directly. m-cli is
+distributed as a git checkout, not a package, so this is the
+permanent integration style.
 
 ### 13.7 First commit timing — defer; this is a planning session
 

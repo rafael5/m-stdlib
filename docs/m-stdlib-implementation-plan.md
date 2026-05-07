@@ -130,7 +130,7 @@ m-stdlib/
 ├── TODO.md                       # resume-here pointer
 ├── Makefile
 ├── .m-cli.toml                   # fmt + lint + lsp config
-├── .pre-commit-config.yaml       # repo: local until m-cli published
+├── .pre-commit-config.yaml       # repo: local — invokes locally-installed m
 ├── .devcontainer/
 │   ├── Dockerfile
 │   └── devcontainer.json
@@ -245,14 +245,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev libcurl4-openssl-dev libsodium-dev zlib1g-dev libpcre2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# m-cli installed from git checkout. Swap to `pip install m-cli[lsp]`
-# once m-cli publishes (post-Phase-1 milestone).
-RUN git clone https://github.com/rafael5/m-cli /opt/m-cli && \
-    cd /opt/m-cli && \
-    python3.12 -m venv .venv && \
-    .venv/bin/pip install -e .[lsp]
-
-RUN /opt/m-cli/.venv/bin/pip install tree-sitter-m
+# m-cli installed from git checkout. Distribution model is git-clone-and-install
+# (no package registry). tree-sitter-m must be installed first so its local
+# checkout satisfies m-cli's dependency declaration.
+RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
+    git clone https://github.com/rafael5/m-cli /opt/m-cli && \
+    python3.12 -m venv /opt/m-cli/.venv && \
+    /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
+    /opt/m-cli/.venv/bin/pip install -e "/opt/m-cli[lsp]"
 
 USER yottadb
 WORKDIR /workspace
@@ -314,7 +314,7 @@ clean:
 
 ### 6.5 Pre-commit (`.pre-commit-config.yaml`)
 
-`repo: local` form until m-cli publishes:
+`repo: local` form — invokes the locally-installed `m`:
 
 ```yaml
 repos:
