@@ -215,7 +215,7 @@ toolchain flows. Per-module:
 - **T20** STDPROF streaming-percentile variant via STDCOLL Heap (CKMS sketch) for continuous monitoring; v1 keeps all samples and walks them on demand.
 - **T21** STDSNAP root-scalar serialization + auto-update flag + diff helper (v1 walks `$QUERY` descendants only, no auto-update; humans re-`save` manually after intentional drift).
 - **T22** STDENV variable substitution + `export` prefix + multi-line values + process-environment integration via STDOS setenv (T15).
-- **T28** Engine-bound deployment for STDCRYPTO — push .so + .xc into vista-meta container, wire `STDLIB_LIB` + `ydb_xc_std_crypto` env vars on the YDB session side, install `libcrypto.so.3` in the image. Code-complete on `main` 2026-05-07; this is the gating ticket before STDCRYPTOTST runs green and before STDCOMPRESS / STDHTTP start.
+- **T28** Engine-bound deployment for STDCRYPTO — push .so + .xc into vista-meta container, wire `STDLIB_LIB` + `ydb_ci` env vars on the YDB session side, install `libcrypto.so.3` in the image. Code-complete on `main` 2026-05-07; this is the gating ticket before STDCRYPTOTST runs green and before STDCOMPRESS / STDHTTP start.
 - ~~**T23** STDXML CDATA / processing instructions / comments / `<?xml ?>` declaration~~ — **resolved 2026-05-07**: `parseContent` dispatches on `<!--` / `<![CDATA[` / `<?`; new `skipDocLevel` walks PIs+comments before/after the root; CDATA content stored as literal text (no entity decode).
 - ~~**T24** STDXML numeric character references~~ — **resolved 2026-05-07**: `decodeEntities` handles `&#NNN;` (decimal) and `&#xHH;` (hex); `encodeUtf8` produces 1-4 byte UTF-8 sequences for any Unicode code point up to U+10FFFF.
 - ~~**T25** STDXML namespaces — element-level~~ — **resolved 2026-05-07**: per-element namespace map threaded through `parseElement`/`parseContent`; `xmlns` / `xmlns:prefix` filtered out of regular attrs; element prefix resolved to URI; new `$$ns^STDXML(.node)` accessor; undeclared prefix is a parse error. **T25b** (attribute-namespace resolution) split off as a separate ToDo entry.
@@ -755,7 +755,7 @@ remaining gap before `make test` can run STDCRYPTOTST green.
    area.
 3. **YDB session env-var wiring.** The container's `m test` shell
    wrapper must `export STDLIB_LIB=<path>` and
-   `export ydb_xc_std_crypto=<path>` before invoking the suite. Add
+   `export ydb_ci=<path>` before invoking the suite. Add
    to the seed script's per-test bootstrap or to the vista-meta
    image's entrypoint.
 4. **Build dep gate.** `tools/build-callouts.sh` requires

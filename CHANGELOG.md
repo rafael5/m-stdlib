@@ -62,7 +62,7 @@ Pre-1.0 minor versions may include breaking changes.
   **Engine-bound green run is blocked on T28** (new tracker entry):
   the vista-meta YDB container needs `libcrypto.so.3` (or `.so.1.1`)
   loadable, the compiled `.so` + `tools/std_crypto.xc` deployed
-  inside it, and `STDLIB_LIB` / `ydb_xc_std_crypto` exported in the
+  inside it, and `STDLIB_LIB` / `ydb_ci` exported in the
   YDB session before `make test` runs the suite green. Code itself
   is sound but unverified end-to-end against the engine until that
   wiring lands. T11 (Phase 3 entry) partially closes — STDCRYPTO is
