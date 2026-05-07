@@ -45,7 +45,6 @@ STDXML  ; m-stdlib — XML parser (well-formed XML 1.0 subset, in-progress).
         ;
         ; Out of scope (queued — see docs/module-tracker.md):
         ;   - DTDs / DOCTYPE / custom entities                       (T26)
-        ;   - XPath functions and comparison predicates              (T27b)
         ;
         quit
         ;
@@ -103,7 +102,12 @@ xpath(tree,expr,results)        ; Run an XPath query; populate results(1..N); re
         ; doc: with `results(i,"text")` set to the attribute value and
         ; doc: `results(i,"name")` set to the attribute name — so
         ; doc: `xpathText` returns the attribute value transparently.
-        ; doc: Functions and comparison predicates are out of scope (T27b).
+        ; doc: T27b — predicate expressions also accept comparison
+        ; doc: operators (`=`, `!=`, `<`, `>`, `<=`, `>=`) and the
+        ; doc: functions `position()`, `last()`, `name()`, `text()`,
+        ; doc: `count()`, `string-length()`, `normalize-space()`,
+        ; doc: `contains()`, `starts-with()`. Examples: `a[@id='2']`,
+        ; doc: `*[name()='b']`, `book[count(author)>1]`.
         ; doc: Returns 0 (with results killed) for an unparseable expression.
         ; doc: Example: do  set n=$$xpath^STDXML(.doc,"/r/items/item[2]",.r)
         kill results
@@ -336,10 +340,14 @@ parseXPath(expr,steps)  ; Parse XPath expression into steps(1..N) with axis/name
         ; doc: Internal — supports `name`, `name1/name2`, `/name`, `//name`,
         ; doc: `name[N]`, the wildcard `*` (T27a), and the attribute axis
         ; doc: `@attrName` / `@*` (T27a). An attribute step is terminal —
-        ; doc: nothing may follow it.
+        ; doc: nothing may follow it. T27b — predicates may be either a
+        ; doc: positive integer (legacy `[N]` position filter) or a full
+        ; doc: comparison expression like `[@id='2']` / `[name()='foo']` /
+        ; doc: `[count(child)>3]`.
         ; doc: Returns 1 on success, 0 on parse failure.
         kill steps
         new pos,len,n,axis,name,pred,c,predStr,fail,done,nameDone,attrName
+        new predKind,predExpr,inQuote,probeAst
         set pos=1,n=0,len=$length(expr),fail=0
         if expr="" quit 0
         if $extract(expr,1)="/" do
@@ -361,24 +369,33 @@ parseXPath(expr,steps)  ; Parse XPath expression into steps(1..N) with axis/name
         . . set name=name_c,pos=pos+1
         . if name="" set fail=1 quit
         . if attrName="<pending>" set attrName=name,name=""
-        . ; -- optional predicate [N] --
-        . set pred=0
+        . ; -- optional predicate [N] (numeric) or [expr] (T27b) --
+        . set pred=0,predKind="none",predExpr=""
         . if pos'>len,$extract(expr,pos)="[" do
-        . . set pos=pos+1,predStr="",nameDone=0
+        . . set pos=pos+1,predStr="",nameDone=0,inQuote=""
         . . for  quit:nameDone  do
         . . . if pos>len set nameDone=1,fail=1 quit
         . . . set c=$extract(expr,pos)
+        . . . if inQuote'="" do  quit
+        . . . . if c=inQuote set inQuote=""
+        . . . . set predStr=predStr_c,pos=pos+1
         . . . if c="]" set nameDone=1 quit
+        . . . if (c="'")!(c="""") set inQuote=c
         . . . set predStr=predStr_c,pos=pos+1
         . . if fail quit
         . . set pos=pos+1
-        . . if predStr'?1.N set fail=1 quit
-        . . set pred=+predStr
+        . . if predStr="" set fail=1 quit
+        . . if predStr?1.N set predKind="num",pred=+predStr quit
+        . . set predKind="expr",predExpr=predStr
+        . . ; validate parsability up front so xpath() reports failure cleanly
+        . . if '$$parsePredExpr(predStr,.probeAst) set fail=1
         . if fail quit
         . ; -- record step --
         . set n=n+1
         . set steps(n,"axis")=axis,steps(n,"name")=name,steps(n,"pred")=pred
         . set steps(n,"attrName")=attrName
+        . set steps(n,"predKind")=predKind
+        . set steps(n,"predExpr")=predExpr
         . ; -- attribute axis is terminal --
         . if attrName'="" do  quit
         . . if pos>len set done=1 quit
@@ -398,13 +415,18 @@ applyStep(tree,steps,stepIdx,paths,pathCount,newPaths,newCount)
         ; doc: step is an attribute axis (`@x`), candidates are sourced per
         ; doc: the axis (child=basePath, descendant=basePath's descendants)
         ; doc: and each candidate's matching attribute(s) become results.
-        new axis,name,pred,attrName,i,basePath,elemPaths,elemCount
+        ; doc: T27b: predKind="expr" routes through applyExprPredicate for
+        ; doc: per-candidate expression evaluation; predKind="num" keeps the
+        ; doc: legacy O(1) position filter via applyPredicate.
+        new axis,name,pred,attrName,i,basePath,elemPaths,elemCount,predKind,predExpr
         kill newPaths
         set newCount=0
         set axis=steps(stepIdx,"axis")
         set name=steps(stepIdx,"name")
         set pred=steps(stepIdx,"pred")
         set attrName=$get(steps(stepIdx,"attrName"),"")
+        set predKind=$get(steps(stepIdx,"predKind"),"none")
+        set predExpr=$get(steps(stepIdx,"predExpr"),"")
         if attrName'="" do  quit
         . set elemCount=0
         . for i=1:1:pathCount do
@@ -412,14 +434,16 @@ applyStep(tree,steps,stepIdx,paths,pathCount,newPaths,newCount)
         . . if axis="descendant" do collectDescendants(.tree,basePath,"*",.elemPaths,.elemCount) quit
         . . set elemCount=elemCount+1,elemPaths(elemCount)=basePath
         . for i=1:1:elemCount do collectAttribute(.tree,elemPaths(i),attrName,.newPaths,.newCount)
-        . if pred>0 do applyPredicate(.newPaths,.newCount,pred)
+        . if predKind="num",pred>0 do applyPredicate(.newPaths,.newCount,pred)
+        . if predKind="expr" do applyExprPredicate(.tree,.newPaths,.newCount,predExpr)
         for i=1:1:pathCount do
         . set basePath=paths(i)
         . if axis="absolute" do  quit
         . . if $$matchName(.tree,basePath,name) set newCount=newCount+1,newPaths(newCount)=basePath
         . if axis="descendant" do collectDescendants(.tree,basePath,name,.newPaths,.newCount) quit
         . do collectChildren(.tree,basePath,name,.newPaths,.newCount)
-        if pred>0 do applyPredicate(.newPaths,.newCount,pred)
+        if predKind="num",pred>0 do applyPredicate(.newPaths,.newCount,pred)
+        if predKind="expr" do applyExprPredicate(.tree,.newPaths,.newCount,predExpr)
         quit
         ;
 applyPredicate(newPaths,newCount,pred)  ; Keep only the n-th match (1-based).
@@ -528,6 +552,406 @@ mergePathToResult(tree,paths,idx,results)
         if path="" merge results(idx)=tree quit
         merge results(idx)=@$$buildRef(path,"")
         quit
+        ;
+        ; ---------- internal: XPath predicate expressions (T27b) ----------
+        ;
+applyExprPredicate(tree,newPaths,newCount,exprStr)
+        ; doc: T27b — for each candidate path, evaluate the predicate
+        ; doc: expression and keep the candidate iff the result coerces to
+        ; doc: boolean true (XPath 1.0 truthiness: non-empty string,
+        ; doc: non-zero number, true bool). The candidate sub-tree
+        ; doc: (attrValue / attrName for attribute matches) is preserved
+        ; doc: through `merge` so attribute-axis predicates survive.
+        new ast,kept,keptCount,i,oType,oVal,truthy
+        if newCount=0 quit
+        if '$$parsePredExpr(exprStr,.ast) kill newPaths set newCount=0 quit
+        set keptCount=0
+        for i=1:1:newCount do
+        . do evalPredExpr(.tree,$get(newPaths(i)),i,newCount,.ast,.oType,.oVal)
+        . set truthy=$$toBool(oType,oVal)
+        . if 'truthy quit
+        . set keptCount=keptCount+1
+        . merge kept(keptCount)=newPaths(i)
+        kill newPaths
+        if keptCount>0 merge newPaths=kept
+        set newCount=keptCount
+        quit
+        ;
+parsePredExpr(predStr,ast)      ; Parse a predicate body into an AST.
+        ; doc: Internal — predStr is the content between `[` and `]`.
+        ; doc: AST shape: ast("kind") ∈ {num, str, attr, attrAll, bareName,
+        ; doc: wildcard, call, binop}. Numeric/string carry ("val");
+        ; doc: attr/bareName/call carry ("name"); call adds ("argCount") and
+        ; doc: ("arg",i) sub-trees; binop adds ("op"), ("lhs"), ("rhs")
+        ; doc: sub-trees. Returns 1 on success, 0 on parse failure.
+        new pos,len
+        kill ast
+        set pos=1,len=$length(predStr)
+        do skipExprWs(predStr,.pos,len)
+        if pos>len quit 0
+        if '$$parseExpr(predStr,.pos,len,.ast) quit 0
+        do skipExprWs(predStr,.pos,len)
+        if pos'>len quit 0
+        quit 1
+        ;
+parseExpr(s,pos,len,ast)        ; Parse `primary (compOp primary)?`.
+        ; doc: Internal — single-level comparison only (no chained `<`).
+        ; doc: Operators: `=`, `!=`, `<`, `>`, `<=`, `>=`.
+        new lhs,rhs,op,c1,c2
+        set lhs="",rhs=""
+        kill ast
+        if '$$parsePrimary(s,.pos,len,.lhs) quit 0
+        do skipExprWs(s,.pos,len)
+        if pos>len merge ast=lhs quit 1
+        set c1=$extract(s,pos),c2=$extract(s,pos,pos+1),op=""
+        if c2="!=" set op="!=",pos=pos+2
+        else  if c2="<=" set op="<=",pos=pos+2
+        else  if c2=">=" set op=">=",pos=pos+2
+        else  if c1="=" set op="=",pos=pos+1
+        else  if c1="<" set op="<",pos=pos+1
+        else  if c1=">" set op=">",pos=pos+1
+        if op="" merge ast=lhs quit 1
+        do skipExprWs(s,.pos,len)
+        if '$$parsePrimary(s,.pos,len,.rhs) quit 0
+        set ast("kind")="binop",ast("op")=op
+        merge ast("lhs")=lhs
+        merge ast("rhs")=rhs
+        quit 1
+        ;
+parsePrimary(s,pos,len,ast)     ; Parse one primary expression.
+        ; doc: Internal — string lit / number / `@name` or `@*` / parenthesised
+        ; doc: expression / `*` (wildcard, only meaningful as count() arg) /
+        ; doc: bare name (used in count() arg) / function call `name(args)`.
+        new c,bad,parsed
+        kill ast
+        do skipExprWs(s,.pos,len)
+        if pos>len quit 0
+        set c=$extract(s,pos),bad=0,parsed=0
+        if (c="'")!(c="""") do parseStringLit(s,.pos,len,c,.ast,.bad) set parsed=1
+        if 'parsed,c?1N do parseNumLit(s,.pos,len,.ast,.bad) set parsed=1
+        if 'parsed,c="@" do parseAttrRef(s,.pos,len,.ast,.bad) set parsed=1
+        if 'parsed,c="(" do parseParen(s,.pos,len,.ast,.bad) set parsed=1
+        if 'parsed,c="*" set ast("kind")="wildcard",pos=pos+1,parsed=1
+        if 'parsed,$$isNameStart(c) do parseFnOrName(s,.pos,len,.ast,.bad) set parsed=1
+        if 'parsed quit 0
+        if bad quit 0
+        quit 1
+        ;
+parseStringLit(s,pos,len,quote,ast,bad)
+        ; doc: Internal — `quote` is the matched delimiter (`'` or `"`).
+        new str,ch,done
+        set str="",pos=pos+1,bad=0,done=0
+        for  quit:done  do
+        . if pos>len set bad=1,done=1 quit
+        . set ch=$extract(s,pos)
+        . if ch=quote set done=1 quit
+        . set str=str_ch,pos=pos+1
+        if bad quit
+        set pos=pos+1
+        set ast("kind")="str",ast("val")=str
+        quit
+        ;
+parseNumLit(s,pos,len,ast,bad)
+        ; doc: Internal — integer or decimal (no exponent / sign).
+        new num,ch,done
+        set num="",bad=0,done=0
+        for  quit:done  do
+        . if pos>len set done=1 quit
+        . set ch=$extract(s,pos)
+        . if ch?1N set num=num_ch,pos=pos+1 quit
+        . if ch=".",num'["." set num=num_ch,pos=pos+1 quit
+        . set done=1
+        if num="" set bad=1 quit
+        if num="." set bad=1 quit
+        set ast("kind")="num",ast("val")=+num
+        quit
+        ;
+parseAttrRef(s,pos,len,ast,bad)
+        ; doc: Internal — `@name` or `@*`.
+        new name
+        set bad=0,pos=pos+1
+        if pos>len set bad=1 quit
+        if $extract(s,pos)="*" set ast("kind")="attrAll",pos=pos+1 quit
+        do readNameToken(s,.pos,len,.name)
+        if name="" set bad=1 quit
+        set ast("kind")="attr",ast("name")=name
+        quit
+        ;
+parseParen(s,pos,len,ast,bad)
+        ; doc: Internal — `(` expr `)`. Sub-expr is parsed via parseExpr so
+        ; doc: comparison nesting is allowed inside the group.
+        new sub
+        set sub="",bad=0,pos=pos+1
+        do skipExprWs(s,.pos,len)
+        if '$$parseExpr(s,.pos,len,.sub) set bad=1 quit
+        do skipExprWs(s,.pos,len)
+        if pos>len set bad=1 quit
+        if $extract(s,pos)'=")" set bad=1 quit
+        set pos=pos+1
+        merge ast=sub
+        quit
+        ;
+parseFnOrName(s,pos,len,ast,bad)
+        ; doc: Internal — name optionally followed by `(args)`. Bare name is
+        ; doc: an XPath relative name reference (used as a count() arg).
+        new name,argCount,argA,fdone,c
+        set bad=0
+        do readNameToken(s,.pos,len,.name)
+        if name="" set bad=1 quit
+        do skipExprWs(s,.pos,len)
+        if pos>len set ast("kind")="bareName",ast("name")=name quit
+        set c=$extract(s,pos)
+        if c'="(" set ast("kind")="bareName",ast("name")=name quit
+        set pos=pos+1
+        do skipExprWs(s,.pos,len)
+        set argCount=0
+        if pos'>len,$extract(s,pos)=")" do  quit
+        . set pos=pos+1
+        . set ast("kind")="call",ast("name")=name,ast("argCount")=0
+        set fdone=0
+        for  quit:fdone  do
+        . if bad set fdone=1 quit
+        . do skipExprWs(s,.pos,len)
+        . kill argA
+        . set argA=""
+        . if '$$parseExpr(s,.pos,len,.argA) set bad=1 quit
+        . set argCount=argCount+1
+        . merge ast("arg",argCount)=argA
+        . do skipExprWs(s,.pos,len)
+        . if pos>len set bad=1 quit
+        . if $extract(s,pos)="," set pos=pos+1 quit
+        . if $extract(s,pos)=")" set pos=pos+1,fdone=1 quit
+        . set bad=1
+        if bad quit
+        set ast("kind")="call",ast("name")=name,ast("argCount")=argCount
+        quit
+        ;
+readNameToken(s,pos,len,name)
+        ; doc: Internal — read a name [A-Za-z_:][A-Za-z0-9_:.-]*. Hyphen is
+        ; doc: included so XPath function names like `string-length` parse.
+        new ch,first,rest,done
+        set first="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_:"
+        set rest=first_"0123456789-."
+        set name=""
+        if pos>len quit
+        set ch=$extract(s,pos)
+        if first'[ch quit
+        set name=ch,pos=pos+1
+        set done=0
+        for  quit:done  do
+        . if pos>len set done=1 quit
+        . set ch=$extract(s,pos)
+        . if rest'[ch set done=1 quit
+        . set name=name_ch,pos=pos+1
+        quit
+        ;
+isNameStart(ch)
+        ; doc: Internal — predicate identifier start char.
+        if ch?1A quit 1
+        if ch="_" quit 1
+        if ch=":" quit 1
+        quit 0
+        ;
+skipExprWs(s,pos,len)
+        ; doc: Internal — advance past space / tab / CR / LF.
+        new ch,done
+        set done=0
+        for  quit:done  do
+        . if pos>len set done=1 quit
+        . set ch=$extract(s,pos)
+        . if (ch=" ")!(ch=$char(9))!(ch=$char(10))!(ch=$char(13)) set pos=pos+1 quit
+        . set done=1
+        quit
+        ;
+evalPredExpr(tree,ctxPath,posInSet,sizeOfSet,ast,outType,outVal)
+        ; doc: Internal — evaluate the AST against the candidate at ctxPath.
+        ; doc: Sets outType ∈ {"num","str","bool"} and outVal accordingly.
+        new kind,op,lhs,rhs,lT,lV,rT,rV,exists,val,cnt
+        set kind=$get(ast("kind"))
+        set outType="bool",outVal=0
+        if kind="num" set outType="num",outVal=ast("val") quit
+        if kind="str" set outType="str",outVal=ast("val") quit
+        if kind="attr" do  quit
+        . set exists=0,val=""
+        . do attrLookupAt(.tree,ctxPath,ast("name"),.exists,.val)
+        . if exists set outType="str",outVal=val
+        if kind="attrAll" do  quit
+        . set outType="num",outVal=$$countAttrsAt(.tree,ctxPath)
+        if kind="wildcard" do  quit
+        . set outType="num",outVal=$$countAllChildrenAt(.tree,ctxPath)
+        if kind="bareName" do  quit
+        . set cnt=$$countChildrenByNameAt(.tree,ctxPath,ast("name"))
+        . set outType="num",outVal=cnt
+        if kind="call" do evalCall(.tree,ctxPath,posInSet,sizeOfSet,.ast,.outType,.outVal) quit
+        if kind="binop" do  quit
+        . set op=ast("op")
+        . merge lhs=ast("lhs")
+        . merge rhs=ast("rhs")
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.lhs,.lT,.lV)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.rhs,.rT,.rV)
+        . do compareOp(op,lT,lV,rT,rV,.outType,.outVal)
+        quit
+        ;
+evalCall(tree,ctxPath,posInSet,sizeOfSet,ast,outType,outVal)
+        ; doc: Internal — function-call dispatch. Unknown functions return
+        ; doc: bool 0 (truthiness preserved as falsy).
+        new fname,argCount,a1,a2,a1T,a1V,a2T,a2V,s1,s2,argKind,argName
+        set fname=ast("name"),argCount=$get(ast("argCount"),0)
+        set outType="bool",outVal=0
+        if fname="position" set outType="num",outVal=posInSet quit
+        if fname="last" set outType="num",outVal=sizeOfSet quit
+        if fname="name" set outType="str",outVal=$$nameAtPath(.tree,ctxPath) quit
+        if fname="text" set outType="str",outVal=$$textAtPath(.tree,ctxPath) quit
+        if fname="normalize-space" do  quit
+        . if argCount=0 set outType="str",outVal=$$normWs($$textAtPath(.tree,ctxPath)) quit
+        . merge a1=ast("arg",1)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . set outType="str",outVal=$$normWs($$toStr(a1T,a1V))
+        if fname="string-length" do  quit
+        . if argCount=0 set outType="num",outVal=$length($$textAtPath(.tree,ctxPath)) quit
+        . merge a1=ast("arg",1)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . set outType="num",outVal=$length($$toStr(a1T,a1V))
+        if fname="contains" do  quit
+        . if argCount<2 quit
+        . merge a1=ast("arg",1)
+        . merge a2=ast("arg",2)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a2,.a2T,.a2V)
+        . set s1=$$toStr(a1T,a1V),s2=$$toStr(a2T,a2V)
+        . set outType="bool",outVal=$select(s2="":1,1:s1[s2)
+        if fname="starts-with" do  quit
+        . if argCount<2 quit
+        . merge a1=ast("arg",1)
+        . merge a2=ast("arg",2)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a2,.a2T,.a2V)
+        . set s1=$$toStr(a1T,a1V),s2=$$toStr(a2T,a2V)
+        . set outType="bool",outVal=$select(s2="":1,1:$extract(s1,1,$length(s2))=s2)
+        if fname="count" do  quit
+        . if argCount<1 set outType="num",outVal=0 quit
+        . set argKind=$get(ast("arg",1,"kind"))
+        . set argName=$get(ast("arg",1,"name"))
+        . set outType="num",outVal=$$evalCountArg(.tree,ctxPath,argKind,argName)
+        if fname="not" do  quit
+        . if argCount<1 quit
+        . merge a1=ast("arg",1)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . set outType="bool",outVal=$select($$toBool(a1T,a1V):0,1:1)
+        if fname="string" do  quit
+        . if argCount=0 set outType="str",outVal=$$textAtPath(.tree,ctxPath) quit
+        . merge a1=ast("arg",1)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . set outType="str",outVal=$$toStr(a1T,a1V)
+        if fname="number" do  quit
+        . if argCount=0 set outType="num",outVal=+$$textAtPath(.tree,ctxPath) quit
+        . merge a1=ast("arg",1)
+        . do evalPredExpr(.tree,ctxPath,posInSet,sizeOfSet,.a1,.a1T,.a1V)
+        . set outType="num",outVal=$$toNum(a1T,a1V)
+        ; unknown function — fall through with bool 0
+        quit
+        ;
+evalCountArg(tree,ctxPath,argKind,argName)
+        ; doc: Internal — count() takes a node-set producer. v0 supports a
+        ; doc: single-step relative path: bareName / `*` / `@name` / `@*`.
+        if argKind="bareName" quit $$countChildrenByNameAt(.tree,ctxPath,argName)
+        if argKind="wildcard" quit $$countAllChildrenAt(.tree,ctxPath)
+        if argKind="attr" quit $select($$attrExistsAt(.tree,ctxPath,argName):1,1:0)
+        if argKind="attrAll" quit $$countAttrsAt(.tree,ctxPath)
+        quit 0
+        ;
+attrLookupAt(tree,path,attrName,exists,val)
+        ; doc: Internal — set exists/val for an attribute lookup at path.
+        new tmp
+        set exists=0,val=""
+        if path="" merge tmp=tree
+        else  merge tmp=@$$buildRef(path,"")
+        if '$data(tmp("attr",attrName)) quit
+        set exists=1,val=tmp("attr",attrName)
+        quit
+        ;
+attrExistsAt(tree,path,attrName)
+        new tmp
+        if path="" merge tmp=tree
+        else  merge tmp=@$$buildRef(path,"")
+        if $data(tmp("attr",attrName)) quit 1
+        quit 0
+        ;
+textAtPath(tree,path)
+        ; doc: Internal — direct text content at path; "" if absent.
+        if path="" quit $get(tree("text"),"")
+        quit $get(@$$buildRef(path,"""text"""),"")
+        ;
+countChildrenByNameAt(tree,path,want)
+        new cc,i,actual,cp,n
+        set cc=$get(@$$buildRef(path,"""childCount"""),0),n=0
+        for i=1:1:cc do
+        . set cp=$select(path="":i,1:path_","_i)
+        . set actual=$get(@$$buildRef(cp,"""name"""))
+        . if actual=want set n=n+1
+        quit n
+        ;
+countAllChildrenAt(tree,path)
+        quit $get(@$$buildRef(path,"""childCount"""),0)
+        ;
+countAttrsAt(tree,path)
+        new tmp,k,n
+        if path="" merge tmp=tree
+        else  merge tmp=@$$buildRef(path,"")
+        set n=0,k=""
+        for  set k=$order(tmp("attr",k)) quit:k=""  set n=n+1
+        quit n
+        ;
+toBool(type,val)
+        ; doc: Internal — XPath 1.0 boolean coercion.
+        if type="bool" quit $select(val:1,1:0)
+        if type="num" quit $select(val=0:0,1:1)
+        if type="str" quit $select(val="":0,1:1)
+        quit 0
+        ;
+toStr(type,val)
+        if type="str" quit val
+        if type="num" quit val_""
+        if type="bool" quit $select(val:"true",1:"false")
+        quit ""
+        ;
+toNum(type,val)
+        if type="num" quit +val
+        if type="str" quit +val
+        if type="bool" quit $select(val:1,1:0)
+        quit 0
+        ;
+compareOp(op,lT,lV,rT,rV,outType,outVal)
+        ; doc: Internal — `=`/`!=` use string equality unless both operands
+        ; doc: are numeric; `<`/`>`/`<=`/`>=` always coerce both to number.
+        new lN,rN,lS,rS
+        set outType="bool"
+        if (op="<")!(op=">")!(op="<=")!(op=">=") do  quit
+        . set lN=$$toNum(lT,lV),rN=$$toNum(rT,rV)
+        . if op="<" set outVal=$select(lN<rN:1,1:0) quit
+        . if op=">" set outVal=$select(lN>rN:1,1:0) quit
+        . if op="<=" set outVal=$select(lN'>rN:1,1:0) quit
+        . if op=">=" set outVal=$select(lN'<rN:1,1:0)
+        if (lT="num")&(rT="num") do  quit
+        . set lN=+lV,rN=+rV
+        . if op="=" set outVal=$select(lN=rN:1,1:0) quit
+        . set outVal=$select(lN'=rN:1,1:0)
+        set lS=$$toStr(lT,lV),rS=$$toStr(rT,rV)
+        if op="=" set outVal=$select(lS=rS:1,1:0) quit
+        set outVal=$select(lS'=rS:1,1:0)
+        quit
+        ;
+normWs(s)
+        ; doc: Internal — XPath normalize-space: trim leading/trailing
+        ; doc: whitespace and collapse internal runs to a single space.
+        new out,i,n,ch,inWs
+        set out="",n=$length(s),inWs=1
+        for i=1:1:n do
+        . set ch=$extract(s,i)
+        . if (ch=" ")!(ch=$char(9))!(ch=$char(10))!(ch=$char(13)) set inWs=1 quit
+        . if inWs,out'="" set out=out_" "
+        . set out=out_ch,inWs=0
+        quit out
         ;
 resolveAttrNs(node,nsMap)       ; Resolve namespace URIs for any prefixed attrs on node.
         ; doc: T25b — internal. Walks node("attr",...); for each attr name

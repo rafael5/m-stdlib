@@ -86,6 +86,22 @@ STDXMLTST       ; Test suite for STDXML (v0.2.x — Phase 4, in-progress).
         do tXpathAttributeWildcard(.pass,.fail)
         do tXpathDescendantAttribute(.pass,.fail)
         do tXpathAttributeViaXpathText(.pass,.fail)
+        ; ---- T27b ----
+        do tXpathPredicateAttrEqualsString(.pass,.fail)
+        do tXpathPredicateAttrEqualsDoubleQuoted(.pass,.fail)
+        do tXpathPredicateAttrNotEquals(.pass,.fail)
+        do tXpathPredicateNameEquals(.pass,.fail)
+        do tXpathPredicateTextEquals(.pass,.fail)
+        do tXpathPredicateContains(.pass,.fail)
+        do tXpathPredicateStartsWith(.pass,.fail)
+        do tXpathPredicatePositionEqual(.pass,.fail)
+        do tXpathPredicateCountEquals(.pass,.fail)
+        do tXpathPredicateCountGreaterThan(.pass,.fail)
+        do tXpathPredicateStringLengthGt(.pass,.fail)
+        do tXpathPredicateNormalizeSpace(.pass,.fail)
+        do tXpathPredicateAttrExistsTruthy(.pass,.fail)
+        do tXpathPredicateAttrExistsFiltersOut(.pass,.fail)
+        do tXpathPredicateRejectsBadExpr(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -668,4 +684,113 @@ tXpathAttributeViaXpathText(pass,fail)  ;@TEST "xpathText('@id') returns the att
         new root,rc
         set rc=$$parse^STDXML("<r id=""hello""/>",.root)
         do eq^STDASSERT(.pass,.fail,$$xpathText^STDXML(.root,"@id"),"hello","attr value via xpathText")
+        quit
+        ;
+        ; ---- T27b: XPath functions + comparison predicates ----
+tXpathPredicateAttrEqualsString(pass,fail)      ;@TEST "xpath('a[@id=''2'']') filters by attribute equality"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/><a id=""3""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[@id='2']",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"attr","id")),"2","matched a id=2")
+        quit
+        ;
+tXpathPredicateAttrEqualsDoubleQuoted(pass,fail)        ;@TEST "predicate accepts double-quoted string literal"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""x""/><a id=""y""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[@id=""y""]",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"attr","id")),"y","matched a id=y")
+        quit
+        ;
+tXpathPredicateAttrNotEquals(pass,fail) ;@TEST "xpath('a[@id!=''1'']') excludes the matching value"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/><a id=""3""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[@id!='1']",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two matches: id=2,3")
+        quit
+        ;
+tXpathPredicateNameEquals(pass,fail)    ;@TEST "xpath('*[name()=''b'']') filters wildcard by element name"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a/><b/><c/><b/></r>",.root)
+        set n=$$xpath^STDXML(.root,"*[name()='b']",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two b's via name()")
+        quit
+        ;
+tXpathPredicateTextEquals(pass,fail)    ;@TEST "xpath('a[text()=''hello'']') filters by text content"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a>hello</a><a>world</a><a>hello</a></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[text()='hello']",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's with text='hello'")
+        quit
+        ;
+tXpathPredicateContains(pass,fail)      ;@TEST "xpath('a[contains(@class,''foo'')]') filters by substring"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a class=""foo bar""/><a class=""baz""/><a class=""quxfoo""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[contains(@class,'foo')]",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's contain 'foo' in @class")
+        quit
+        ;
+tXpathPredicateStartsWith(pass,fail)    ;@TEST "xpath('a[starts-with(@id,''pre'')]') filters by prefix"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""prefixed""/><a id=""other""/><a id=""pre1""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[starts-with(@id,'pre')]",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's with id starting with 'pre'")
+        quit
+        ;
+tXpathPredicatePositionEqual(pass,fail) ;@TEST "xpath('a[position()=2]') is equivalent to a[2]"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/><a id=""3""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[position()=2]",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"attr","id")),"2","2nd a has id=2")
+        quit
+        ;
+tXpathPredicateCountEquals(pass,fail)   ;@TEST "xpath('book[count(author)=2]') filters by child count"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<lib><book><author/><author/></book><book><author/></book><book><author/><author/></book></lib>",.root)
+        set n=$$xpath^STDXML(.root,"book[count(author)=2]",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two books with 2 authors")
+        quit
+        ;
+tXpathPredicateCountGreaterThan(pass,fail)      ;@TEST "xpath('a[count(b)>1]') uses numeric comparison"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><b/></a><a><b/><b/></a><a><b/><b/><b/></a></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[count(b)>1]",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's with more than 1 b")
+        quit
+        ;
+tXpathPredicateStringLengthGt(pass,fail)        ;@TEST "xpath('a[string-length(@id)>2]') filters by attribute length"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""x""/><a id=""abc""/><a id=""longer""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[string-length(@id)>2]",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's with id longer than 2 chars")
+        quit
+        ;
+tXpathPredicateNormalizeSpace(pass,fail)        ;@TEST "xpath('a[normalize-space()=''hi'']') collapses whitespace before compare"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a>  hi  </a><a>hello</a><a> hi </a></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[normalize-space()='hi']",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's normalize to 'hi'")
+        quit
+        ;
+tXpathPredicateAttrExistsTruthy(pass,fail)      ;@TEST "xpath('a[@id]') keeps elements with non-empty @id"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a/><a id=""3""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[@id]",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two a's have @id")
+        quit
+        ;
+tXpathPredicateAttrExistsFiltersOut(pass,fail)  ;@TEST "xpath('a[@missing]') filters out all when no element has it"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[@missing]",.results)
+        do eq^STDASSERT(.pass,.fail,n,0,"no a has @missing → 0")
+        quit
+        ;
+tXpathPredicateRejectsBadExpr(pass,fail)        ;@TEST "xpath rejects malformed predicate expression"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[contains(]",.results)
+        do eq^STDASSERT(.pass,.fail,n,0,"unparseable predicate → 0")
         quit

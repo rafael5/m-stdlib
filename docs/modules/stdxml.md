@@ -8,15 +8,20 @@ focused T-ticket. The architectural pretext is VistA HL7v3 / CDA /
 FHIR ingestion: an XML you can actually parse without shelling out
 to libxml2.
 
-**Status:** ~80% of the full XML 1.0 + Namespaces 1.0 + XPath 1.0
+**Status:** ~95% of the full XML 1.0 + Namespaces 1.0 + XPath 1.0
 envelope. Shipped: well-formed XML 1.0, the five standard entity
 references, numeric character references, comments / processing
 instructions / `<?xml ?>` declaration / `<![CDATA[ ]]>`, namespaces
 (element + attribute level with the built-in `xml:` prefix), and
 an XPath subset covering paths, `[N]` predicates, descendant axis
-`//`, wildcards (`*`, `@*`), and the attribute axis (`@attrName`).
-Remaining: DTDs / custom entity declarations (T26) and XPath
-functions / comparison predicates (T27b).
+`//`, wildcards (`*`, `@*`), the attribute axis (`@attrName`), and
+**comparison predicates** (`[@id='v']`, `[name()='b']`,
+`[count(child)>1]`) backed by an expression evaluator with XPath
+1.0 type coercion and the most common XPath functions
+(`position()`, `last()`, `name()`, `text()`, `count()`,
+`string-length()`, `normalize-space()`, `contains()`,
+`starts-with()`, plus `not()` / `string()` / `number()`).
+Remaining: DTDs / custom entity declarations (T26).
 
 ## Public API
 
@@ -163,7 +168,7 @@ but the parser tolerates them anywhere a comment is allowed.
 | **T25b** | Attribute-namespace resolution + built-in `xml:` prefix | ✅ **shipped 2026-05-07** |
 | **T27 v0** | Minimal XPath: paths, `[N]` predicates, `//` descendant axis | ✅ **shipped 2026-05-07** |
 | **T27a** | XPath wildcards (`*`, `@*`) + attribute axis (`@attrName`) | ✅ **shipped 2026-05-07** |
-| **T27b** | XPath functions (`position()`, `text()`, etc.) + comparison predicates | queued |
+| **T27b** | XPath functions (`position()`, `text()`, etc.) + comparison predicates | ✅ **shipped 2026-05-07** |
 | **T26** | DTDs / DOCTYPE / custom entity declarations | queued |
 
 Queued features land as v0.x.y patches when concrete consumers
@@ -297,17 +302,47 @@ Supported syntax:
 | Position predicate | `name[N]` | Filter to the N-th match (1-based). |
 | Attribute axis | `@attrName`, `*/@id`, `//@id` | Return attribute values from the candidate elements. Terminal — nothing may follow `@attr`. |
 | Attribute wildcard | `@*` | All attributes on the candidate element(s). |
+| Comparison predicate | `a[@id='2']`, `*[name()='b']`, `book[count(author)>1]` | Filter candidates by an expression. Operators: `=`, `!=`, `<`, `>`, `<=`, `>=`. |
+| Function predicate | `a[contains(@class,'foo')]`, `a[starts-with(@id,'pre')]`, `a[normalize-space()='hi']`, `a[string-length(@id)>2]` | Filter via XPath 1.0 functions on the context. |
+| Truthy attribute test | `a[@id]` | Keep candidates where `@id` is present and non-empty. |
 
 Attribute matches surface in the result array as scalar-like
 entries: `results(i,"text")` holds the attribute value and
 `results(i,"name")` holds the attribute name. `xpathText` therefore
 returns the attribute value transparently for `xpathText(.doc,"@id")`.
 
-Out of scope (queued at T27b in `docs/module-tracker.md`):
-**Functions and comparison predicates.** `position()`, `count()`,
-`text()`, `name()`, `normalize-space()`, `contains()`,
-`starts-with()`, `string-length()`; predicates like
-`[@type='code']`, `[name()='foo']`, `[count(child)>3]`.
+### Predicate expressions (T27b)
+
+Predicates beyond `[N]` are parsed into a small AST (`parsePredExpr`)
+and evaluated per candidate (`applyExprPredicate` →
+`evalPredExpr`). The evaluator carries XPath-1.0-style type
+coercion (`toBool` / `toStr` / `toNum`); ordering operators
+(`<`, `>`, `<=`, `>=`) always coerce both sides to number, while
+equality (`=`, `!=`) compares numerically when both sides are
+numeric and otherwise as strings.
+
+| Function | Form | Returns |
+|---|---|---|
+| `position()` | zero-arg | 1-based index of the candidate within the post-step set |
+| `last()` | zero-arg | Size of the post-step set |
+| `name()` | zero-arg | Local name of the candidate element |
+| `text()` | zero-arg | Direct text content of the candidate element |
+| `count(...)` | one arg: `name` / `*` / `@name` / `@*` | Count of children / attributes matching the relative-path arg |
+| `string-length()` / `string-length(s)` | zero or one arg | Length of the context text or of the argument |
+| `normalize-space()` / `normalize-space(s)` | zero or one arg | Whitespace-collapsed string (single internal spaces, trimmed) |
+| `contains(haystack, needle)` | two args | Boolean substring test |
+| `starts-with(haystack, prefix)` | two args | Boolean prefix test |
+| `not(expr)` | one arg | Boolean negation |
+| `string(expr)` / `number(expr)` | zero or one arg | Type coercion helpers |
+
+`count()`'s argument is restricted to a single-step relative
+path in v0 (`name` / `*` / `@name` / `@*`); full XPath sub-paths
+inside `count(...)` are queued for a future ticket if a real
+consumer drives the requirement.
+
+Out of scope: **chained boolean operators (`and` / `or`)** and
+**multiple predicates on the same step (`a[1][@id]`)**. Both can
+be added incrementally if a consumer drives them.
 
 ### How it works
 
