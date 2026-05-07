@@ -1,0 +1,34 @@
+# m-stdlib devcontainer — attaches to the shared `vista-vehu` engine.
+#
+# This file extends the master compose at vista-meta/docker/compose.yml.
+# All service config (image, ports, base volumes, hostname, lifecycle)
+# is inherited; we only add the m-stdlib-specific bind mount so the
+# devcontainer's workspaceFolder is reachable inside the container.
+#
+# Workflow:
+#   1. `cd ~/projects/vista-meta && make rm`  (if a container is up via Make)
+#   2. VSCode: F1 → "Dev Containers: Reopen in Container"
+#   3. From this point, VSCode owns the container lifecycle. Don't run
+#      `make run` from vista-meta — use `make rm` first if you need to
+#      switch back to Makefile-driven workflow.
+#
+# Project name `vista-vehu` matches the master, so both compose stacks
+# refer to the same Docker objects (no duplicate networks/volumes).
+
+name: vista-vehu
+
+services:
+  vista-vehu:
+    extends:
+      file: ../../vista-meta/docker/compose.yml
+      service: vista-vehu
+    volumes:
+      - ..:/home/vehu/work/m-stdlib:cached
+
+# Top-level named volumes are NOT inherited by `extends:` — only the
+# service-level reference is. Redeclare here pointing to the same
+# physical volume by name. (`external: true` would also work and avoid
+# accidental deletion, but requires the volume to pre-exist.)
+volumes:
+  vehu-globals:
+    name: vehu-globals

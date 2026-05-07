@@ -1,14 +1,13 @@
 {
-  "name": "m-stdlib dev",
-  "build": { "dockerfile": "Dockerfile" },
-  "remoteUser": "ubuntu",
-  "workspaceFolder": "/workspaces/m-stdlib",
+  "name": "m-stdlib (attached to vista-vehu)",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "vista-vehu",
+  "workspaceFolder": "/home/vehu/work/m-stdlib",
+  "remoteUser": "vehu",
+  "shutdownAction": "none",
   "containerEnv": {
-    "ydb_dist": "/opt/yottadb/current",
-    "ydb_dir": "/workspaces/m-stdlib/.ydb",
-    "ydb_gbldir": "/workspaces/m-stdlib/.ydb/m-stdlib.gld",
-    "ydb_routines": "/workspaces/m-stdlib/src /workspaces/m-stdlib/tests /workspaces/m-stdlib/.objects /opt/yottadb/current",
-    "PATH": "/opt/m-cli/.venv/bin:/opt/yottadb/current:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    "ydb_dist": "/usr/local/lib/yottadb/r2.02",
+    "PATH": "/home/vehu/.venv/bin:/usr/local/lib/yottadb/r2.02:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   },
   "customizations": {
     "vscode": {
@@ -21,7 +20,7 @@
       ],
       "settings": {
         "m-cli.enabled": true,
-        "m-cli.path": "/opt/m-cli/.venv/bin/m",
+        "m-cli.path": "/home/vehu/.venv/bin/m",
         "editor.formatOnSave": true,
         "[m]": {
           "editor.tabSize": 1,
@@ -31,6 +30,6 @@
       }
     }
   },
-  "postCreateCommand": "mkdir -p /workspaces/m-stdlib/.ydb /workspaces/m-stdlib/.objects && /opt/m-cli/.venv/bin/m --version",
+  "postCreateCommand": "bash .devcontainer/install-m-cli.sh",
   "forwardPorts": []
 }
