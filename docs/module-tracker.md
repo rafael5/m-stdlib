@@ -189,26 +189,18 @@ SEED add-on — note T3 has a *separate* root cause).
   Suite header notes this; explicit OPEN-fail trapping deferred.
 
 ### T3 — STDLOG-JSON / STDSEED-loadJson `raises`-path tests parked under STDJSON-encode P1
-**Status:** ✅ **closed 2026-05-07** (with two STDLOG tests still
-deferred under the broader subscripted-by-ref harness limit
-documented in T6).
+**Status:** ✅ **fully closed 2026-05-07.**
 **Outcome:**
-- **STDLOG 48 → 54 assertions** — `tFormatJsonEmitsValidJson` and
-  `tFormatKvAfterJsonReverts` are the two of six JSON-emission
-  tests that don't probe the parsed tree via subscripted by-ref;
-  both now pass after T6's STDJSON refactor. The other four
-  (`tFormatJsonHasTsLevelEvent`, `tFormatJsonKvPairsBecomeKeys`,
-  `tFormatJsonValuesAreStrings`, `tFormatJsonEscapesQuotesAndBackslash`)
-  remain deferred under the broader vista-meta YDB-harness limit
-  on subscripted-by-ref param passing — explicitly noted in the
-  STDLOG suite dispatcher.
-- **STDSEED loadJson tests** — implementation path is now correct
-  (STDJSON parse no longer crashes on object-with-content), but
-  this vista-meta image is currently in a leaked-mumps-process
-  state from the T6 debug session, so the suite TIMEOUTs once
-  STDSEED loadJson exercises STDJSON. Tests remain deferred in
-  the dispatcher with a note pointing at the leaked-process P2;
-  re-enable after a vista-meta container reset.
+- **STDLOG 48 → 62 assertions** — all six JSON-emission tests run.
+  Two passed after T6's STDJSON refactor; the four that probe the
+  parsed tree via `$$valueOf^STDJSON(.tree("k"))` were unblocked
+  by the merge-then-pass refactor in commit `fb48f39` (per the
+  `.x(SUBS)` syntax-limit diagnosis below — see T6 / TOOLCHAIN-
+  FINDINGS row 2026-05-06).
+- **STDSEED 25 → 35 assertions** — all six loadJson tests run.
+  Unblocked by the `raises^STDASSERT` `use $principal` trap fix
+  (commit `e637425`) which resolves the SEQ-device + ZGOTO-unwind
+  hang inside `walk^STDSEED`'s file-read loop.
 
 ### T4 — STDFIX lint findings cleanup
 **Status:** ✅ **closed 2026-05-07** (already resolved earlier).
@@ -233,27 +225,31 @@ upstream-bug item itself stays open in TOOLCHAIN-FINDINGS until
 fixed.
 
 ### T6 — STDJSON `$$encode` extrinsic-chain P1
-**Status:** ✅ **closed at the STDJSON code level 2026-05-07.**
-**Diagnosis:** the failure was **not** in extrinsic-chain unwinding
-but in the YDB harness's handling of subscripted-by-reference
-parameter passing (`do f(.x(SUBS))` / `$$f(.x(SUBS))`) — minimal
-repro (`do procEcho(.x(1),.out)`) crashes the YDB process in this
-vista-meta image with rc=1 / no stderr.
-**Fix applied:**
-- `encodeArray` / `encodeObject` recurse via `merge tmp=node(k)`
-  then `$$encodeValue(.tmp)` (read-only path).
-- `parseObject` / `parseArray` recurse via `do parseValue(.ctx,.tmp)`
-  then `merge node(k)=tmp` (write-back path).
-**Verified:** scalar / object / array / nested-tree encode all
-round-trip; `$$parse^STDJSON("{""foo"":""bar""}",.root)` populates
-`root("foo")="s:bar"` and returns 1; the STDLOG-JSON
-`tFormatJsonEmitsValidJson` / `tFormatKvAfterJsonReverts` tests
-are now green.
-**Residual harness limit:** the broader YDB-harness bug on
-caller-side subscripted by-ref (e.g. test code that uses
-`$$valueOf^STDJSON(.tree("k"))`) is documented in
-TOOLCHAIN-FINDINGS row 2026-05-06 P1 (partially-resolved 2026-05-07)
-and tracked there, not here.
+**Status:** ✅ **fully closed 2026-05-07.**
+**Diagnosis (corrected):** initial hypothesis ("YDB-harness
+subscripted-by-ref crash") was wrong. Direct `mumps -run` repro
+shows it's a **documented YDB syntax limit**: `.x(SUBS)` is invalid
+syntax in YottaDB r2.02 — `%YDB-E-COMMAORRPAREXP` at compile time.
+Standard ANSI M permits only `.x` (whole local) by reference; YDB
+does not extend that. Canonical workaround: **merge-then-pass**.
+TOOLCHAIN-FINDINGS row 2026-05-06 was demoted from P1 to `docs`
+and marked resolved.
+**Fixes applied:**
+- `src/STDJSON.m` (commit `c3a0880`): `encodeArray` / `encodeObject`
+  recurse via `merge tmp=node(k)` + `$$encodeValue(.tmp)` (read-
+  only); `parseObject` / `parseArray` via `do parseValue(.ctx,.tmp)`
+  + `merge node(k)=tmp` (write-back).
+- `tests/STDLOGTST.m` (commit `fb48f39`): 4 deferred JSON-emission
+  tests refactored to merge-then-pass via `sub` local; also
+  `do parse^STDJSON(...)` → `set ok=$$parse^STDJSON(...)` (parse
+  is extrinsic-form, calling as procedure fires M17).
+- `tests/STDJSONTST.m` (commits `0343b13` + `e159147`): 23 + 4
+  caller-side `.x(SUBS)` sites refactored to merge-then-pass;
+  `parseStringValue` `\u<hex>` escape fall-through fixed (one-line
+  `quit` postcondition); `tEncodeArrayWithGapRaises` rewritten to
+  drop fragile cross-frame `goto pop` from $ETRAP.
+**Verified:** STDJSONTST 209/209 green (was crashing at #55).
+Aggregate gate: 16 suites, **1222/1222 assertions**.
 
 ### T7 — v0.2.0 release sync
 **Status:** ✅ **shipped 2026-05-07.**
