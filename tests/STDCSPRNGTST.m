@@ -6,6 +6,7 @@ STDCSPRNGTST    ; Test suite for STDCSPRNG (v0.2.x — Pri 1, Phase 4).
         do start^STDASSERT(.pass,.fail)
         ;
         do tAvailable(.pass,.fail)
+        do tUseCalloutReturnsBoolean(.pass,.fail)
         do tBytesEmptyForZero(.pass,.fail)
         do tBytesExactLength(.pass,.fail)
         do tBytesDistinctAcrossCalls(.pass,.fail)
@@ -39,6 +40,16 @@ STDCSPRNGTST    ; Test suite for STDCSPRNG (v0.2.x — Pri 1, Phase 4).
         ;
 tAvailable(pass,fail)   ;@TEST "available() reports /dev/urandom is readable in this env"
         do true^STDASSERT(.pass,.fail,$$available^STDCSPRNG(),"/dev/urandom present")
+        quit
+        ;
+tUseCalloutReturnsBoolean(pass,fail)    ;@TEST "useCallout() returns 0 or 1 without raising"
+        ; Probe never raises; result depends on whether ydb_xc_std_csprng /
+        ; cs_random.so are deployed. Either value is acceptable — the test
+        ; just pins the contract that the probe is total over the
+        ; deployment matrix.
+        new v
+        set v=$$useCallout^STDCSPRNG()
+        do true^STDASSERT(.pass,.fail,(v=0)!(v=1),"useCallout() in {0,1}")
         quit
         ;
 tBytesEmptyForZero(pass,fail)   ;@TEST "bytes(0) returns the empty string"

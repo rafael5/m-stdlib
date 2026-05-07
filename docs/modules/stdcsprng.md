@@ -17,6 +17,7 @@ unpredictability boundaries.
 | `int` | `$$int^STDCSPRNG(min,max)` | Uniform integer in `[min, max]` (inclusive both ends), rejection-sampled. |
 | `uuid4` | `$$uuid4^STDCSPRNG()` | RFC-4122 v4 UUID — 122 bits of CSPRNG entropy in canonical hex form. |
 | `available` | `$$available^STDCSPRNG()` | `1` iff `/dev/urandom` is openable for reading; else `0`. |
+| `useCallout` | `$$useCallout^STDCSPRNG()` | `1` iff the `cs_random` callout (`$ZF → getrandom(2)`) is loaded and resolves; else `0`. |
 
 ## Examples
 
@@ -45,22 +46,41 @@ IF '$$available^STDCSPRNG() SET $ECODE=",U-MYAPP-NO-CSPRNG,"
 
 ## Entropy source
 
-`/dev/urandom` on Linux — backed by the kernel's ChaCha20 CSPRNG.
-This is the **same source** that `getrandom(2)` reads from when
-called without `GRND_RANDOM`. The Linux kernel pre-seeds
-`/dev/urandom` from hardware entropy at boot; subsequent reads are
-indistinguishable from random bytes to any computationally bounded
-adversary.
+Linux kernel ChaCha20 CSPRNG. Two backends share the same pool, so
+the choice is purely a perf concern — security guarantees are
+identical:
 
-The implementation reads one byte at a time via `READ *b` so that
-record terminators in the byte stream (LF=`$C(10)`, CR=`$C(13)`)
-do not truncate the read. This is correct but unhurried: a 16-byte
-UUID costs 16 device reads. For the call rates typical of session
-issuance (≤ 10⁴ / s), this is well below the YDB engine's I/O
-ceiling. If batch read speeds become a hot path, the
-`tools/build-callouts.sh`-driven `$ZF → getrandom(2)` callout slot
-is reserved for a drop-in backend swap — **the public API will not
-change.**
+| Backend | When picked | Cost / 16 bytes |
+|---|---|---|
+| `cs_random` (`$ZF → getrandom(2)`) | `ydb_xc_std_csprng` deployed and the .so resolves | one syscall, batched |
+| `/dev/urandom` (`READ *b` loop) | otherwise (always-available soft-fall-back) | 16 device reads |
+
+`bytes()` tries the callout first via `$$useCallout()` and falls
+back to the device read on miss. Public API is identical across
+both backends — callers never need to pick.
+
+### Why one byte at a time on the device path
+
+The device-read fall-back uses `READ *b` so that record terminators
+in the byte stream (LF=`$C(10)`, CR=`$C(13)`) do not truncate the
+read. This is correct but unhurried: a 16-byte UUID costs 16
+device reads. For the call rates typical of session issuance
+(≤ 10⁴ / s), this is well below the YDB engine's I/O ceiling. The
+callout backend exists for environments where the per-byte
+round-trip becomes a hot path.
+
+### Deploying the callout
+
+```bash
+tools/build-callouts.sh                       # produces so/<plat>/cs_random.so
+export STDLIB_LIB=<abs-path-to-so/<plat>>     # substituted into std_csprng.xc
+export ydb_xc_std_csprng=<abs>/tools/std_csprng.xc
+```
+
+`$$useCallout^STDCSPRNG()` returns `1` once those three steps are
+complete and the .so loads. With them unset, `bytes()` /
+`hex()` / `base64()` / `token()` / `int()` / `uuid4()` all keep
+working via `/dev/urandom` — the callout is a perf-only swap.
 
 ## Why not `$RANDOM`?
 

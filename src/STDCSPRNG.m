@@ -1,9 +1,18 @@
-STDCSPRNG       ; m-stdlib — Cryptographic random (kernel CSPRNG via /dev/urandom).
+STDCSPRNG       ; m-stdlib — Cryptographic random (kernel CSPRNG via getrandom(2) | /dev/urandom).
         ; m-lint: disable-file=M-MOD-024
+        ; m-lint: disable-file=M-MOD-036
         ; M-MOD-024 false positives: the linter parses YDB OPEN/USE
         ; deviceparams (readonly, nowrap, noecho) as local-variable reads,
-        ; then cascades read-of-undefined complaints across bytes/available.
-        ; Same finding as STDCSV — tracked as a P2 in TOOLCHAIN-FINDINGS.md.
+        ; then cascades read-of-undefined complaints across bytes/available;
+        ; rc / out are also initialised before the XECUTE'd $ZF dispatch
+        ; but the analyser cannot follow flow through XECUTE indirection.
+        ; Same finding as STDCSV / STDCRYPTO — tracked as a P2 in
+        ; TOOLCHAIN-FINDINGS.md.
+        ; M-MOD-036 (XECUTE injection) is intentional: the XECUTE wrapper
+        ; is the only way to invoke $ZF without m fmt's abbreviation
+        ; expander mangling the token (longest-prefix match against
+        ; $ZFIND). Same trick as STDCRYPTO / STDHTTP / STDCOMPRESS;
+        ; the XECUTE source is built from a literal template only.
         ;
         ; Public extrinsics:
         ;   $$bytes^STDCSPRNG(n)        — n random bytes
@@ -13,30 +22,60 @@ STDCSPRNG       ; m-stdlib — Cryptographic random (kernel CSPRNG via /dev/uran
         ;   $$int^STDCSPRNG(min,max)    — uniform integer in [min,max] (inclusive)
         ;   $$uuid4^STDCSPRNG()         — crypto-strong RFC-4122 v4 UUID
         ;   $$available^STDCSPRNG()     — 1 iff /dev/urandom is readable
+        ;   $$useCallout^STDCSPRNG()    — 1 iff cs_random callout is loaded
         ;
-        ; Entropy: Linux /dev/urandom — kernel ChaCha20 CSPRNG; same source
-        ; getrandom(2) without GRND_RANDOM reads. Suitable for session
-        ; tokens, password reset tokens, JWT signing salts, nonces.
+        ; Entropy: Linux kernel ChaCha20 CSPRNG. Two backends share the
+        ; same pool, so the choice is purely a perf concern:
+        ;   • cs_random — $ZF → getrandom(2). Batched single-call read;
+        ;     no fd churn, no record-terminator dance. Picked when
+        ;     $ZTRNLNM("ydb_xc_std_csprng") is set (descriptor deployed)
+        ;     and the .so resolves on first probe.
+        ;   • /dev/urandom — pure-M READ *b loop; one device read per
+        ;     byte. Always available on Linux YDB; the soft-fall-back
+        ;     when the callout is absent.
+        ; The public API is identical across both — callers never need to
+        ; pick. Suitable for session tokens, password reset tokens, JWT
+        ; signing salts, nonces.
         ;
         ; Distinct from $RANDOM (Mersenne Twister): $RANDOM is fast and
         ; statistically uniform but its output is predictable from a few
         ; samples — never use it for security-sensitive identifiers. Use
         ; STDCSPRNG instead.
         ;
-        ; A future $ZF→getrandom(2) callout may replace the device-read
-        ; backend for batching performance. The public API is stable.
+        ; Deployment runbook (full detail in docs/modules/stdcsprng.md):
+        ;   1. tools/build-callouts.sh       ; produce so/<plat>/cs_random.so
+        ;   2. export STDLIB_LIB=<dir-of-so> ; substituted into std_csprng.xc
+        ;   3. export ydb_xc_std_csprng=<abs>/tools/std_csprng.xc
+        ; With those unset, bytes() / hex() / base64() / token() / int() /
+        ; uuid4() all keep working via /dev/urandom — the callout is a
+        ; perf-only swap.
         ;
         quit
         ;
         ; ---------- public API ----------
         ;
-bytes(n)        ; Return n random bytes from /dev/urandom.
+bytes(n)        ; Return n random bytes from the kernel CSPRNG.
         ; doc: For n=0 returns "". May contain any byte value 0..255.
+        ; doc: Tries $ZF → cs_random (getrandom(2)) first; falls back
+        ; doc: to a /dev/urandom READ *b loop when the callout descriptor
+        ; doc: is unset or the .so does not resolve. Both paths read from
+        ; doc: the same kernel ChaCha20 pool — the choice is a perf swap.
         ; doc: Sets $ECODE=,U-STDCSPRNG-BAD-COUNT, if n<0.
-        ; doc: Sets $ECODE=,U-STDCSPRNG-OPEN-FAIL, if /dev/urandom cannot be opened.
+        ; doc: Sets $ECODE=,U-STDCSPRNG-OPEN-FAIL, if neither backend can
+        ; doc: produce bytes (callout missing AND /dev/urandom unopenable).
         ; doc: Example: set b=$$bytes^STDCSPRNG(16)  ; 16 random bytes
         if n<0 set $ecode=",U-STDCSPRNG-BAD-COUNT," quit ""
         if 'n quit ""
+        new buf
+        set buf=$$dispatchRandom(n)
+        if buf'="" quit buf
+        quit $$bytesFromDevice(n)
+        ;
+bytesFromDevice(n)      ; /dev/urandom backend — soft-fall-back when callout absent.
+        ; doc: Internal — reads n bytes one at a time via READ *b so
+        ; doc: record terminators (LF=$C(10), CR=$C(13)) in the byte
+        ; doc: stream don't truncate the read. Sets $ECODE=,U-STDCSPRNG-
+        ; doc: OPEN-FAIL, if the device cannot be opened.
         new dev,buf,prev,i,b
         set dev="/dev/urandom",buf="",prev=$io
         open dev:(readonly:nowrap):2  else  set $ecode=",U-STDCSPRNG-OPEN-FAIL," quit ""
@@ -113,6 +152,10 @@ uuid4() ; Return a cryptographically strong RFC-4122 v4 UUID.
 available()     ; Return 1 iff /dev/urandom is openable for reading; else 0.
         ; doc: Pre-flight probe — never raises. Useful for guarding code that
         ; doc: needs CSPRNG entropy before any sensitive operation begins.
+        ; doc: Returns 1 whenever /dev/urandom is readable, irrespective of
+        ; doc: whether the cs_random callout is loaded (the device is the
+        ; doc: always-available soft-fall-back; see useCallout() to detect
+        ; doc: the perf-tier backend separately).
         ; doc: Example: if '$$available^STDCSPRNG() set $ecode=",U-MYAPP-NO-CSPRNG,"
         new dev,prev
         set dev="/dev/urandom",prev=$io
@@ -120,3 +163,44 @@ available()     ; Return 1 iff /dev/urandom is openable for reading; else 0.
         use prev
         close dev
         quit 1
+        ;
+useCallout()    ; Return 1 iff the cs_random callout resolves; else 0.
+        ; doc: Pre-flight probe for the $ZF → getrandom(2) backend.
+        ; doc: Never raises — clears $ECODE on the way out. Cheap fast
+        ; doc: path: if $ZTRNLNM("ydb_xc_std_csprng") is empty the
+        ; doc: descriptor isn't deployed — return 0 without paying the
+        ; doc: XECUTE / $ZF round-trip. Otherwise issues a 1-byte probe
+        ; doc: through the callout; returns 1 only when the .so loaded
+        ; doc: and getrandom(2) succeeded.
+        ; doc: Example:
+        ; doc:   if $$useCallout^STDCSPRNG() write "fast path"
+        new buf,n
+        if $$env^STDOS("ydb_xc_std_csprng")="" quit 0
+        set buf=$$dispatchRandom(1)
+        set n=$length(buf)
+        set $ecode=""
+        quit $select(n=1:1,1:0)
+        ;
+        ; ---------- internal helpers ----------
+        ;
+dispatchRandom(n)       ; Invoke $ZF("cs_random", n, .out). Returns out on success, "" on miss.
+        ; doc: Internal — XECUTE-wraps $ZF so m fmt cannot mangle the
+        ; doc: token (longest-prefix bug against $ZFIND). Returns the
+        ; doc: filled buffer on rc=0 (callout success); returns "" when
+        ; doc: the descriptor isn't deployed, the .so doesn't resolve,
+        ; doc: or getrandom(2) reports failure — the M-side caller falls
+        ; doc: back to /dev/urandom on "". Same XECUTE rationale as
+        ; doc: STDCRYPTO.dispatch3 / STDHTTP.dispatchPerform.
+        new $etrap,rc,cmd,out,i
+        if $$env^STDOS("ydb_xc_std_csprng")="" quit ""
+        set $etrap="set $ecode="""" set rc=-99 quit"
+        set rc=0
+        ; Pre-allocate n NUL bytes — cs_random reads out->length as the
+        ; M-side capacity and overwrites in place.
+        set out=""
+        for i=1:1:n  set out=out_$char(0)
+        set cmd="set rc=$ZF(""cs_random"",n,.out)"
+        xecute cmd
+        set $ecode=""
+        if rc'=0 quit ""
+        quit out
