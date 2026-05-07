@@ -462,6 +462,237 @@ write $$resolve^STDURL("/foo","http://a/b/c"),!
 semantics — malformed `%` sequences pass through as literal text);
 `valid` is the strict gate.
 
+### 5.17 `STDCSPRNG` — cryptographic random ([detail](modules/stdcsprng.md))
+
+Kernel CSPRNG via `/dev/urandom` (the same source `getrandom(2)` reads
+without `GRND_RANDOM`). Use this — not `STDUUID.v4` or `$RANDOM` — for
+session tokens, password reset tokens, JWT signing salts, nonces.
+
+```m
+write $$bytes^STDCSPRNG(16),!         ; 16 raw bytes (binary-unsafe in print)
+write $$hex^STDCSPRNG(16),!           ; 32-char lowercase hex
+write $$base64^STDCSPRNG(16),!        ; URL-safe base64 (no padding)
+write $$token^STDCSPRNG(24),!         ; URL-safe token, 24 bytes of entropy
+write $$int^STDCSPRNG(0,99),!         ; unbiased rejection-sampled int 0–99
+write $$uuid4^STDCSPRNG(),!           ; RFC-4122 v4 backed by /dev/urandom
+```
+
+`int` rejection-samples on the smallest power of 256 covering the
+range, so the distribution is unbiased (no modulo-bias artefact).
+`uuid4` round-trips through `$$valid^STDUUID` / `$$version^STDUUID`
+identically to `$$v4^STDUUID()` — switch over wherever the UUID is a
+security boundary.
+
+### 5.18 `STDFS` — file-system ([detail](modules/stdfs.md))
+
+Centralises the YDB SEQ-device `OPEN`/`USE`/`READ`/`WRITE`/`CLOSE`
+dance so consumers don't re-derive deviceparams or trigger the
+M-MOD-024 OPEN/CLOSE-deviceparam lint false-positive. Text-mode I/O
+plus existence + metadata + pure-string path manipulation.
+
+```m
+do writeFile^STDFS("/tmp/note.txt","hello world")
+write $$readFile^STDFS("/tmp/note.txt"),!     ; "hello world"
+do append^STDFS("/tmp/note.txt"," — line 2")
+do readLines^STDFS("/tmp/note.txt",.lines)
+write $$exists^STDFS("/tmp/note.txt"),!       ; 1
+write $$size^STDFS("/tmp/note.txt"),!         ; byte count
+do remove^STDFS("/tmp/note.txt")
+write $$basename^STDFS("/a/b/c.tsv"),!        ; "c.tsv"
+write $$dirname^STDFS("/a/b/c.tsv"),!         ; "/a/b"
+write $$join^STDFS("/a","b","c"),!            ; "/a/b/c"
+```
+
+`exists` uses an `OPEN`-with-`timeout=0` probe inside an
+`$ETRAP+ZGOTO $zlevel` so it bypasses `$ZSEARCH`'s per-process cache —
+a path created and removed inside one M process round-trips correctly.
+`writeFile` always emits a trailing LF (POSIX convention); `readFile`
+strips it on the way back.
+
+### 5.19 `STDOS` — process / env / cmdline ([detail](modules/stdos.md))
+
+Fills the gaps `$ZCMDLINE` / `$ZJOB` / `$ZTRNLNM` leave behind. Useful
+glue for STDARGS-driven scripts that want to inspect env, exit with a
+non-zero rc, or report `$JOB`/`$cwd`/hostname.
+
+```m
+write $$env^STDOS("HOME"),!           ; ~/  ($ZTRNLNM-equivalent)
+write $$pid^STDOS(),!                  ; current $JOB
+write $$cmdline^STDOS(),!              ; raw $ZCMDLINE
+do argv^STDOS(.args)                   ; whitespace-tokenised
+write $$cwd^STDOS(),!
+write $$hostname^STDOS(),!
+do exit^STDOS(2)                       ; ZHALT 2
+```
+
+`splitArgs` in v1 is whitespace-only; quote-aware tokenisation (and
+process-env write-back via `setenv()`) is queued at T15.
+
+### 5.20 `STDSEMVER` — SemVer 2.0.0 ([detail](modules/stdsemver.md))
+
+Parse / compare / range-match per SemVer 2.0.0. Pure-M (no STDREGEX
+runtime dep). Architecturally load-bearing for any future M package
+manager — dependency resolution can't exist without this.
+
+```m
+write $$valid^STDSEMVER("1.2.3-rc.1+build.5"),!     ; 1
+write $$compare^STDSEMVER("1.2.3","1.2.4"),!        ; -1
+write $$matches^STDSEMVER("1.2.3","^1.2.0"),!       ; 1 (caret)
+write $$matches^STDSEMVER("1.3.0","~1.2"),!         ; 0 (tilde, minor pinned)
+write $$matches^STDSEMVER("2.0.0",">=1.0 <2"),!     ; 0 (AND-combined comparators)
+do parse^STDSEMVER("1.2.3-rc.1+x",.v)
+write v("major"),".",v("minor"),".",v("patch"),! v("prerelease"),!,v("build"),!
+```
+
+Range syntax v1: comparators (`>`, `<`, `>=`, `<=`, `=`), caret
+(`^`), tilde (`~`), space-separated AND. `||` OR / hyphen ranges /
+wildcards / npm-style `^0.x.y` zero-major narrowing are queued at T16
+behind a concrete consumer ask.
+
+### 5.21 `STDSTR` — string helpers ([detail](modules/stdstr.md))
+
+The pad / trim / split / starts-with / ends-with / case-fold / repeat
+basics that show up across every consumer. Pure `$translate` /
+`$piece` / `$find` / `$extract` — no `$Z*`, no STDREGEX dep. ASCII-
+only; locale-aware Unicode case folding is deferred to a future
+STDUNICODE.
+
+```m
+write $$pad^STDSTR("x",5,"."),!                ; "x...."
+write $$padLeft^STDSTR("42",5,"0"),!            ; "00042"
+write $$trim^STDSTR("  hi  "),!                 ; "hi"
+write $$replaceAll^STDSTR("a,b,c",",",";"),!    ; "a;b;c"
+do split^STDSTR("a,b,c",",",.parts)             ; parts(1)="a",parts(2)="b",...
+write $$startsWith^STDSTR("hello","he"),!       ; 1
+write $$toLowerASCII^STDSTR("ABC"),!            ; "abc"
+write $$repeat^STDSTR("-",10),!                  ; "----------"
+```
+
+### 5.22 `STDTOML` — TOML 1.0 subset ([detail](modules/stdtoml.md))
+
+Top-level pairs + `[section]` tables + four scalars (string, signed
+decimal int, signed decimal float, bool surfaced as 1/0) + `#`
+comments. Tree shape: `root("v",path)` + `root("t",path)` where
+`path` is a dotted key. Out of scope at v1 (queued at T18): arrays,
+inline tables, dotted keys, multi-line strings, integer underscores
++ hex/oct/bin, datetime literals.
+
+```m
+new toml,cfg
+set toml="[server]"_$char(10)_"host=""127.0.0.1"""_$char(10)_"port=8080"
+do parse^STDTOML(toml,.cfg)
+write cfg("v","server.host"),!     ; "127.0.0.1"
+write cfg("v","server.port"),!     ; 8080
+write cfg("t","server.port"),!     ; "int"
+```
+
+### 5.23 `STDCACHE` — LRU + TTL ([detail](modules/stdcache.md))
+
+Caller-owned cache tree (no globals). LRU via two-way `seq ↔ key`
+maps; TTL is **lazy on access** (no background sweeper). Memoisation,
+RPC-result caching, rate-limit windows.
+
+```m
+new cache,v
+do new^STDCACHE(.cache,100,300)        ; capacity=100, ttl=300s
+do put^STDCACHE(.cache,"user:42",.userTree)
+if $$has^STDCACHE(.cache,"user:42") write $$get^STDCACHE(.cache,"user:42"),!
+write $$size^STDCACHE(.cache),!,$$capacity^STDCACHE(.cache),!
+do remove^STDCACHE(.cache,"user:42")
+do clear^STDCACHE(.cache)
+```
+
+Multiple caches per process are independent (different `.cache`
+locals). Time source is `$HOROLOG` collapsed to seconds.
+
+### 5.24 `STDPROF` — wall-clock profiler ([detail](modules/stdprof.md))
+
+Caller-owned profiler tree. `$ZHOROLOG`-backed (microsecond
+resolution; ANSI `$HOROLOG` is too coarse). Aggregates: count, total,
+mean, min, max, percentile.
+
+```m
+new prof,i
+do start^STDPROF(.prof,"db.query")
+do queryDb()                              ; whatever you're profiling
+do stop^STDPROF(.prof,"db.query")
+write $$count^STDPROF(.prof,"db.query"),!
+write $$mean^STDPROF(.prof,"db.query"),!
+write $$percentile^STDPROF(.prof,"db.query",95),!
+```
+
+`m test --timings` covers the per-suite case at the subprocess level
+without needing STDPROF; STDPROF is the right tool for finer-grained
+intra-suite timings (per-test, per-section).
+
+### 5.25 `STDSNAP` — snapshot testing ([detail](modules/stdsnap.md))
+
+Canonical line-per-leaf serialisation via a `$QUERY` walk; save +
+match + assert against an on-disk baseline. Force-multiplier for
+data-shape tests (parsed JSON trees, FileMan record exports,
+RPC responses).
+
+```m
+new tree
+set tree("a")=1
+set tree("b","c")=2
+do save^STDSNAP("snapshots/cfg.snap",.tree)
+write $$matches^STDSNAP("snapshots/cfg.snap",.tree),!     ; 1
+do asserts^STDSNAP(.pass,.fail,"snapshots/cfg.snap",.tree,"config matches")
+```
+
+Update mode: when `^STDLIB($job,"stdsnap","update")=1` is set,
+`asserts` rewrites the baseline file instead of comparing. Used by
+`m test --update-snapshots` to regenerate snapshots after an
+intentional output change.
+
+### 5.26 `STDENV` — `.env` loader ([detail](modules/stdenv.md))
+
+Parses `.env` files with the standard subset: bare values
+(whitespace-trimmed), double-quoted with `\n \t \r \" \\` escapes,
+single-quoted POSIX-literal (no escape processing), `#` whole-line
+comments, leading-letter-or-`_` keys. Typed accessors with default-
+on-miss-or-mistype.
+
+```m
+new env
+do parseFile^STDENV("/cfg/dev.env",.env)
+write $$get^STDENV(.env,"DB_HOST","localhost"),!
+write $$getInt^STDENV(.env,"PORT",5432),!
+write $$getBool^STDENV(.env,"DEBUG",0),!         ; 1 for {true,yes,on,1}
+```
+
+`getBool` matches `{true, yes, on, 1}` / `{false, no, off, 0}` case-
+insensitive. Variable substitution (`${VAR}`), `export` prefix, and
+multi-line values are queued at T22. `m test --env PATH` loads `.env`
+files automatically before each suite — see m-cli's runner docs.
+
+### 5.27 `STDXML` — XML 1.0 v0 ([detail](modules/stdxml.md))
+
+Well-formed XML 1.0 subset: elements, attributes, nested children,
+text content, the five standard entity references. Tree shape mirrors
+STDJSON's caller-owned-tree convention — `node("name")` / `node("attr",
+key)` / `node("text")` / `node("childCount")` / `node("child",N)`. v0
+covers ~30% of the full envelope; T23-T27 cover the remaining ~70%
+(CDATA, comments, xml-decl, namespaces, numeric char refs, DTD,
+XPath 1.0).
+
+```m
+new doc,sub
+do parse^STDXML("<note id=""1""><body>hi</body></note>",.doc)
+write $$rootName^STDXML(.doc),!                   ; "note"
+write $$attr^STDXML(.doc,"id"),!                   ; "1"
+write $$childCount^STDXML(.doc),!                  ; 1
+do childByName^STDXML(.doc,"body",.sub)
+write $$text^STDXML(.sub),!                        ; "hi"
+```
+
+`childByName` does the internal `merge` to sidestep the YDB `.x(SUBS)`
+syntax limit — recursive descent through a parsed XML tree just works
+without callers needing merge-then-pass plumbing themselves. v0
+fails closed on any deferred construct (`lastError()` identifies the
+offending token).
+
 ## 6. Roadmap — what remains
 
 ### 6.1 Phase 2 close (`v0.2.0`)
