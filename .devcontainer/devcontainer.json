@@ -2,14 +2,12 @@
   "name": "m-stdlib dev",
   "build": { "dockerfile": "Dockerfile" },
   "remoteUser": "ubuntu",
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
-  ],
+  "workspaceFolder": "/workspaces/m-stdlib",
   "containerEnv": {
     "ydb_dist": "/opt/yottadb/current",
-    "ydb_dir": "/workspace/.ydb",
-    "ydb_gbldir": "/workspace/.ydb/m-stdlib.gld",
-    "ydb_routines": "/workspace/src /workspace/tests /workspace/.objects /opt/yottadb/current",
+    "ydb_dir": "/workspaces/m-stdlib/.ydb",
+    "ydb_gbldir": "/workspaces/m-stdlib/.ydb/m-stdlib.gld",
+    "ydb_routines": "/workspaces/m-stdlib/src /workspaces/m-stdlib/tests /workspaces/m-stdlib/.objects /opt/yottadb/current",
     "PATH": "/opt/m-cli/.venv/bin:/opt/yottadb/current:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   },
   "customizations": {
@@ -33,6 +31,6 @@
       }
     }
   },
-  "postCreateCommand": "make setup-ydb && /opt/m-cli/.venv/bin/m --version",
+  "postCreateCommand": "mkdir -p /workspaces/m-stdlib/.ydb /workspaces/m-stdlib/.objects && /opt/m-cli/.venv/bin/m --version",
   "forwardPorts": []
 }

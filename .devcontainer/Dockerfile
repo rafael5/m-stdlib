@@ -15,7 +15,7 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3.12 python3.12-venv python3.12-dev python3-pip git build-essential \
         libssl-dev libcurl4-openssl-dev libsodium-dev zlib1g-dev libpcre2-dev \
-        bash make ca-certificates \
+        bash make ca-certificates curl gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # m-cli installed from git checkout. Distribution model is git-clone-and-install
@@ -31,10 +31,38 @@ RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
     /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
     /opt/m-cli/.venv/bin/pip install -e "/opt/m-cli[lsp]"
 
+# Node 20 + Claude Code CLI. NodeSource ships a current Node that's
+# compatible with @anthropic-ai/claude-code's engine requirement (>=18).
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g @anthropic-ai/claude-code
+
 # Non-root user already exists in the base image (ubuntu, uid 1000).
 USER ubuntu
-WORKDIR /workspace
+WORKDIR /workspaces/m-stdlib
 
-# Source ydb_env_set on every interactive shell so mumps/mupip are on PATH.
-RUN echo '. /opt/yottadb/current/ydb_env_set' >> /home/ubuntu/.bashrc && \
-    echo 'export PATH="/opt/m-cli/.venv/bin:$PATH"' >> /home/ubuntu/.bashrc
+# Defensive YDB env bootstrap.
+#
+# `ydb_env_set` falls back to creating /data/r when ydb_dir is unset
+# (or points to a non-existent path), which fails as the unprivileged
+# `ubuntu` user. devcontainer.json's containerEnv supplies ydb_dir for
+# the VS Code-spawned shell, but `docker exec` and SSH sessions don't
+# inherit it — so we set a sensible default here, mkdir it, and only
+# then source the env script.
+RUN cat >> /home/ubuntu/.bashrc <<'EOF'
+
+# --- YottaDB env (added by devcontainer Dockerfile) ---
+if [ -z "${ydb_dir:-}" ]; then
+    if [ -d /workspaces/m-stdlib ]; then
+        export ydb_dir=/workspaces/m-stdlib/.ydb
+    elif [ -d /workspace ]; then
+        export ydb_dir=/workspace/.ydb
+    else
+        export ydb_dir="$HOME/.ydb"
+    fi
+fi
+mkdir -p "$ydb_dir"
+. /opt/yottadb/current/ydb_env_set >/dev/null 2>&1 || true
+export PATH="/opt/m-cli/.venv/bin:$PATH"
+EOF
