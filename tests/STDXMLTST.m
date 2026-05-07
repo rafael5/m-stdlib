@@ -54,6 +54,14 @@ STDXMLTST       ; Test suite for STDXML (v0.2.x — Phase 4, in-progress).
         do tXmlnsNotStoredAsAttribute(.pass,.fail)
         do tNoNamespaceReturnsEmptyNs(.pass,.fail)
         do tUndeclaredPrefixRejected(.pass,.fail)
+        ; ---- T25b ----
+        do tAttrNsUnprefixedReturnsEmpty(.pass,.fail)
+        do tAttrNsPrefixedReturnsUri(.pass,.fail)
+        do tAttrNsMissingAttrReturnsEmpty(.pass,.fail)
+        do tAttrNsDefaultXmlnsDoesNotApply(.pass,.fail)
+        do tAttrNsXmlBuiltinPrefix(.pass,.fail)
+        do tAttrNsMixedPrefixedUnprefixed(.pass,.fail)
+        do tAttrNsUndeclaredPrefixRejected(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -407,4 +415,61 @@ tUndeclaredPrefixRejected(pass,fail)    ;@TEST "an undeclared prefix is a parse 
         new root,rc
         set rc=$$parse^STDXML("<x:foo/>",.root)
         do eq^STDASSERT(.pass,.fail,rc,0,"undeclared prefix rejected")
+        quit
+        ;
+        ; ---- T25b: attribute-namespace resolution ----
+tAttrNsUnprefixedReturnsEmpty(pass,fail)        ;@TEST "attrNs of an unprefixed attribute is ''"
+        new root,rc
+        set rc=$$parse^STDXML("<foo id=""abc""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"id"),"","unprefixed → empty ns")
+        quit
+        ;
+tAttrNsPrefixedReturnsUri(pass,fail)    ;@TEST "attrNs of a prefixed attribute returns the resolved URI"
+        new root,rc
+        set rc=$$parse^STDXML("<foo xmlns:x=""urn:example"" x:bar=""1""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"x:bar"),"1","attr value")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"x:bar"),"urn:example","resolved URI")
+        quit
+        ;
+tAttrNsMissingAttrReturnsEmpty(pass,fail)       ;@TEST "attrNs of an absent attribute is ''"
+        new root,rc
+        set rc=$$parse^STDXML("<foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"missing"),"","missing → empty")
+        quit
+        ;
+tAttrNsDefaultXmlnsDoesNotApply(pass,fail)      ;@TEST "default xmlns does NOT give unprefixed attrs a namespace"
+        ; Per XML Namespaces 1.0 §6.2: "the namespace name for an unprefixed
+        ; attribute name always has no value".
+        new root,rc
+        set rc=$$parse^STDXML("<foo xmlns=""urn:default"" id=""abc""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"urn:default","element has default ns")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"id"),"","attr does NOT inherit default")
+        quit
+        ;
+tAttrNsXmlBuiltinPrefix(pass,fail)      ;@TEST "the built-in 'xml:' prefix resolves without a declaration"
+        ; Per XML Namespaces 1.0 §3: the 'xml' prefix is bound to
+        ; "http://www.w3.org/XML/1998/namespace" by definition; needn't be declared.
+        new root,rc
+        set rc=$$parse^STDXML("<foo xml:lang=""en""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses (no parse error for xml:)")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"xml:lang"),"en","value")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"xml:lang"),"http://www.w3.org/XML/1998/namespace","built-in xml namespace")
+        quit
+        ;
+tAttrNsMixedPrefixedUnprefixed(pass,fail)       ;@TEST "mixed prefixed and unprefixed attrs each get the right ns"
+        new root,rc
+        set rc=$$parse^STDXML("<foo xmlns:a=""urn:A"" id=""1"" a:type=""x""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"id"),"","unprefixed attr no ns")
+        do eq^STDASSERT(.pass,.fail,$$attrNs^STDXML(.root,"a:type"),"urn:A","prefixed attr in urn:A")
+        quit
+        ;
+tAttrNsUndeclaredPrefixRejected(pass,fail)      ;@TEST "an undeclared prefix on an attr is a parse error"
+        new root,rc
+        set rc=$$parse^STDXML("<foo bogus:attr=""x""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,0,"undeclared attr prefix rejected")
         quit

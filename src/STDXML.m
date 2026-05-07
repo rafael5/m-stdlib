@@ -87,6 +87,14 @@ ns(node)        ; Return the namespace URI for the element; "" if not in any nam
         ; doc: Example: write $$ns^STDXML(.tree)  ; "urn:hl7-org:v3"
         quit $get(node("ns"),"")
         ;
+attrNs(node,name)       ; Return the namespace URI for an attribute; "" if unprefixed or absent.
+        ; doc: T25b — per XML Namespaces 1.0 §6.2, the default xmlns does
+        ; doc: NOT apply to unprefixed attributes; only attributes with an
+        ; doc: explicit prefix carry a namespace URI. The built-in `xml:`
+        ; doc: prefix resolves to `http://www.w3.org/XML/1998/namespace`.
+        ; doc: Example: write $$attrNs^STDXML(.tree,"xsi:type")
+        quit $get(node("attrNs",name),"")
+        ;
 text(node)      ; Return direct text content; "" if no text.
         ; doc: Example: write $$text^STDXML(.tree)
         quit $get(node("text"),"")
@@ -174,6 +182,8 @@ parseElement(ctx,node,nsIn)     ; Parse one element. nsIn is the inherited names
         set node("name")=localName
         set node("prefix")=prefix
         set node("ns")=nsUri
+        ; T25b: resolve any prefixed attribute names against myNs.
+        if '$$resolveAttrNs(.node,.myNs) quit 0
         do skipWs(.ctx)
         set end2=$$peekN(.ctx,2)
         if end2="/>" do advance(.ctx,2) set node("childCount")=0 quit 1
@@ -276,6 +286,26 @@ absorbXmlns(node,nsMap) ; Pull `xmlns` / `xmlns:prefix` attrs out of node into n
         . else  set prefix=$piece(k,":",2),nsMap(prefix)=uri
         . kill node("attr",k)
         quit
+        ;
+resolveAttrNs(node,nsMap)       ; Resolve namespace URIs for any prefixed attrs on node.
+        ; doc: T25b — internal. Walks node("attr",...); for each attr name
+        ; doc: containing ":", splits into prefix:local, resolves the prefix
+        ; doc: against nsMap (with the built-in `xml:` prefix as a fallback),
+        ; doc: and stores the resolved URI at node("attrNs", attrName).
+        ; doc: Unprefixed attrs get no entry in node("attrNs",...) — per spec,
+        ; doc: they have no namespace regardless of any default xmlns.
+        ; doc: Returns 0 (and sets err) if any prefix is undeclared.
+        new k,prefix,local,xmlNs,bad
+        set xmlNs="http://www.w3.org/XML/1998/namespace",bad=0,k=""
+        for  set k=$order(node("attr",k)) quit:k=""  quit:bad  do
+        . if k'[":" quit
+        . do splitQName(k,.prefix,.local)
+        . if prefix="" quit
+        . if prefix="xml" set node("attrNs",k)=xmlNs quit
+        . if '$data(nsMap(prefix)) do err("undeclared namespace prefix on attribute: '"_prefix_"'") set bad=1 quit
+        . set node("attrNs",k)=nsMap(prefix)
+        if bad quit 0
+        quit 1
         ;
 splitQName(qname,prefix,localName)      ; Split "x:foo" into prefix="x" / local="foo".
         ; doc: Internal — handles the no-colon case ("foo" → prefix="" / local="foo").

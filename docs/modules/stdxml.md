@@ -8,12 +8,12 @@ focused T-ticket. The architectural pretext is VistA HL7v3 / CDA /
 FHIR ingestion: an XML you can actually parse without shelling out
 to libxml2.
 
-**Status:** v0+T23+T24+T25(elt) on `main` 2026-05-07. ~60% of the
-full XML 1.0 + Namespaces 1.0 + XPath 1.0 envelope. T23 (CDATA,
+**Status:** v0+T23+T24+T25 on `main` 2026-05-07. ~65% of the full
+XML 1.0 + Namespaces 1.0 + XPath 1.0 envelope. T23 (CDATA,
 comments, PI, xml-decl), T24 (numeric character references), and
-T25 element-level namespaces have shipped. T25b (attribute-
-namespace resolution), T26 (DTDs / custom entities), and T27
-(XPath 1.0) remain queued.
+T25 namespaces (full — both element-level and attribute-level)
+have shipped. T26 (DTDs / custom entities) and T27 (XPath 1.0)
+remain queued.
 
 ## Public API
 
@@ -24,6 +24,7 @@ namespace resolution), T26 (DTDs / custom entities), and T27
 | `rootName` | `$$rootName^STDXML(.node)` | Element tag name. |
 | `attr` | `$$attr^STDXML(.node, name)` | Attribute value, decoded; `""` if absent. |
 | `ns` | `$$ns^STDXML(.node)` | Resolved namespace URI for the element; `""` if not in any namespace (T25). |
+| `attrNs` | `$$attrNs^STDXML(.node, attrName)` | Resolved namespace URI for an attribute; `""` if unprefixed or absent (T25b). |
 | `text` | `$$text^STDXML(.node)` | Direct text content, decoded. |
 | `childCount` | `$$childCount^STDXML(.node)` | Number of element children. |
 | `childByName` | `$$childByName^STDXML(.node, name, .out)` | Find first child with `name`; merge into `.out`; `1`/`0`. |
@@ -54,6 +55,7 @@ DO  IF $$childByName^STDXML(.doc,"book",.book) DO
 | `node("ns")` | Resolved namespace URI (T25); `""` if not in any namespace. |
 | `node("prefix")` | Original prefix used in the source (T25); `""` if unprefixed. |
 | `node("attr", attrName)` | Attribute value, decoded (the 5 standard entities + numeric char refs). |
+| `node("attrNs", attrName)` | Attribute namespace URI (T25b); only set for prefixed attrs. |
 | `node("text")` | Direct text content, decoded. |
 | `node("childCount")` | Number of element children. |
 | `node("child", n)` | Subtree of n-th child element (recursive structure). |
@@ -152,7 +154,7 @@ but the parser tolerates them anywhere a comment is allowed.
 | **T23** | `<![CDATA[ ... ]]>` / `<?processing-instructions?>` / `<!-- comments -->` / `<?xml ... ?>` declaration | ✅ **shipped 2026-05-07** |
 | **T24** | Numeric character references `&#nnnn;` / `&#xHH;` (UTF-8 encoded) | ✅ **shipped 2026-05-07** |
 | **T25** | Namespaces — `xmlns="..."` / `xmlns:prefix="..."` / `<prefix:tag>` resolution at the **element** level | ✅ **shipped 2026-05-07** |
-| **T25b** | Attribute-namespace resolution (`<x:foo a="1" y:b="2">` tracking that `b` is in the `y` namespace) | queued |
+| **T25b** | Attribute-namespace resolution + built-in `xml:` prefix | ✅ **shipped 2026-05-07** |
 | **T26** | DTDs / DOCTYPE / custom entity declarations | queued |
 | **T27** | XPath 1.0 query subset (axes, predicates, basic functions) | queued |
 
@@ -219,19 +221,42 @@ Behaviour:
   `node("prefix")` preserves the original prefix for round-tripping;
   `node("ns")` holds the resolved URI.
 
-**Out of scope for T25 v1, queued at T25b:** attribute-namespace
-resolution. v1 stores all non-xmlns attributes raw without
-resolving any prefixes that appear on attribute names. For the
-common HL7v3 / CDA / FHIR ingestion pattern (route by element
-namespace, read attributes by raw name), this is sufficient.
+### Attribute namespaces (T25b)
+
+Per Namespaces 1.0 §6.2, the **default xmlns does NOT apply to
+unprefixed attributes** — they always have no namespace,
+regardless of any default declaration in scope. Only attributes
+with an explicit prefix carry a namespace URI:
+
+```m
+NEW doc
+SET xml="<foo xmlns=""urn:default"" xmlns:x=""urn:X"" id=""1"" x:role=""r""/>"
+DO  SET rc=$$parse^STDXML(xml,.doc)
+WRITE $$ns^STDXML(.doc),!                ; "urn:default"
+WRITE $$attrNs^STDXML(.doc,"id"),!       ; ""  (unprefixed → no ns even though default xmlns is set)
+WRITE $$attrNs^STDXML(.doc,"x:role"),!   ; "urn:X"  (prefixed → resolved)
+```
+
+The `xml:` prefix is bound to
+`http://www.w3.org/XML/1998/namespace` as a **built-in** —
+declared by definition, so `xml:lang`, `xml:space`, `xml:base`,
+etc. work without any `xmlns:xml="..."` declaration:
+
+```m
+SET rc=$$parse^STDXML("<foo xml:lang=""en""/>",.doc)
+WRITE $$attrNs^STDXML(.doc,"xml:lang"),! ; "http://www.w3.org/XML/1998/namespace"
+```
+
+Undeclared prefixes on attribute names are a parse error, just
+like undeclared prefixes on element names.
 
 ## Engine portability
 
 Pure-M throughout: `$extract` / `$length` / `$piece` / `$find` /
 `$translate` / `$char` / `$query` / `$order` / `$data`.
 ANSI-standard, no `$Z*` extensions. Runs unchanged on YDB and
-IRIS. The test suite (47 labels, 105 assertions) is the
-v0+T23+T24+T25(elt) conformance gate.
+IRIS. The test suite (54 labels, 122 assertions) is the
+v0+T23+T24+T25 conformance gate.
 
 ## See also
 

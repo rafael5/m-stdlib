@@ -88,18 +88,18 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | ~1d ✅ | ✅ m-cli `m test --timings` (m-cli `8ef34a6`) — subprocess-level wall-clock per suite via Python `time.perf_counter()`; STDPROF is the in-process API for finer-grained intra-suite timing | T20 |
 | P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | STDFS (save/matches I/O); STDASSERT (asserts integration) | ~1d ✅ | ✅ m-cli `m test --update-snapshots` (m-cli `8ef34a6`, m-stdlib `631b4e7`) — sets `^STDLIB($JOB,"stdsnap","update")=1` so `asserts^STDSNAP` rewrites baselines instead of comparing | T21 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | ~1d ✅ | ✅ m-cli `m test --env PATH` (m-cli `8ef34a6`) — repeatable; loads each `.env` via `parseFile^STDENV` and merges into `^STDLIB($JOB,"env",KEY)`; tests read via `$get(^STDLIB($JOB,"env","KEY"))` | T22 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.2.x` (v0+T23+T24+T25(elt) on `main`, awaiting tag; v1 incremental) | XML parser v0+T23+T24+T25(elt-level) — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + element-level namespaces. ~60% of full envelope; T25b/T26/T27 cover the remaining ~40%. | none (STDREGEX listed as soft dep for future XPath); pure recursive-descent parser | ~6d ✅ (v0+T23+T24+T25-elt; ~5-9d remaining for T25b/T26/T27) | 🔮 vista-meta HL7v3 / CDA / FHIR consumer (TBD) | T25b, T26, T27 |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.2.x` (v0+T23+T24+T25 full on `main`, awaiting tag; v1 incremental) | XML parser v0+T23+T24+T25 — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces (element + attribute). ~65% of full envelope; T26/T27 cover the remaining ~35%. | none (STDREGEX listed as soft dep for future XPath); pure recursive-descent parser | ~7d ✅ (v0+T23+T24+T25; ~4-8d remaining for T26/T27) | 🔮 vista-meta HL7v3 / CDA / FHIR consumer (TBD) | T26, T27 |
 | P3 | H1 | 28 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
 | P3 | H2 | 29 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
 | P3 | H3 | 30 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
 
-**Aggregate:** ~86d shipped across the 27 landed modules
+**Aggregate:** ~87d shipped across the 27 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
 + STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
-+ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25(elt) L25 P4);
-STDXML covers ~60% of the 12-16d envelope so ~5-9d of T25b/T26/T27
++ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25 L25 P4);
+STDXML covers ~65% of the 12-16d envelope so ~4-8d of T26/T27
 remain. ~18–26d estimated for the three queued Phase 3 modules.
-Open ToDo work (T1-T27 + T25b, with T23/T24/T25-elt resolved) is
+Open ToDo work (T1-T27, with T23/T24/T25/T25b resolved) is
 incremental on top of the shipped totals — see ToDo expansion
 below for per-task estimates.
 
@@ -193,21 +193,21 @@ of m-stdlib** rather than for m-cli's own toolchain flows. Per-module:
 - ~~**T23** STDXML CDATA / processing instructions / comments / `<?xml ?>` declaration~~ — **resolved 2026-05-07**: `parseContent` dispatches on `<!--` / `<![CDATA[` / `<?`; new `skipDocLevel` walks PIs+comments before/after the root; CDATA content stored as literal text (no entity decode).
 - ~~**T24** STDXML numeric character references~~ — **resolved 2026-05-07**: `decodeEntities` handles `&#NNN;` (decimal) and `&#xHH;` (hex); `encodeUtf8` produces 1-4 byte UTF-8 sequences for any Unicode code point up to U+10FFFF.
 - ~~**T25** STDXML namespaces — element-level~~ — **resolved 2026-05-07**: per-element namespace map threaded through `parseElement`/`parseContent`; `xmlns` / `xmlns:prefix` filtered out of regular attrs; element prefix resolved to URI; new `$$ns^STDXML(.node)` accessor; undeclared prefix is a parse error. **T25b** (attribute-namespace resolution) split off as a separate ToDo entry.
-- **T25b** STDXML attribute-namespace resolution — `<x:foo a="1" y:b="2">` should track that `b` resolves under the `y` namespace. Adds `node("attrNs", attrName)` to the tree shape and a new `$$attrNs^STDXML(.node, attrName)` accessor. v1 of T25 stores all non-xmlns attrs raw without ns resolution.
+- ~~**T25b** STDXML attribute-namespace resolution~~ — **resolved 2026-05-07**: `resolveAttrNs` walks `node("attr",...)` and stores `node("attrNs", attrName)` for each prefixed attr; default xmlns does NOT apply to unprefixed attrs (per spec); `xml:` prefix bound to `http://www.w3.org/XML/1998/namespace` as a built-in (no declaration needed); undeclared prefix on an attr is a parse error. New public accessor `$$attrNs^STDXML(.node, attrName)`.
 - **T26** STDXML DTDs / DOCTYPE / custom entity declarations.
 - **T27** STDXML XPath 1.0 query subset — axes, predicates, functions, comparison operators.
 
-**Aggregate gate, current head (2026-05-07):** 1740+ assertions
+**Aggregate gate, current head (2026-05-07):** 1755+ assertions
 across 27 suites, per-module label coverage ≥ 91% (most at 100%;
-STDOS at 91.7%, STDENV at 93.3%, STDXML at 96.7% — `exit()`,
+STDOS at 91.7%, STDENV at 93.3%, STDXML at 96.9% — `exit()`,
 `parseFile()`, and `lastError()` respectively unreachable /
 un-tested by automated tests), 0 lint errors, fmt clean. v0.2.0
 shipped (commit `c3a0880`); the eleven P4 promotions sit on top:
 STDCSPRNG (L15), STDFS (L16), STDOS (L17), STDSEMVER (L18),
 STDSTR (L19), STDTOML (L20), STDCACHE (L21), STDPROF (L22),
-STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24+T25(elt) (L25).
-The joint canonical-index regen covers 28 modules total (Phase 1:
-9; Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 11).
+STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24+T25 (L25). The
+joint canonical-index regen covers 28 modules total (Phase 1: 9;
+Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 11).
 
 ---
 
@@ -620,13 +620,18 @@ across three focused T-tickets:
   name pre-T25); `node("prefix")` and `node("ns")` added. 10
   new tests; STDXML 75/75 → 105/105 assertions, 26/27 → 29/30
   labels (96.7%).
-- **T25b — Attribute-namespace resolution.** Queued. v1 of T25
-  stores all non-xmlns attrs raw (no prefix resolution). For
-  `<x:foo a="1" y:b="2">` consumers, T25b adds `node("attrNs",
-  attrName)` and `$$attrNs^STDXML(.node, attrName)` so the
-  namespace URI of each prefixed attribute is recoverable.
-  Strict spec also says default xmlns does NOT apply to
-  attributes — T25b enforces that. ~1d.
+- ✅ **T25b — Attribute-namespace resolution.** **Resolved 2026-05-07.**
+  New `resolveAttrNs` walks `node("attr",...)`, splits each name
+  containing `:` into prefix+local, and resolves the prefix
+  against the same namespace map used for the element. Default
+  xmlns does NOT apply to unprefixed attrs (per Namespaces 1.0
+  §6.2). The `xml:` prefix is bound to
+  `http://www.w3.org/XML/1998/namespace` as a built-in (no
+  declaration needed — `xml:lang`, `xml:space`, `xml:base` etc.
+  work out of the box). Undeclared prefix on an attr is a parse
+  error. New public accessor: `$$attrNs^STDXML(.node, attrName)`.
+  Tree shape: `node("attrNs", attrName)` set only for prefixed
+  attrs. 7 new tests; STDXML 105/105 → 122/122 assertions.
 - **T26 — DTDs / DOCTYPE / custom entities.** `<!DOCTYPE root [
   <!ENTITY name "value"> ]>`-style internal subsets. Reasonably
   rare in modern usage but VistA HL7v2 / CDA samples occasionally

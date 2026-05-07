@@ -10,6 +10,23 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDXML T25b (attribute-namespace resolution)`** — closes the T25
+  namespace ticket fully. STDXML coverage moves from ~60% to ~65%
+  of the full envelope; T26 (DTDs / custom entities) and T27
+  (XPath 1.0) remain queued. New helper `resolveAttrNs` walks
+  `node("attr",...)`, splits each name containing `:` into prefix
+  + local-name, and resolves the prefix against the same
+  `myNs` map used for the element. Storage at `node("attrNs",
+  attrName)` for prefixed attrs only — unprefixed attrs get no
+  entry, matching the spec's rule that the default xmlns does
+  NOT apply to attribute names. New public accessor:
+  `$$attrNs^STDXML(.node, attrName)`. Built-in `xml:` prefix
+  bound to `http://www.w3.org/XML/1998/namespace` so `xml:lang`,
+  `xml:space`, `xml:base` etc. work without any explicit
+  declaration. Undeclared prefix on an attribute is a parse error.
+  STDXML test suite: 47 → 54 labels, 105 → 122 assertions green.
+  Coverage: 31/32 labels (96.9%). `m fmt` clean; `m lint
+  --error-on=error` 0E.
 - **`STDXML T25 (element-level namespaces)`** — XML Namespaces 1.0
   support at the element level. STDXML coverage moves from ~50%
   of the full envelope to ~60%; T25b (attribute-namespace
