@@ -10,6 +10,32 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDTOML`** — TOML 1.0 parser (track L20, phase P4 — sixth Table 2
+  promotion in two days). Deliberately narrow v1 covers the practical
+  subset used by `pyproject.toml` / `Cargo.toml` / `.m-cli.toml`-style
+  configs: top-level key/value pairs, `[section]` headers, string /
+  integer / float / bool scalars, `#` comments. Public surface:
+  `parse(text, .root)` / `valid(text)` / `get(.root, key)` /
+  `type(.root, key)`. Tree representation: `root("v", path)` for the
+  decoded value, `root("t", path)` for the type tag, where `path` is
+  the dotted address (`"key"` for top-level, `"section.key"` for
+  sectioned). String escapes: `\n` `\t` `\r` `\"` `\\` (Unicode
+  `\uXXXX` deferred). Trailing `#` comments are stripped string-
+  aware — a `#` inside a `"..."` string is preserved. Duplicate
+  keys per scope rejected (parse returns 0). Out of scope for v1
+  (all queued under T18): arrays, inline tables, dotted keys,
+  `[[array-of-tables]]`, multi-line / literal strings, integer
+  underscores + hex/oct/bin, special floats (inf/nan), exponent
+  notation, datetime values. The v1 surface is enough to ingest
+  `.m-cli.toml`-shaped configs; full TOML 1.0 conformance arrives
+  alongside whichever consumer drives T18. Pure-M parser — no
+  STDREGEX runtime dep, no STDDATE dep, no `$Z*` extensions; runs
+  unchanged on YDB and IRIS. Test suite: 28 labels, 59 assertions
+  green. Coverage: 14/14 labels (100%). `m fmt` clean; `m lint
+  --error-on=error` 0E (3 non-gating warnings: one M-MOD-020 by-ref
+  false positive, two M-MOD-005/006 cyclomatic-complexity flags on
+  `decodeString`'s escape cascade). Per-module doc:
+  `docs/modules/stdtoml.md`.
 - **`STDSTR`** — string helpers (track L19, phase P4 — fifth Table 2
   promotion; was Pri 2 in the post-STDSEMVER demoted table — STDXML
   stays at Pri 1 but is genuinely multi-session work). Public surface:

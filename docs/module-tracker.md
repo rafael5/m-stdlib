@@ -83,15 +83,17 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.2.x` (on `main`, awaiting tag) | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit | none (uses `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT`); future-soft `$ZF → libc setenv/getcwd/gethostname` for IRIS arm | ~1d ✅ | 🔮 STDARGS quote-aware tokeniser back-port (TBD) | T15 |
 | P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | none (pure-M; STDREGEX listed as soft dep but not used in v1) | ~1d ✅ | 🔮 m-cli `m install <pkg>@<range>` (TBD) | T16 |
 | P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.2.x` (on `main`, awaiting tag) | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / toLowerASCII / toUpperASCII / repeat | none (pure-M; `$translate` / `$piece` / `$find` / `$extract`) | ~Xh ✅ | 🔮 STDOS quote-aware splitArgs absorption (TBD); STDFMT pad alignment (TBD) | T17 |
-| P3 | H1 | 22 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H2 | 23 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H3 | 24 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
+| P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.2.x` (on `main`, awaiting tag) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments | none in v1 (STDDATE listed as soft dep but datetime values out of scope; STDSTR listed but inlined for self-containment) | ~1d ✅ | 🔮 m-cli runtime-config from `.m-cli.toml` (TBD) | T18 |
+| P3 | H1 | 23 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H2 | 24 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H3 | 25 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
 
-**Aggregate:** ~75d shipped across the 21 landed modules
+**Aggregate:** ~76d shipped across the 22 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
-+ STDSTR L19 P4); ~18–26d estimated for the three queued Phase 3
-modules. Open ToDo work (T1–T17) is incremental on top of the
-shipped totals — see ToDo expansion below for per-task estimates.
++ STDSTR L19 P4 + STDTOML L20 P4); ~18–26d estimated for the three
+queued Phase 3 modules. Open ToDo work (T1–T18) is incremental on
+top of the shipped totals — see ToDo expansion below for per-task
+estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -121,15 +123,16 @@ out in `docs/parallel-tracks.md` §3.4):
 - **T15** STDOS `setenv` / quote-aware `splitArgs` / IRIS arm via `$ZF → libc setenv/getcwd/gethostname` callouts.
 - **T16** STDSEMVER range syntax extensions (`||` OR, hyphen ranges, `*`/`x`/`X` placeholders, prerelease-aware comparators, `^0.x.y` zero-major narrowing per npm semantics).
 - **T17** STDSTR Unicode whitespace + locale-aware case folding (deferred to a future STDUNICODE; STDSTR v1 is byte-wise ASCII-only by design).
+- **T18** STDTOML out-of-scope features (arrays, inline tables, dotted keys, array-of-tables, multi-line / literal strings, integer underscores + hex/oct/bin, special floats, exponent notation, datetime values via STDDATE).
 
-**Aggregate gate, current head (2026-05-07):** 1430+ assertions
-across 21 suites, per-module label coverage ≥ 91% (most at 100%;
+**Aggregate gate, current head (2026-05-07):** 1490+ assertions
+across 22 suites, per-module label coverage ≥ 91% (most at 100%;
 STDOS at 91.7% — exit() is unreachable from a test process by design),
 0 lint errors, fmt clean. v0.2.0 shipped (commit `c3a0880`); the
-five P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
-STDOS (L17), STDSEMVER (L18), STDSTR (L19). The joint canonical-
-index regen covers 22 modules total (Phase 1: 9; Phase 1b: 3;
-Phase 2: 4 + 2 add-ons; P4 promotions: 5).
+six P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
+STDOS (L17), STDSEMVER (L18), STDSTR (L19), STDTOML (L20). The
+joint canonical-index regen covers 23 modules total (Phase 1: 9;
+Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 6).
 
 ---
 
@@ -387,6 +390,34 @@ that dominate this orbit.
 **Reference:** `docs/modules/stdstr.md` "Whitespace definition" and
 "ASCII case conversion" sections.
 
+### T18 — STDTOML out-of-scope features
+**Module:** STDTOML.
+**Status:** queued. STDTOML v1 covers the practical 80% subset
+(top-level pairs + `[section]` tables + four scalar types + comments).
+The remaining TOML 1.0 surface is documented as deferred:
+1. **Arrays.** `colors = ["red", "green", "blue"]`; arrays of mixed
+   types per TOML 1.0; nested arrays.
+2. **Inline tables.** `point = { x = 1, y = 2 }`.
+3. **Dotted keys.** `physical.color = "red"` at the top level
+   (effectively a flattened `[physical]` declaration).
+4. **`[[array-of-tables]]`.** Repeated section headers building a
+   list of objects.
+5. **Multi-line strings.** `"""..."""` (basic) and `'''...'''`
+   (literal).
+6. **Literal strings.** `'...'` — no escape processing.
+7. **Integer literal extensions.** Underscore separators
+   (`1_000_000`); hex (`0xff`); octal (`0o755`); binary (`0b1010`).
+8. **Special floats.** `inf`, `-inf`, `nan`.
+9. **Exponent notation in floats.** `1.5e3`, `2.0E-10`.
+10. **Datetime values.** TOML offset / local datetime / local date /
+    local time. STDDATE will host the parsing under this T18 work.
+**Action:** schedule when a concrete consumer (m-cli runtime config,
+or another TOML-driven config consumer) drives the requirement. v1
+is sufficient for `pyproject.toml`-shaped configs where values are
+scalars and sections form a single level of nesting.
+**Reference:** `docs/modules/stdtoml.md` "Out of scope (queued at T18)"
+section.
+
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
 **Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
@@ -428,15 +459,14 @@ all forward estimates marked **est.**).
 | Pri | Candidate | Headline | Dependency | Effort | Rationale |
 |---|---|---|---|---|---|
 | 1 | `STDXML` | XML parser + XPath 1.0 subset | none; STDREGEX (soft) | 12–16d est. | **Unlocks VistA HL7v3 / CDA / FHIR XML** — largest practical use-case in the VistA-meta orbit. W3C XML Test Suite as conformance corpus. Bigger lift; biggest impact. |
-| 2 | `STDTOML` | TOML 1.0 parser | STDDATE; STDSTR (soft) | 4–6d est. | Per-project config (mirrors `pyproject.toml` / `.m-cli.toml`). m-cli's own config format is TOML — STDTOML lets m-cli runtime config be read from M directly. |
-| 3 | `STDCACHE` | LRU + TTL cache | STDCOLL (Map+OrderedDict); STDDATE (soft) | 2–3d est. | Memoisation, RPC-result caching, rate-limit windows. Small surface; generic; useful breadth. |
-| 4 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
-| 5 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
-| 6 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
-| 7 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
-| 8 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
-| 9 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
-| 10 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
+| 2 | `STDCACHE` | LRU + TTL cache | STDCOLL (Map+OrderedDict); STDDATE (soft) | 2–3d est. | Memoisation, RPC-result caching, rate-limit windows. Small surface; generic; useful breadth. |
+| 3 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
+| 4 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
+| 5 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
+| 6 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
+| 7 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
+| 8 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
+| 9 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
 
 Promoted out of Table 2 (now in Table 1):
 
@@ -476,10 +506,21 @@ Promoted out of Table 2 (now in Table 1):
   ASCII only (space / tab / LF / CR); Unicode whitespace + locale-
   aware case folding deferred to a future STDUNICODE under T17.
   Coverage: 13/13 labels (100%), 63/63 assertions green.
+- **STDTOML** — promoted 2026-05-07 to Table 1 as **L20 P4**. TOML
+  1.0 subset: top-level pairs + `[section]` tables; string / integer
+  / float / bool scalars; `#` comments (whole-line and trailing,
+  string-aware so a `#` inside `"..."` is preserved); duplicate
+  keys per scope rejected. Pure-M parser (no STDREGEX, no STDDATE
+  dep — datetime decoding is queued at T18). Out of scope for v1
+  (all queued under T18): arrays, inline tables, dotted keys,
+  `[[array-of-tables]]`, multi-line / literal strings, integer
+  underscores + hex/oct/bin prefixes, special floats, exponent
+  notation, datetime values. Coverage: 14/14 labels (100%), 59/59
+  assertions green.
 
-**Aggregate proposal effort:** ~49–80d est. for the remaining 10
+**Aggregate proposal effort:** ~45–74d est. for the remaining 9
 candidates if every row eventually lands. Practical near-term
-roadmap (priorities 1–3, post-STDSTR) is ~18–25d est. — STDXML
+roadmap (priorities 1–3, post-STDTOML) is ~17–22d est. — STDXML
 dominates as the only large lift in the near roadmap.
 
 When promoting a row into Table 1, also:
