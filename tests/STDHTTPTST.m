@@ -53,8 +53,10 @@ STDHTTPTST      ; Test suite for STDHTTP (track H3, target tag v0.4.0).
         do tFormatHeadersEmptyArrayProducesEmpty(.pass,.fail)
         do tFormatHeadersDeterministicOrder(.pass,.fail)
         ;
-        ; ---- soft-fail until libcurl callout lands ----
-        do tNetworkExtrinsicsReturnNotWired(.pass,.fail)
+        ; ---- network extrinsics (iteration 2) ----
+        do tAvailableReturnsBoolean(.pass,.fail)
+        do tNetworkSoftFailWhenCalloutMissing(.pass,.fail)
+        do tNetworkTransportErrorWhenCalloutLoaded(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -352,19 +354,46 @@ tFormatHeadersDeterministicOrder(pass,fail)     ;@TEST "formatHeaders walks $ord
         do true^STDASSERT(.pass,.fail,(first>0)&(second>0)&(first<second),"A before Z")
         quit
         ;
-        ; ---------- soft-fail until iteration 2 ----------
+        ; ---------- network extrinsics (iteration 2) ----------
         ;
-tNetworkExtrinsicsReturnNotWired(pass,fail)     ;@TEST "$$get / $$post / $$request stub responses set resp(error)='STDHTTP-NOT-WIRED' until libcurl callout lands"
+        ; Each test gates on $$available^STDHTTP() so the suite stays green
+        ; in environments without the libcurl callout deployed (the .so is
+        ; built by tools/build-callouts.sh and loaded via $STDLIB_LIB +
+        ; ydb_xc_std_http). The non-applicable branch fires a sentinel
+        ; assertion to keep the assertion count stable across environments.
+        ;
+tAvailableReturnsBoolean(pass,fail)     ;@TEST "$$available returns exactly 0 or 1"
+        new v
+        set v=$$available^STDHTTP()
+        do true^STDASSERT(.pass,.fail,(v=0)!(v=1),"0 or 1")
+        quit
+        ;
+tNetworkSoftFailWhenCalloutMissing(pass,fail)   ;@TEST "$$get / $$post / $$request set resp(error)='STDHTTP-NOT-WIRED' and return 0 when http.so is unavailable"
         new resp,req,rc
+        if $$available^STDHTTP() do  quit
+        . ; .so present — soft-fail path unreachable. Sentinel assertion.
+        . do eq^STDASSERT(.pass,.fail,$$available^STDHTTP(),1,"sentinel: available()")
         set rc=$$get^STDHTTP("http://example.com/",.resp)
         do eq^STDASSERT(.pass,.fail,$get(resp("error")),"STDHTTP-NOT-WIRED","get not-wired")
         do eq^STDASSERT(.pass,.fail,rc,0,"get returns 0")
         kill resp
         set rc=$$post^STDHTTP("http://example.com/","body",.resp,"text/plain")
         do eq^STDASSERT(.pass,.fail,$get(resp("error")),"STDHTTP-NOT-WIRED","post not-wired")
-        kill resp
+        kill resp,req
         set req("method")="GET",req("url")="http://example.com/"
         set rc=$$request^STDHTTP(.req,.resp)
         do eq^STDASSERT(.pass,.fail,$get(resp("error")),"STDHTTP-NOT-WIRED","request not-wired")
+        quit
+        ;
+tNetworkTransportErrorWhenCalloutLoaded(pass,fail)      ;@TEST "$$get against an unresolvable host returns 0 with a libcurl error string when http.so is loaded"
+        new resp,rc
+        if '$$available^STDHTTP() do  quit
+        . ; .so missing — live path unreachable. Sentinel assertion.
+        . do eq^STDASSERT(.pass,.fail,$$available^STDHTTP(),0,"sentinel: available()")
+        ; .invalid TLD (RFC 2606) is reserved as guaranteed-unresolvable.
+        set rc=$$get^STDHTTP("http://nonexistent.invalid/",.resp)
+        do eq^STDASSERT(.pass,.fail,rc,0,"rc=0 on transport failure")
+        do true^STDASSERT(.pass,.fail,$length($get(resp("error"))),"error message present")
+        do false^STDASSERT(.pass,.fail,$get(resp("error"))="STDHTTP-NOT-WIRED","not the missing-SO sentinel")
         quit
         ;

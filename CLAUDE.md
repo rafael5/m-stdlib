@@ -27,7 +27,8 @@ exposes:
     - "STDFIX.m (v0.1.1), STDMOCK.m (v0.1.2), STDSEED.m (v0.1.3) — Phase 1b TDD primitives"
     - "STDJSON.m, STDREGEX.m, STDCOLL.m, STDURL.m (v0.2.0; landed on main)"
   planned_routines:
-    - "STDHTTP, STDCRYPTO, STDCOMPRESS via $ZF (v0.3.0)"
+    - "STDCRYPTO, STDCOMPRESS via $ZF (v0.4.0); STDHTTP iter 3 IRIS arm via %Net.HttpRequest"
+    - "STDHTTP via $ZF→libcurl (iter 1 + iter 2 landed on main, awaiting v0.4.0 tag)"
   formats_produced: []                     # runtime library, no file outputs
 
 consumes:
@@ -78,6 +79,11 @@ See [README.md](README.md) for the phase plan.
   implementations green; some `raises`-path test bodies parked pending
   the open STDASSERT.raises P1 fix in TOOLCHAIN-FINDINGS (not a v0.2.0
   blocker).
+- **Phase 3 H3 / STDHTTP iter 1 + iter 2 on `main`** (2026-05-07):
+  pure-M wire-format helpers + `$ZF→libcurl` wiring (`$$get`, `$$post`,
+  `$$request`, `$$available`). Soft-fails to `STDHTTP-NOT-WIRED` when
+  the .so is unloaded. Deployment: `tools/build-callouts.sh` →
+  `STDLIB_LIB` → `ydb_xc_std_http`. IRIS arm (iter 3) queued.
 - m-cli companion tracks C1–C5 + W/X/Y all shipped; M1 closed.
 - STDASSERT migrations V1/V2/V3 verified no-op 2026-05-05 — none of
   m-cli, tree-sitter-m, m-standard ship M-side test suites; m-tools

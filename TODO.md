@@ -86,9 +86,19 @@ mutually independent):
 **Auxiliary tracks** (do when stuck on something else):
 
 - [ ] **A5** — IRIS `iris-portability-check` job re-add (fail-soft).
-- [ ] **A6** — `tools/build-callouts.sh` for $ZF SOs (Phase 3 prereq).
+- [x] **A6** — `tools/build-callouts.sh` for $ZF SOs (Phase 3 prereq).
 - [ ] **A4** — Vendor RFC-4122 UUID test vectors to
       `tests/conformance/uuid/`.
+
+**Phase 3 — `$ZF` callouts** (target `v0.4.0`):
+
+- [x] **H3 / STDHTTP iter 1** — pure-M wire-format helpers (parseStatusLine /
+      parseHeader / parseResponse / buildRequest / formatHeaders).
+- [x] **H3 / STDHTTP iter 2** — `$ZF`→libcurl wiring (`$$get` / `$$post` /
+      `$$request` / `$$available`); soft-fails to `STDHTTP-NOT-WIRED`
+      when the .so is unloaded. Deployment: `tools/build-callouts.sh` +
+      `STDLIB_LIB` + `ydb_xc_std_http`.
+- [ ] **H3 / STDHTTP iter 3** — IRIS arm via `%Net.HttpRequest`.
 
 ## In flight (parallel): L12 / v0.2.0 STDREGEX
 

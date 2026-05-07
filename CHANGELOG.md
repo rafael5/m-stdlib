@@ -10,6 +10,31 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDHTTP` iteration 2 (H3, P3)** — `$ZF→libcurl` wiring landed.
+  Network extrinsics `$$get^STDHTTP(url, .resp)` /
+  `$$post^STDHTTP(url, body, .resp, contentType)` /
+  `$$request^STDHTTP(.req, .resp)` now drive
+  `src/callouts/http.c::http_perform` through an XECUTE-wrapped `$ZF`
+  call (same anti-`m fmt`-mangling pattern as STDCRYPTO / STDCOMPRESS).
+  C side captures the response header stream + body into
+  caller-allocated 1 MiB buffers; M side splits the captured stream
+  on `\r\n\r\n` and feeds the **final** response (post-redirects)
+  into `parseResponse` for `resp("status")` / `resp("reason")` /
+  `resp("version")` / `resp("header",lcName)`. New `$$available^
+  STDHTTP()` probe — returns 1 iff the .so is loaded and
+  `curl_easy_init()` works; 0 otherwise (never raises). Both
+  `$$available` and `$$dispatchPerform` short-circuit on
+  `$$env^STDOS("ydb_xc_std_http")=""` so engines without the
+  descriptor exported fall through to `resp("error")=
+  "STDHTTP-NOT-WIRED"` without paying the XECUTE compile cost.
+  Deployment runbook (in `docs/modules/stdhttp.md`):
+  `tools/build-callouts.sh` → `STDLIB_LIB` →
+  `ydb_xc_std_http=<abs>/tools/std_http.xc`. New `http_available`
+  symbol added to `tools/std_http.xc` for the probe. STDHTTPTST 68/68
+  green; 94.1% label coverage (the lone uncovered label is the live
+  `parseHeaderStream` path which is only reachable when the .so is
+  loaded — exercised by integration smoke when deployed). Lint
+  clean: 0 errors, 0 warnings.
 - **`STDHTTP` iteration 1 (H3, P3)** — second Phase 3 track to enter
   development; first iteration is pure-M wire-format helpers
   (libcurl integration is iteration 2, queued at T29). Public

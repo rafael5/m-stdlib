@@ -1,5 +1,11 @@
 STDHTTP ; m-stdlib — HTTP/1.1 client (track H3, target tag v0.4.0).
         ; m-lint: disable-file=M-MOD-020
+        ; m-lint: disable-file=M-MOD-024
+        ; m-lint: disable-file=M-MOD-036
+        ; m-lint: disable-file=M-MOD-008
+        ; M-MOD-008: dispatchPerform mirrors the 11-argument C-side
+        ; http_perform signature; collapsing into an array would require
+        ; flattening on both sides without simplifying anything.
         ; M-MOD-020: get / post pass `.req` to request as a structured
         ; input — request reads req but never writes to it. The
         ; analyser's "pass by value" suggestion is wrong for array-
@@ -7,21 +13,35 @@ STDHTTP ; m-stdlib — HTTP/1.1 client (track H3, target tag v0.4.0).
         ; pattern recurs in $$buildRequest($req) too — req is read-
         ; only but must be a by-ref formal to receive the subscripted
         ; tree.
+        ; M-MOD-024 false positives: rc / statusCode / respHeaders /
+        ; respBody / errMsg are initialised before every XECUTE'd $ZF
+        ; call but the analyser cannot follow flow through the XECUTE
+        ; indirection.
+        ; M-MOD-036 (XECUTE injection) is intentional: the XECUTE
+        ; wrapper is the only way to invoke $ZF without the m fmt
+        ; abbreviation expander mangling the token (longest-prefix
+        ; match against $ZFIND). Same trick as STDCRYPTO / STDCOMPRESS;
+        ; the XECUTE source is built from a literal template only.
         ;
         ; Two layers:
-        ;   1. Pure-M wire-format helpers (this commit, iteration 1):
+        ;   1. Pure-M wire-format helpers (iteration 1):
         ;        do parseStatusLine^STDHTTP(line, .s)
         ;        do parseHeader^STDHTTP(line, .name, .value)
         ;        do parseResponse^STDHTTP(raw, .resp)
         ;        $$buildRequest^STDHTTP(.req)
         ;        $$formatHeaders^STDHTTP(.headers)
-        ;   2. Network extrinsics (iteration 2, queued — libcurl callout):
+        ;   2. Network extrinsics via $ZF -> libcurl (iteration 2):
         ;        $$get^STDHTTP(url, .resp)
         ;        $$post^STDHTTP(url, body, .resp, contentType)
         ;        $$request^STDHTTP(.req, .resp)
-        ;     Until iteration 2 lands these soft-fail with
-        ;     resp("error")="STDHTTP-NOT-WIRED" and return 0 so callers
-        ;     can integrate against the final API surface today.
+        ;        $$available^STDHTTP()
+        ;     The .so is loaded on demand. When it is absent these soft-
+        ;     fail with resp("error")="STDHTTP-NOT-WIRED" and return 0
+        ;     so callers can degrade gracefully. Deployment runbook:
+        ;        1. tools/build-callouts.sh        -> so/<plat>/http.so
+        ;        2. export STDLIB_LIB=<dir-of-so>
+        ;        3. export ydb_xc_std_http=<abs>/tools/std_http.xc
+        ;        4. ensure libcurl is on the loader path
         ;
         ; Response array shape:
         ;   resp("status")             ; numeric status code
@@ -207,18 +227,19 @@ formatHeaders(headers)  ; Join headers(name)=value into a CRLF-terminated header
         . set out=out_sub_": "_headers(sub)_crlf
         quit out
         ;
-        ; ---------- public API: network extrinsics (iteration 2 stubs) ----------
+        ; ---------- public API: network extrinsics ----------
         ;
 get(url,resp)   ; HTTP GET shortcut. Returns numeric status code, or 0 on error.
-        ; doc: Iteration 2 (queued): wires through libcurl via
-        ; doc:   src/callouts/http.c. Until then this returns 0 and
-        ; doc:   sets resp("error")="STDHTTP-NOT-WIRED" so consumers
-        ; doc:   can integrate against the final shape today.
+        ; doc: Drives $$request with method=GET. Soft-fails with
+        ; doc:   resp("error")="STDHTTP-NOT-WIRED" and returns 0 if the
+        ; doc:   libcurl callout is unavailable.
         new req
         set req("method")="GET",req("url")=url
         quit $$request(.req,.resp)
         ;
 post(url,body,resp,contentType) ; HTTP POST shortcut. Defaults Content-Type to application/octet-stream.
+        ; doc: Drives $$request with method=POST. Soft-fails the same
+        ; doc:   way as $$get when the callout is unavailable.
         new req
         set req("method")="POST",req("url")=url
         set req("body")=$get(body)
@@ -226,16 +247,61 @@ post(url,body,resp,contentType) ; HTTP POST shortcut. Defaults Content-Type to a
         quit $$request(.req,.resp)
         ;
 request(req,resp)       ; Generic HTTP request. Returns numeric status code, or 0 on error.
-        ; doc: Iteration 2 (queued): drives src/callouts/http.c via $ZF.
-        ; doc:   Until then, resp("error")="STDHTTP-NOT-WIRED" is set
-        ; doc:   and 0 is returned. The req/resp array shapes are
-        ; doc:   stable — callers can write code today against the
-        ; doc:   final surface.
+        ; doc: Reads req("method"), req("url"), req("header",name),
+        ; doc:   req("body"), req("timeout") (seconds, default 30),
+        ; doc:   req("followRedirects") (0/1, default 1),
+        ; doc:   req("verifyTls") (0/1, default 1).
+        ; doc: Populates resp("status") (numeric), resp("reason"),
+        ; doc:   resp("version"), resp("header",lcName) (case-insensitive
+        ; doc:   keys), resp("body"), resp("error") ("" on success;
+        ; doc:   libcurl error string or "STDHTTP-NOT-WIRED" otherwise).
+        ; doc: Returns the numeric status code on a completed HTTP
+        ; doc:   exchange (including 4xx / 5xx — the caller decides what
+        ; doc:   to do with non-2xx); returns 0 on transport / TLS / DNS
+        ; doc:   failures or when the callout is unavailable.
+        new method,url,headerBlock,body,timeoutMs,follow,verify
+        new statusCode,respHeaders,respBody,errMsg,rc
         kill resp
         set resp("status")="",resp("reason")="",resp("version")=""
-        set resp("body")=""
-        set resp("error")="STDHTTP-NOT-WIRED"
-        quit 0
+        set resp("body")="",resp("error")=""
+        set method=$get(req("method"),"GET")
+        set url=$get(req("url"),"")
+        set headerBlock=$$requestHeaderBlock(.req)
+        set body=$get(req("body"),"")
+        set timeoutMs=+$get(req("timeout"),30)*1000
+        if timeoutMs<=0 set timeoutMs=30000
+        set follow=$select(+$get(req("followRedirects"),1):1,1:0)
+        set verify=$select(+$get(req("verifyTls"),1):1,1:0)
+        set statusCode=0
+        set respHeaders=$$preallocBuf(1048576)
+        set respBody=$$preallocBuf(1048576)
+        set errMsg=$$preallocBuf(256)
+        set rc=$$dispatchPerform(method,url,headerBlock,body,timeoutMs,follow,verify,.statusCode,.respHeaders,.respBody,.errMsg)
+        if rc=-99 set resp("error")="STDHTTP-NOT-WIRED" quit 0
+        do parseHeaderStream(respHeaders,.resp)
+        set resp("body")=respBody
+        if rc'=0 do
+        . set resp("error")=$select($length(errMsg):errMsg,1:"STDHTTP-CALLOUT-FAIL")
+        . set resp("status")=0
+        . set resp("reason")=""
+        if rc=0 set resp("status")=+statusCode
+        quit +$get(resp("status"))
+        ;
+available()     ; 1 iff the libcurl callout is loaded and curl_easy_init() works.
+        ; doc: Returns 0 if the .so is missing, the descriptor is not
+        ; doc:   exported, or libcurl is unavailable on the loader path.
+        ; doc: Never raises — clears $ECODE on the way out.
+        ; doc: Cheap fast path: if $ZTRNLNM("ydb_xc_std_http") is empty
+        ; doc:   the descriptor isn't deployed — return 0 without paying
+        ; doc:   the XECUTE / $ZF round-trip.
+        new $etrap,rc,cmd
+        if $$env^STDOS("ydb_xc_std_http")="" quit 0
+        set $etrap="set $ecode="""" set rc=0 quit"
+        set rc=0
+        set cmd="set rc=$ZF(""http_available"")"
+        xecute cmd
+        set $ecode=""
+        quit +rc
         ;
         ; ---------- internal helpers ----------
         ;
@@ -244,4 +310,60 @@ lower(s)        ; ASCII-lowercase a header name.
         ; doc:   need to translate A-Z. Avoids a STDSTR dependency for
         ; doc:   this one tiny use.
         quit $translate(s,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")
+        ;
+requestHeaderBlock(req) ; Build CRLF-terminated header block from req("header",*).
+        ; doc: Internal — libcurl's CURLOPT_HTTPHEADER consumes one
+        ; doc:   "Name: value" line per slist entry; the C side parses
+        ; doc:   this block line-by-line. Host: and Content-Length: are
+        ; doc:   left to libcurl (synthesised from CURLOPT_URL and
+        ; doc:   CURLOPT_POSTFIELDSIZE respectively); explicit caller
+        ; doc:   values override libcurl's defaults via slist precedence.
+        new sub,out,crlf
+        set crlf=$char(13,10),out="",sub=""
+        for  set sub=$order(req("header",sub)) quit:sub=""  do
+        . set out=out_sub_": "_req("header",sub)_crlf
+        quit out
+        ;
+parseHeaderStream(stream,resp)  ; Parse libcurl's captured header stream into resp.
+        ; doc: Internal — when CURLOPT_FOLLOWLOCATION is on, libcurl
+        ; doc:   emits headers for every redirect response. We keep the
+        ; doc:   final response's headers (last block before the trailing
+        ; doc:   CRLFCRLF) and feed it to parseResponse with an empty
+        ; doc:   body — the caller installs the real body afterwards.
+        new finalHeaders,n,crlfcrlf,raw
+        set crlfcrlf=$char(13,10,13,10)
+        if $length(stream)=0 quit
+        set n=$length(stream,crlfcrlf)
+        ; A well-formed capture ends with CRLFCRLF, so $piece(.,N) = "".
+        ; The last non-empty piece (N-1) is the final response's header
+        ; block. For a single response this is the only block.
+        set finalHeaders=$piece(stream,crlfcrlf,$select(n>1:n-1,1:1))
+        set raw=finalHeaders_crlfcrlf
+        do parseResponse(raw,.resp)
+        quit
+        ;
+preallocBuf(n)  ; Allocate an n-byte M string for $ZF output capture.
+        ; doc: Internal — YDB callouts need the M-side string at full
+        ; doc:   capacity before the C side writes into it. $justify
+        ; doc:   allocates n spaces in one O(n) pass; the C side
+        ; doc:   overwrites and updates ydb_string_t.length on return.
+        quit $justify("",n)
+        ;
+dispatchPerform(method,url,headerBlock,body,timeoutMs,follow,verify,statusCode,respHeaders,respBody,errMsg)      ; Invoke $ZF("http_perform", ...).
+        ; doc: Internal — XECUTE-wraps $ZF so m fmt cannot mangle the
+        ; doc:   token (longest-prefix bug against $ZFIND). Returns the
+        ; doc:   C-side rc on success, -99 if the callout is unavailable.
+        ; doc: Fast path: if $ZTRNLNM("ydb_xc_std_http") is empty the
+        ; doc:   descriptor isn't deployed — return -99 immediately so
+        ; doc:   request() can flip to "STDHTTP-NOT-WIRED" without
+        ; doc:   triggering XECUTE compilation (which itself can fail
+        ; doc:   on engines with a non-writable ydb_routines).
+        new $etrap,rc,cmd
+        if $$env^STDOS("ydb_xc_std_http")="" quit -99
+        set $etrap="set $ecode="""" set rc=-99 quit"
+        set rc=0
+        set cmd="set rc=$ZF(""http_perform"",method,url,headerBlock,body,timeoutMs,follow,verify,.statusCode,.respHeaders,.respBody,.errMsg)"
+        xecute cmd
+        set $ecode=""
+        quit rc
         ;

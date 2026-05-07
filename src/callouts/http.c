@@ -249,3 +249,17 @@ int http_perform(ydb_string_t *method,
     curl_easy_cleanup(curl);
     return 0;
 }
+
+ydb_long_t http_available(void)
+{
+    /* Smoke probe used by $$available^STDHTTP() — returns 1 iff the .so
+     * loads AND libcurl is wired in (curl_easy_init() is the cheapest
+     * end-to-end check that doesn't touch the network). Returns 0 if
+     * curl_easy_init fails. The $ZF caller distinguishes "symbol not
+     * resolvable" (M-side $ETRAP) from "loaded but curl broken" (this
+     * function returning 0). */
+    CURL *c = curl_easy_init();
+    if (c == NULL) return 0;
+    curl_easy_cleanup(c);
+    return 1;
+}

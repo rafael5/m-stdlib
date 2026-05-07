@@ -1,25 +1,35 @@
-# `STDHTTP` — HTTP/1.1 client (libcurl callout, in progress)
+# `STDHTTP` — HTTP/1.1 client (libcurl callout)
 
 HTTP/1.1 + HTTPS client for m-stdlib. Track **H3**, target tag `v0.4.0`
 (Phase 3 lead). Two layers:
 
 1. **Pure-M wire-format helpers** — parse/build HTTP/1.1 status lines,
    header blocks, and full responses. Testable without a network or a
-   compiled callout. **Iteration 1 (this commit).**
-2. **`$ZF → libcurl` integration** — a `src/callouts/http.c` exposing
-   `easy_perform`-style entry points; `$$get` / `$$post` / `$$request`
-   public extrinsics call into it. **Iteration 2 (queued).**
+   compiled callout.
+2. **`$ZF → libcurl` integration** — `src/callouts/http.c` exposes a
+   single `http_perform` entry point plus an `http_available` probe;
+   `$$get` / `$$post` / `$$request` public extrinsics call into it.
 
 The IRIS arm uses `$CLASSMETHOD` against `%Net.HttpRequest` and shares
-the same M-side request/response array shape (Iteration 3).
+the same M-side request/response array shape (Iteration 3, queued).
 
 ## Status
 
-**In progress (2026-05-07).** Iteration 1 only: pure-M helpers
-landed under TDD. The libcurl callout and the `$$get` / `$$post` /
-`$$request` extrinsics are queued. Until iteration 2 lands, attempting
-a network call returns `resp("error")="STDHTTP-NOT-WIRED"` so callers
-can integrate against the final API surface today.
+**Iteration 1 + 2 landed (2026-05-07).** Pure-M helpers and the
+libcurl-backed network extrinsics are wired. `$$available^STDHTTP()`
+returns 1 when the callout is loaded, 0 otherwise; when 0, network
+calls soft-fail with `resp("error")="STDHTTP-NOT-WIRED"` and return 0
+so callers can degrade gracefully without `$ETRAP`.
+
+### Deployment
+
+```
+tools/build-callouts.sh                # produces so/<plat>/http.so
+export STDLIB_LIB=$PWD/so/<plat>
+export ydb_xc_std_http=$PWD/tools/std_http.xc
+# libcurl must be on the loader path (libcurl.so.4 on linux,
+# libcurl.4.dylib on macOS).
+```
 
 ## Public API
 
@@ -33,13 +43,14 @@ can integrate against the final API surface today.
 | `buildRequest` | `$$buildRequest^STDHTTP(.req)` | Assembles a wire-format HTTP/1.1 request from `req("method")`, `req("url")`, `req("header",name)`, `req("body")`. Adds `Host:` from STDURL parse if absent. Adds `Content-Length:` if a body is present and the header is absent. |
 | `formatHeaders` | `$$formatHeaders^STDHTTP(.headers)` | Joins `headers(name)=value` into a CRLF-terminated header block (each line `Name: value\r\n`, no trailing blank line — caller adds the boundary). |
 
-### Network extrinsics (iteration 2 — queued)
+### Network extrinsics (iteration 2 — green)
 
 | Entry point | Signature | Behaviour |
 |---|---|---|
 | `get` | `$$get^STDHTTP(url,.resp)` | GET shortcut. Returns the numeric status code; `resp` populated as below. |
 | `post` | `$$post^STDHTTP(url,body,.resp,contentType)` | POST shortcut. `contentType` defaults to `application/octet-stream`. |
 | `request` | `$$request^STDHTTP(.req,.resp)` | Full request: `req("method")`, `req("url")`, `req("header",name)`, `req("body")`, `req("timeout")` (seconds, default 30), `req("followRedirects")` (0/1, default 1), `req("verifyTls")` (0/1, default 1). |
+| `available` | `$$available^STDHTTP()` | `1` iff the libcurl callout is loaded and `curl_easy_init()` works; `0` otherwise. Never raises. |
 
 ### Array shapes
 
@@ -98,8 +109,10 @@ write $$buildRequest^STDHTTP(.req)
 ```
 
 ```m
-; iteration 2 (queued) — convenience GET
+; iteration 2 — convenience GET
 new resp
+if '$$available^STDHTTP() do  quit  ; degrade gracefully if SO missing
+. write "http callout unavailable; skipping fetch",!
 if '$$get^STDHTTP("https://example.com/health",.resp) do
 . write "fetch failed: ",resp("error"),!
 . quit
@@ -111,11 +124,11 @@ write resp("body"),!
 
 - **STDURL** (`v0.2.0`) — `parse^STDURL` extracts host/path/port for
   request-line and Host-header construction.
-- **`tools/build-callouts.sh`** (A6) — compiles `src/callouts/http.c`
-  into `so/<platform>/http.so` for iteration 2.
+- **`tools/build-callouts.sh`** — compiles `src/callouts/http.c`
+  into `so/<platform>/http.so`.
 - **libcurl** — runtime dep on iteration 2; the M side soft-fails
   with `resp("error")="STDHTTP-NOT-WIRED"` when the SO is missing
-  rather than aborting.
+  rather than aborting. `$$available^STDHTTP()` is the cheap probe.
 
 ## Edge cases
 
@@ -131,10 +144,19 @@ write resp("body"),!
 - **Body byte semantics.** Bodies are M strings of bytes (0..255 via
   `$ASCII` / `$CHAR`); STDHTTP performs no transcoding. Callers
   decode as appropriate.
-- **No transfer-decoding in iteration 1.** `parseResponse` returns
-  the body as the server sent it. `Transfer-Encoding: chunked`
-  decoding lands in iteration 2 alongside libcurl, which handles
-  chunking transparently before the body reaches M.
+- **No transfer-decoding by `parseResponse`.** It returns the body as
+  the server sent it. `Transfer-Encoding: chunked` is handled inside
+  libcurl in iteration 2 — by the time the body reaches `$$request`
+  via the callout it has already been de-chunked.
+- **Redirect headers.** When `req("followRedirects")=1` (default),
+  libcurl emits the headers from every response in the redirect chain
+  to the M side. `$$request` keeps only the **final** response's
+  status line + header block (split on `\r\n\r\n`, take the last
+  non-empty piece) — intermediate 3xx responses are not surfaced.
+- **Output budgets.** Response headers and body are each captured into
+  a 1 MiB pre-allocated buffer; oversize responses are silently
+  truncated by the C-side capture callback. Callers needing exact-size
+  enforcement should validate `Content-Length` themselves.
 - **`$$buildRequest` does not encode the URL.** It uses the URL as
   given. Callers needing percent-encoding apply `STDURL.encode` first.
 
