@@ -33,9 +33,6 @@ STDCOMPRESSTST  ; Test suite for STDCOMPRESS (v0.3.x — Phase 3 H2).
         do tZstdBadLevelHighReturnsZero(.pass,.fail)
         do tZstdDecompressRejectsGarbage(.pass,.fail)
         ;
-        do tLastErrorClearsOnSuccess(.pass,.fail)
-        do tLastErrorPersistsOnFailure(.pass,.fail)
-        ;
         do report^STDASSERT(pass,fail)
         quit
         ;
@@ -108,22 +105,28 @@ tGzipDefaultLevelMatchesSix(pass,fail)  ;@TEST "gzip() default level equals gzip
         do eq^STDASSERT(.pass,.fail,a,b,"default = level 6")
         quit
         ;
-tGzipBadLevelLowReturnsZero(pass,fail)  ;@TEST "gzip() with level=0 returns 0 and sets BAD-LEVEL error"
-        new buf
+tGzipBadLevelLowReturnsZero(pass,fail)  ;@TEST "gzip() with level=0 returns 0 and sets $ECODE"
+        new buf,$etrap
+        set $etrap="set $ecode="""" quit"
         do false^STDASSERT(.pass,.fail,$$gzip^STDCOMPRESS("x",.buf,0),"level 0 rejected")
-        do contains^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"BAD-LEVEL","error tagged BAD-LEVEL")
+        do contains^STDASSERT(.pass,.fail,$ecode,"BAD-LEVEL","$ECODE tagged BAD-LEVEL")
+        set $ecode=""
         quit
         ;
-tGzipBadLevelHighReturnsZero(pass,fail) ;@TEST "gzip() with level=10 returns 0 and sets BAD-LEVEL error"
-        new buf
+tGzipBadLevelHighReturnsZero(pass,fail) ;@TEST "gzip() with level=10 returns 0 and sets $ECODE"
+        new buf,$etrap
+        set $etrap="set $ecode="""" quit"
         do false^STDASSERT(.pass,.fail,$$gzip^STDCOMPRESS("x",.buf,10),"level 10 rejected")
-        do contains^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"BAD-LEVEL","error tagged BAD-LEVEL")
+        do contains^STDASSERT(.pass,.fail,$ecode,"BAD-LEVEL","$ECODE tagged BAD-LEVEL")
+        set $ecode=""
         quit
         ;
-tGunzipRejectsNonGzip(pass,fail)        ;@TEST "gunzip() of non-gzip bytes returns 0 and sets a libz error"
-        new raw
+tGunzipRejectsNonGzip(pass,fail)        ;@TEST "gunzip() of non-gzip bytes returns 0 and sets LIBZ-FAIL"
+        new raw,$etrap
+        set $etrap="set $ecode="""" quit"
         do false^STDASSERT(.pass,.fail,$$gunzip^STDCOMPRESS("not a gzip stream",.raw),"non-gzip rejected")
-        do contains^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"LIBZ","error tagged LIBZ")
+        do contains^STDASSERT(.pass,.fail,$ecode,"LIBZ-FAIL","$ECODE tagged LIBZ-FAIL")
+        set $ecode=""
         quit
         ;
 tGunzipRejectsTruncated(pass,fail)      ;@TEST "gunzip() of a truncated gzip frame returns 0"
@@ -212,36 +215,26 @@ tZstdDefaultLevelMatchesThree(pass,fail)        ;@TEST "zstdCompress() default l
         quit
         ;
 tZstdBadLevelLowReturnsZero(pass,fail)  ;@TEST "zstdCompress() with level=0 returns 0"
-        new buf
+        new buf,$etrap
+        set $etrap="set $ecode="""" quit"
         do false^STDASSERT(.pass,.fail,$$zstdCompress^STDCOMPRESS("x",.buf,0),"level 0 rejected")
-        do contains^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"BAD-LEVEL","error tagged BAD-LEVEL")
+        do contains^STDASSERT(.pass,.fail,$ecode,"BAD-LEVEL","$ECODE tagged BAD-LEVEL")
+        set $ecode=""
         quit
         ;
 tZstdBadLevelHighReturnsZero(pass,fail) ;@TEST "zstdCompress() with level=23 returns 0"
-        new buf
+        new buf,$etrap
+        set $etrap="set $ecode="""" quit"
         do false^STDASSERT(.pass,.fail,$$zstdCompress^STDCOMPRESS("x",.buf,23),"level 23 rejected")
-        do contains^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"BAD-LEVEL","error tagged BAD-LEVEL")
+        do contains^STDASSERT(.pass,.fail,$ecode,"BAD-LEVEL","$ECODE tagged BAD-LEVEL")
+        set $ecode=""
         quit
         ;
 tZstdDecompressRejectsGarbage(pass,fail)        ;@TEST "zstdDecompress() of non-zstd bytes returns 0"
-        new raw
+        new raw,$etrap
+        set $etrap="set $ecode="""" quit"
         do false^STDASSERT(.pass,.fail,$$zstdDecompress^STDCOMPRESS("not a zstd frame",.raw),"non-zstd rejected")
-        do contains^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"LIBZSTD","error tagged LIBZSTD")
-        quit
-        ;
-        ; ---- lastError() ----
-        ;
-tLastErrorClearsOnSuccess(pass,fail)    ;@TEST "lastError() returns '' after a successful call"
-        new buf
-        do true^STDASSERT(.pass,.fail,$$gzip^STDCOMPRESS("ok",.buf),"compress ok")
-        do eq^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"","cleared on success")
-        quit
-        ;
-tLastErrorPersistsOnFailure(pass,fail)  ;@TEST "lastError() survives until the next successful call"
-        new raw,buf
-        do false^STDASSERT(.pass,.fail,$$gunzip^STDCOMPRESS("nope",.raw),"trigger error")
-        do true^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS()'="","error captured")
-        do true^STDASSERT(.pass,.fail,$$gzip^STDCOMPRESS("ok",.buf),"compress ok")
-        do eq^STDASSERT(.pass,.fail,$$lastError^STDCOMPRESS(),"","cleared on next success")
+        do contains^STDASSERT(.pass,.fail,$ecode,"LIBZSTD-FAIL","$ECODE tagged LIBZSTD-FAIL")
+        set $ecode=""
         quit
         ;
