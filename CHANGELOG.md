@@ -10,6 +10,27 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDXML T25 (element-level namespaces)`** — XML Namespaces 1.0
+  support at the element level. STDXML coverage moves from ~50%
+  of the full envelope to ~60%; T25b (attribute-namespace
+  resolution), T26 (DTDs / custom entities), and T27 (XPath 1.0)
+  remain queued. New parser pieces: `parseElement` / `parseContent`
+  thread an `nsIn` map of inherited namespace bindings; `absorbXmlns`
+  pulls `xmlns` / `xmlns:prefix` attributes out of the regular
+  attribute list and into the local namespace map; `splitQName`
+  decomposes `x:foo` into prefix and local name; the resolved
+  namespace URI is stored at `node("ns")` and the original prefix
+  at `node("prefix")` for round-tripping. New public accessor:
+  `$$ns^STDXML(.node)`. Tree shape extension: `node("name")` now
+  stores the **local** name (was the qualified name pre-T25);
+  callers that want the raw qualified form can reconstruct it via
+  `node("prefix") _ ":" _ node("name")` if `node("prefix")` is
+  non-empty. Default namespace declarations inherit to descendants
+  until shadowed by a child's own xmlns. Undeclared prefix is a
+  parse error. STDXML test suite: 37 → 47 labels, 75 → 105
+  assertions green. Coverage: 29/30 labels (96.7%). `m fmt` clean;
+  `m lint --error-on=error` 0E. Per-module doc updated with a
+  T25 section and the new tree-shape rows.
 - **`STDXML T23 + T24`** — comments, processing instructions, the
   `<?xml ... ?>` declaration, `<![CDATA[ ... ]]>` sections, and
   numeric character references (`&#NNN;` decimal, `&#xHH;` hex).

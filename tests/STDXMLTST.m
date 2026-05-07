@@ -43,6 +43,17 @@ STDXMLTST       ; Test suite for STDXML (v0.2.x — Phase 4, in-progress).
         do tCharRefInAttrValue(.pass,.fail)
         do tParseRejectsUnclosedComment(.pass,.fail)
         do tParseRejectsUnclosedCdata(.pass,.fail)
+        ; ---- T25 ----
+        do tDefaultNamespaceOnRoot(.pass,.fail)
+        do tPrefixedNamespaceOnRoot(.pass,.fail)
+        do tDefaultNamespaceInheritedToChild(.pass,.fail)
+        do tPrefixedNamespaceInheritedToChild(.pass,.fail)
+        do tMultiplePrefixesOnOneElement(.pass,.fail)
+        do tNamespaceShadowingByChild(.pass,.fail)
+        do tRootNameStripsPrefix(.pass,.fail)
+        do tXmlnsNotStoredAsAttribute(.pass,.fail)
+        do tNoNamespaceReturnsEmptyNs(.pass,.fail)
+        do tUndeclaredPrefixRejected(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -315,4 +326,85 @@ tParseRejectsUnclosedCdata(pass,fail)   ;@TEST "parse with unclosed CDATA return
         new root,rc
         set rc=$$parse^STDXML("<x><![CDATA[never closed</x>",.root)
         do eq^STDASSERT(.pass,.fail,rc,0,"unclosed cdata rejected")
+        quit
+        ;
+        ; ---- T25: namespaces (element-level v1) ----
+tDefaultNamespaceOnRoot(pass,fail)      ;@TEST "default xmlns puts the root in that namespace"
+        new root,rc
+        set rc=$$parse^STDXML("<foo xmlns=""urn:default""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","local name preserved")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"urn:default","ns=urn:default")
+        quit
+        ;
+tPrefixedNamespaceOnRoot(pass,fail)     ;@TEST "prefixed xmlns:x binds the element's prefix to that URI"
+        new root,rc
+        set rc=$$parse^STDXML("<x:foo xmlns:x=""urn:example""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","prefix stripped from name")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"urn:example","ns=urn:example")
+        quit
+        ;
+tDefaultNamespaceInheritedToChild(pass,fail)    ;@TEST "default xmlns inherits to children"
+        new root,rc,child
+        set rc=$$parse^STDXML("<root xmlns=""urn:d""><child/></root>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"urn:d","root ns")
+        do true^STDASSERT(.pass,.fail,$$childByName^STDXML(.root,"child",.child),"found child")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.child),"urn:d","child inherits ns")
+        quit
+        ;
+tPrefixedNamespaceInheritedToChild(pass,fail)   ;@TEST "prefix declarations are visible to children"
+        new root,rc,child
+        set rc=$$parse^STDXML("<x:r xmlns:x=""urn:X""><x:c/></x:r>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"urn:X","root ns")
+        do true^STDASSERT(.pass,.fail,$$childByName^STDXML(.root,"c",.child),"found c")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.child),"urn:X","child uses inherited prefix")
+        quit
+        ;
+tMultiplePrefixesOnOneElement(pass,fail)        ;@TEST "two xmlns:* declarations bind two prefixes"
+        new root,rc,a,b
+        set rc=$$parse^STDXML("<r xmlns:a=""urn:A"" xmlns:b=""urn:B""><a:x/><b:y/></r>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do true^STDASSERT(.pass,.fail,$$childByName^STDXML(.root,"x",.a),"found x")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.a),"urn:A","x in urn:A")
+        do true^STDASSERT(.pass,.fail,$$childByName^STDXML(.root,"y",.b),"found y")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.b),"urn:B","y in urn:B")
+        quit
+        ;
+tNamespaceShadowingByChild(pass,fail)   ;@TEST "child xmlns shadows the parent's binding"
+        new root,rc,child
+        set rc=$$parse^STDXML("<r xmlns=""urn:outer""><c xmlns=""urn:inner""/></r>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"urn:outer","root in outer")
+        do true^STDASSERT(.pass,.fail,$$childByName^STDXML(.root,"c",.child),"found c")
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.child),"urn:inner","c shadowed to inner")
+        quit
+        ;
+tRootNameStripsPrefix(pass,fail)        ;@TEST "rootName returns local part when a prefix was used"
+        new root,rc
+        set rc=$$parse^STDXML("<x:foo xmlns:x=""urn:e""/>",.root)
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","local name only")
+        quit
+        ;
+tXmlnsNotStoredAsAttribute(pass,fail)   ;@TEST "xmlns / xmlns:* declarations don't appear via attr()"
+        new root,rc
+        set rc=$$parse^STDXML("<foo xmlns=""urn:d"" xmlns:x=""urn:e"" id=""abc""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"xmlns"),"","xmlns not in attrs")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"xmlns:x"),"","xmlns:x not in attrs")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"id"),"abc","regular attr present")
+        quit
+        ;
+tNoNamespaceReturnsEmptyNs(pass,fail)   ;@TEST "ns() of an element without xmlns returns ''"
+        new root,rc
+        set rc=$$parse^STDXML("<plain/>",.root)
+        do eq^STDASSERT(.pass,.fail,$$ns^STDXML(.root),"","ns='' for non-namespaced element")
+        quit
+        ;
+tUndeclaredPrefixRejected(pass,fail)    ;@TEST "an undeclared prefix is a parse error"
+        new root,rc
+        set rc=$$parse^STDXML("<x:foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,0,"undeclared prefix rejected")
         quit

@@ -56,12 +56,12 @@ parse(text,root)        ; Parse text into root tree; return 1/0.
         ; doc: Example: do  set rc=$$parse^STDXML(text,.tree)
         kill root
         kill ^STDLIB($job,"stdxml","err")
-        new ctx,ok
+        new ctx,ok,emptyNs
         if text="" do err("empty input") quit 0
         do initCtx(.ctx,text)
         if '$$skipDocLevel(.ctx) quit 0
         if $$peek(.ctx)'="<" do err("expected '<' at root") quit 0
-        set ok=$$parseElement(.ctx,.root)
+        set ok=$$parseElement(.ctx,.root,.emptyNs)
         if 'ok quit 0
         if '$$skipDocLevel(.ctx) quit 0
         if ctx("pos")'>ctx("len") do err("trailing data after root") quit 0
@@ -79,6 +79,13 @@ rootName(node)  ; Return the element tag name; "" if missing.
 attr(node,name) ; Return attribute value; "" if missing.
         ; doc: Example: write $$attr^STDXML(.tree,"id")
         quit $get(node("attr",name),"")
+        ;
+ns(node)        ; Return the namespace URI for the element; "" if not in any namespace.
+        ; doc: T25 — uses xmlns / xmlns:prefix declarations in scope at the
+        ; doc: element's position. Inherited from the nearest enclosing
+        ; doc: declaration unless shadowed.
+        ; doc: Example: write $$ns^STDXML(.tree)  ; "urn:hl7-org:v3"
+        quit $get(node("ns"),"")
         ;
 text(node)      ; Return direct text content; "" if no text.
         ; doc: Example: write $$text^STDXML(.tree)
@@ -140,24 +147,41 @@ skipWs(ctx)     ; Skip space/tab/CR/LF whitespace.
         ;
         ; ---------- internal: element / attrs ----------
         ;
-parseElement(ctx,node)  ; Parse one element (start-tag-with-content or empty-tag).
+parseElement(ctx,node,nsIn)     ; Parse one element. nsIn is the inherited namespace map.
         ; doc: Internal — leaves the context positioned after the element.
-        new name,ok,end2,c
+        ; doc: Threads a per-element namespace map (T25). The parent's `nsIn`
+        ; doc: is copied into a local `myNs` before modification, so children
+        ; doc: see this element's xmlns declarations but the parent does not.
+        new rawName,localName,prefix,ok,end2,myNs,nsUri
         kill node
         if $$peek(.ctx)'="<" do err("expected '<' at element") quit 0
         do advance(.ctx,1)
-        set name=$$parseName(.ctx)
-        if name="" do err("expected element name") quit 0
-        set node("name")=name
+        set rawName=$$parseName(.ctx)
+        if rawName="" do err("expected element name") quit 0
+        set node("name")=rawName
         if '$$parseAttrs(.ctx,.node) quit 0
+        ; Build local namespace map: copy inherited, then absorb this element's xmlns*.
+        merge myNs=nsIn
+        do absorbXmlns(.node,.myNs)
+        ; Resolve the element's own qualified name.
+        do splitQName(rawName,.prefix,.localName)
+        if prefix="" do
+        . set nsUri=$get(myNs(""))
+        else  do
+        . if '$data(myNs(prefix)) set nsUri="<<UNDECLARED>>"
+        . else  set nsUri=myNs(prefix)
+        if nsUri="<<UNDECLARED>>" do err("undeclared namespace prefix '"_prefix_"'") quit 0
+        set node("name")=localName
+        set node("prefix")=prefix
+        set node("ns")=nsUri
         do skipWs(.ctx)
         set end2=$$peekN(.ctx,2)
         if end2="/>" do advance(.ctx,2) set node("childCount")=0 quit 1
         if $$peek(.ctx)'=">" do err("expected '>' or '/>' after attrs") quit 0
         do advance(.ctx,1)
-        ; Element has content: parse text/children until </name>
+        ; Element has content: parse text/children until </name>.
         set node("childCount")=0
-        if '$$parseContent(.ctx,name,.node) quit 0
+        if '$$parseContent(.ctx,rawName,.node,.myNs) quit 0
         quit 1
         ;
 parseAttrs(ctx,node)    ; Parse zero-or-more attributes onto node.
@@ -192,10 +216,12 @@ parseAttrValue(ctx,quote)       ; Read characters until the matching quote (no e
         for  set c=$$peek(.ctx) quit:c=""  quit:c=quote  set out=out_c do advance(.ctx,1)
         quit out
         ;
-parseContent(ctx,parentName,node)       ; Parse element content until </parentName>.
+parseContent(ctx,parentName,node,nsIn)  ; Parse element content until </parentName>.
         ; doc: Internal — populates node("text") and node("child", n, ...).
         ; doc: Dispatches on `<!--` (comment), `<![CDATA[` (literal text),
         ; doc: `<?` (PI, skip), `</` (end of content), and `<name` (child).
+        ; doc: nsIn is the inherited namespace map, threaded through to each
+        ; doc: child element via parseElement.
         new buf,end2,end4,end9,name,childCount,done,bad,tmpChild,cdataText
         set buf="",childCount=$get(node("childCount"),0),done=0,bad=0,tmpChild=""
         for  quit:done  do
@@ -217,7 +243,7 @@ parseContent(ctx,parentName,node)       ; Parse element content until </parentNa
         . if $$peek(.ctx)="<" do  quit
         . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf),buf=""
         . . set childCount=childCount+1
-        . . if '$$parseElement(.ctx,.tmpChild) set bad=1,done=1 quit
+        . . if '$$parseElement(.ctx,.tmpChild,.nsIn) set bad=1,done=1 quit
         . . merge node("child",childCount)=tmpChild
         . set buf=buf_$$peek(.ctx)
         . do advance(.ctx,1)
@@ -233,6 +259,34 @@ parseContent(ctx,parentName,node)       ; Parse element content until </parentNa
         if $$peek(.ctx)'=">" do err("expected '>' at end of close tag") quit 0
         do advance(.ctx,1)
         quit 1
+        ;
+absorbXmlns(node,nsMap) ; Pull `xmlns` / `xmlns:prefix` attrs out of node into nsMap.
+        ; doc: Internal — driven by parseElement. Walks node("attr",...),
+        ; doc: collects the namespace declarations into a temporary list,
+        ; doc: applies them to nsMap, and kills them from node("attr",...).
+        new k,n,i,xkeys,prefix,uri
+        set n=0,k="",xkeys=0
+        for  set k=$order(node("attr",k)) quit:k=""  do
+        . if k="xmlns" set n=n+1,xkeys(n)=k quit
+        . if $extract(k,1,6)="xmlns:" set n=n+1,xkeys(n)=k
+        for i=1:1:n do
+        . set k=xkeys(i)
+        . set uri=node("attr",k)
+        . if k="xmlns" set nsMap("")=uri
+        . else  set prefix=$piece(k,":",2),nsMap(prefix)=uri
+        . kill node("attr",k)
+        quit
+        ;
+splitQName(qname,prefix,localName)      ; Split "x:foo" into prefix="x" / local="foo".
+        ; doc: Internal — handles the no-colon case ("foo" → prefix="" / local="foo").
+        ; doc: A trailing colon ("x:") is malformed but treated leniently —
+        ; doc: prefix="x", local="" — caller will likely reject downstream.
+        new colonAt
+        set colonAt=$find(qname,":")
+        if colonAt=0 set prefix="",localName=qname quit
+        set prefix=$extract(qname,1,colonAt-2)
+        set localName=$extract(qname,colonAt,$length(qname))
+        quit
         ;
 parseName(ctx)  ; Read an XML name [A-Za-z_:] [A-Za-z0-9_:.-]*; return "" on failure.
         ; doc: Internal — XML 1.0 §2.3 Name production (subset).
