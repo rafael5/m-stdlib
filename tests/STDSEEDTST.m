@@ -39,20 +39,17 @@ STDSEEDTST      ; Test suite for STDSEED (v0.1.3).
         ; ---- LOADJSON ----
         ; STDJSON parse() and encode() refactored 2026-05-07 to copy
         ; child subtrees into non-subscripted locals via merge before
-        ; recursing (TOOLCHAIN-FINDINGS row 2026-05-06 P1, partially
-        ; resolved 2026-05-07) — STDJSON itself is now fully usable
-        ; from STDSEED's loadJson path. The six loadJson tests stay
-        ; provisionally deferred under a separate STDSEEDTST timeout
-        ; that bites starting at tLoadedTrueAfterLoad (test #14)
-        ; regardless of whether the loadJson tests are dispatched —
-        ; orthogonal to T3 and to the loadJson path. Re-enable once
-        ; the suite-level timeout is diagnosed.
-        ; do tLoadJsonStubFilerReceivesEntry(.pass,.fail)
-        ; do tLoadJsonMultipleEntriesAllDispatched(.pass,.fail)
-        ; do tLoadJsonNoFieldsKeyIsLegal(.pass,.fail)
-        ; do tLoadJsonInvalidJsonRaises(.pass,.fail)
-        ; do tLoadJsonNonArrayRootRaises(.pass,.fail)
-        ; do tLoadJsonMissingFileKeyRaises(.pass,.fail)
+        ; recursing (TOOLCHAIN-FINDINGS row 2026-05-06 P1). The
+        ; raises^STDASSERT trap was fixed the same day to `use
+        ; $principal` before ZGOTO unwind so it can recover from
+        ; non-principal SEQ device context (TOOLCHAIN-FINDINGS row
+        ; 2026-05-07 P2). Both unblock the six loadJson tests below.
+        do tLoadJsonStubFilerReceivesEntry(.pass,.fail)
+        do tLoadJsonMultipleEntriesAllDispatched(.pass,.fail)
+        do tLoadJsonNoFieldsKeyIsLegal(.pass,.fail)
+        do tLoadJsonInvalidJsonRaises(.pass,.fail)
+        do tLoadJsonNonArrayRootRaises(.pass,.fail)
+        do tLoadJsonMissingFileKeyRaises(.pass,.fail)
         ;
         ; ---- error paths ----
         do tLoadOfMissingPathRaises(.pass,.fail)

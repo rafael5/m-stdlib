@@ -92,10 +92,18 @@ raises(p,f,code,errno,desc)     ; Assert XECUTEing 'code' sets $ECODE containing
         ; illegal in extrinsic context — fires M17 NOTEXTRINSIC). ZGOTO N
         ; unwinds the stack to $ZLEVEL=N before the GOTO, so capture our
         ; level at $ETRAP-set time and use that as the unwind target.
+        ;
+        ; The `use $principal` in the trap is load-bearing: when an error
+        ; fires deep in the XECUTEd code while a non-principal SEQ device
+        ; is current (e.g. an OPENed file mid-read inside walk^STDSEED),
+        ; the ZGOTO unwind otherwise hangs. Restoring $principal first
+        ; releases the device-context lock and lets the unwind complete
+        ; cleanly. Diagnosed against STDSEEDTST tLoadFilerErrorPropagates-
+        ; Ecode 2026-05-07.
         new $etrap,captured,raisesLvl
         set captured="",$ecode=""
         set raisesLvl=$zlevel
-        set $etrap="set captured=$ecode set $ecode="""" zgoto "_raisesLvl_":raisesUnwound^STDASSERT"
+        set $etrap="use $principal set captured=$ecode set $ecode="""" zgoto "_raisesLvl_":raisesUnwound^STDASSERT"
         ; m-lint: disable-next-line=M-MOD-036
         xecute code  ; XECUTE-of-arg is the documented purpose of raises().
 raisesUnwound   ; Trap-resume target — also reached on no-error fall-through.
