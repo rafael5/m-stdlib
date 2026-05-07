@@ -14,14 +14,14 @@ STDHTTP ; m-stdlib — HTTP/1.1 client (track H3, target tag v0.4.0).
         ; only but must be a by-ref formal to receive the subscripted
         ; tree.
         ; M-MOD-024 false positives: rc / statusCode / respHeaders /
-        ; respBody / errMsg are initialised before every XECUTE'd $ZF
-        ; call but the analyser cannot follow flow through the XECUTE
-        ; indirection.
+        ; respBody / errMsg are initialised before every XECUTE'd
+        ; $&stdhttp.* call but the analyser cannot follow flow through
+        ; the XECUTE indirection.
         ; M-MOD-036 (XECUTE injection) is intentional: the XECUTE
-        ; wrapper is the only way to invoke $ZF without the m fmt
-        ; abbreviation expander mangling the token (longest-prefix
-        ; match against $ZFIND). Same trick as STDCRYPTO / STDCOMPRESS;
-        ; the XECUTE source is built from a literal template only.
+        ; wrapper is the only way to embed `$&stdhttp.<fn>(...)`
+        ; without tree-sitter-m tripping on the namespaced $&pkg.fn
+        ; syntax. Same trick as STDCRYPTO; the XECUTE source is built
+        ; from a literal template only.
         ;
         ; Two layers:
         ;   1. Pure-M wire-format helpers (iteration 1):
@@ -30,7 +30,7 @@ STDHTTP ; m-stdlib — HTTP/1.1 client (track H3, target tag v0.4.0).
         ;        do parseResponse^STDHTTP(raw, .resp)
         ;        $$buildRequest^STDHTTP(.req)
         ;        $$formatHeaders^STDHTTP(.headers)
-        ;   2. Network extrinsics via $ZF -> libcurl (iteration 2):
+        ;   2. Network extrinsics via $&stdhttp.* -> libcurl (iter 2):
         ;        $$get^STDHTTP(url, .resp)
         ;        $$post^STDHTTP(url, body, .resp, contentType)
         ;        $$request^STDHTTP(.req, .resp)
@@ -40,8 +40,9 @@ STDHTTP ; m-stdlib — HTTP/1.1 client (track H3, target tag v0.4.0).
         ;     so callers can degrade gracefully. Deployment runbook:
         ;        1. tools/build-callouts.sh        -> so/<plat>/http.so
         ;        2. export STDLIB_LIB=<dir-of-so>
-        ;        3. export ydb_xc_std_http=<abs>/tools/std_http.xc
+        ;        3. export ydb_xc_stdhttp=<abs>/tools/std_http.xc
         ;        4. ensure libcurl is on the loader path
+        ;        (or run scripts/seed-callouts.sh — does all four)
         ;
         ; Response array shape:
         ;   resp("status")             ; numeric status code
@@ -291,14 +292,14 @@ available()     ; 1 iff the libcurl callout is loaded and curl_easy_init() works
         ; doc: Returns 0 if the .so is missing, the descriptor is not
         ; doc:   exported, or libcurl is unavailable on the loader path.
         ; doc: Never raises — clears $ECODE on the way out.
-        ; doc: Cheap fast path: if $ZTRNLNM("ydb_xc_std_http") is empty
-        ; doc:   the descriptor isn't deployed — return 0 without paying
-        ; doc:   the XECUTE / $ZF round-trip.
+        ; doc: Cheap fast path: if $$env^STDOS("ydb_xc_stdhttp") is
+        ; doc:   empty the descriptor isn't deployed — return 0 without
+        ; doc:   paying the XECUTE / $&stdhttp.* round-trip.
         new $etrap,rc,cmd
-        if $$env^STDOS("ydb_xc_std_http")="" quit 0
-        set $etrap="set $ecode="""" set rc=0 quit"
+        if $$env^STDOS("ydb_xc_stdhttp")="" quit 0
+        set $etrap="set $ecode="""" set rc=0 quit 0"
         set rc=0
-        set cmd="set rc=$ZF(""http_available"")"
+        set cmd="set rc=$&stdhttp.http_available()"
         xecute cmd
         set $ecode=""
         quit +rc
@@ -349,20 +350,19 @@ preallocBuf(n)  ; Allocate an n-byte M string for $ZF output capture.
         ; doc:   overwrites and updates ydb_string_t.length on return.
         quit $justify("",n)
         ;
-dispatchPerform(method,url,headerBlock,body,timeoutMs,follow,verify,statusCode,respHeaders,respBody,errMsg)      ; Invoke $ZF("http_perform", ...).
-        ; doc: Internal — XECUTE-wraps $ZF so m fmt cannot mangle the
-        ; doc:   token (longest-prefix bug against $ZFIND). Returns the
+dispatchPerform(method,url,headerBlock,body,timeoutMs,follow,verify,statusCode,respHeaders,respBody,errMsg)      ; Invoke $&stdhttp.http_perform(...).
+        ; doc: Internal — XECUTE-wraps the namespaced $&pkg.fn call so
+        ; doc:   tree-sitter-m doesn't trip on the syntax. Returns the
         ; doc:   C-side rc on success, -99 if the callout is unavailable.
-        ; doc: Fast path: if $ZTRNLNM("ydb_xc_std_http") is empty the
+        ; doc: Fast path: if $$env^STDOS("ydb_xc_stdhttp") is empty the
         ; doc:   descriptor isn't deployed — return -99 immediately so
         ; doc:   request() can flip to "STDHTTP-NOT-WIRED" without
-        ; doc:   triggering XECUTE compilation (which itself can fail
-        ; doc:   on engines with a non-writable ydb_routines).
+        ; doc:   triggering XECUTE compilation.
         new $etrap,rc,cmd
-        if $$env^STDOS("ydb_xc_std_http")="" quit -99
-        set $etrap="set $ecode="""" set rc=-99 quit"
+        if $$env^STDOS("ydb_xc_stdhttp")="" quit -99
+        set $etrap="set $ecode="""" set rc=-99 quit -99"
         set rc=0
-        set cmd="set rc=$ZF(""http_perform"",method,url,headerBlock,body,timeoutMs,follow,verify,.statusCode,.respHeaders,.respBody,.errMsg)"
+        set cmd="set rc=$&stdhttp.http_perform(method,url,headerBlock,body,timeoutMs,follow,verify,.statusCode,.respHeaders,.respBody,.errMsg)"
         xecute cmd
         set $ecode=""
         quit rc

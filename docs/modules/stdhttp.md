@@ -26,10 +26,17 @@ so callers can degrade gracefully without `$ETRAP`.
 ```
 tools/build-callouts.sh                # produces so/<plat>/http.so
 export STDLIB_LIB=$PWD/so/<plat>
-export ydb_xc_std_http=$PWD/tools/std_http.xc
+export ydb_xc_stdhttp=$PWD/tools/std_http.xc
 # libcurl must be on the loader path (libcurl.so.4 on linux,
 # libcurl.4.dylib on macOS).
 ```
+
+For the shared vista-meta engine, `scripts/seed-callouts.sh` does all
+four steps in one shot — builds inside the container against the
+runtime YDB headers, stages the .so + .xc files, and idempotently
+appends the env-var exports to `/etc/profile.d/ydb_env.sh` so every
+`m test` SSH session inherits them. `make seed` calls it
+automatically when `src/callouts/*.c` is present.
 
 ## Public API
 

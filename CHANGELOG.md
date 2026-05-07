@@ -8,33 +8,122 @@ Pre-1.0 minor versions may include breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`STDCRYPTO` (H1, P3) — actually green on the engine.** The Phase 3
+  lead landed code-complete on `main` 2026-05-07 but had never run
+  green: the M-side dispatch used `$ZF` + `ydb_ci` with `.var` byref
+  output args, which YDB r2.02's M parser rejects outright (`%YDB-E-EXPR,
+  Expression expected but not found`). On top of that, the C entry
+  points were declared without the implicit `int argc` that YottaDB's
+  `$&pkg.fn` external-call ABI prepends to every call, so even an
+  alternate dispatch path would have segfaulted (vaddr 0x2 — the
+  hard-coded ABI argc value being dereferenced as a `ydb_string_t*`).
+  This release fixes both:
+  - `src/callouts/std_crypto.c` — every public entry point gains
+    `int argc` as its first parameter and short-circuits with `-5`
+    on a wrong arity.
+  - `src/STDCRYPTO.m` — `dispatch3` / `dispatch4` now build the
+    XECUTE'd command as `set rc=$&stdcrypto.<fn>(...)` instead of
+    `set rc=$ZF("crypto_<fn>",...)`. The `$ECODE`-set $ETRAP body
+    quits with a value (`-1`) so the etrap firing inside the
+    extrinsic doesn't trip `QUITARGREQD`.
+  - `tools/std_crypto.xc` — descriptor LHS renamed to
+    `sha256` / `sha384` / `sha512` / `hmacSha256` / `hmacSha384` /
+    `hmacSha512` (no underscore — YDB package names must be
+    alphanumeric, so the env var becomes `ydb_xc_stdcrypto`).
+  - `scripts/seed-callouts.sh` — strips non-alphanumerics from the
+    `.xc` base when computing each `ydb_xc_<pkg>` export name, so
+    the `std_crypto.xc` descriptor wires `ydb_xc_stdcrypto` (matching
+    what the M-side `$&stdcrypto.<fn>` syntax requires).
+
+  STDCRYPTOTST now passes 23/23 against the vista-meta YDB engine; per-
+  module coverage is **17/17 labels = 100%**; lint clean (0E). T28
+  closes. Same machinery automatically applies to the STDCOMPRESS
+  and STDHTTP iter-2 callouts as their C/M sides catch up to the
+  same conventions.
+
 ### Added
 
-- **`STDHTTP` iteration 2 (H3, P3)** — `$ZF→libcurl` wiring landed.
-  Network extrinsics `$$get^STDHTTP(url, .resp)` /
+- **`STDFS` byte-faithful I/O backend (L16, P4 — closes T13 + T14).**
+  New `src/callouts/stdfs.c` exports `stdfs_writeBytes` /
+  `stdfs_appendBytes` / `stdfs_readBytes` / `stdfs_available` /
+  `stdfs_lasterror` over raw libc `open(2)` / `read(2)` / `write(2)` /
+  `close(2)`. New `tools/std_fs.xc` descriptor (loaded via
+  `STDLIB_LIB` + `ydb_xc_std_fs`). M side gains four public extrinsics:
+  `do writeBytes^STDFS(path, data)` (no trailing LF added),
+  `do appendBytes^STDFS(path, data)` (atomic at EOF via `O_APPEND`),
+  `$$readBytes^STDFS(path)` (preserves every byte — no CR strip,
+  no LF normalisation; surfaces `,U-STDFS-READ-TRUNCATED,` on
+  16 MiB cap overflow), and `$$available^STDFS()` (cheap probe —
+  returns 1 iff `stdfs.so` is loaded and `open("/dev/null")`
+  works). Existing `do append^STDFS(path, data)` keeps its
+  text-mode read-then-rewrite implementation by design — rerouting
+  it through native `O_APPEND` would leave an interior LF in the
+  file whenever the previous content already ended with one,
+  breaking the documented `readFile(append(x, y)) ==
+  readFile(x) + y` round-trip contract. Callers that want
+  byte-faithful append at EOF (no LF normalisation, atomic single
+  `write(2)`) use `do appendBytes^STDFS` directly. Dispatch
+  helpers use the same
+  XECUTE-wrapped `$ZF` anti-`m fmt`-mangling pattern as
+  STDCRYPTO / STDCOMPRESS / STDHTTP. New tests in `STDFSTST`:
+  `tAvailableReturnsBoolean`, `tWriteBytesByteFaithful`,
+  `tWriteBytesEmpty`, `tReadBytesPreservesAllBytes`,
+  `tReadBytesPreservesEmbeddedCR`, `tReadBytesMissingRaises`,
+  `tAppendBytesAtomic`, `tAppendBytesCreatesIfMissing`,
+  `tNotWiredSoftFail` — each gates on `$$available^STDFS()` so
+  the suite stays green in environments without the callout
+  deployed (sentinel-assertion fallback keeps the assertion count
+  stable). Lint clean: 0 errors. Public API for the existing text-I/O
+  entries (`readFile` / `writeFile` / `readLines` / `writeLines` /
+  `append`) is unchanged. T13 + T14 closed in `docs/module-tracker.md`.
+- **`scripts/seed-callouts.sh` (T28 + T29 close)** — end-to-end
+  deployment harness for the Phase 3 callouts. Pushes
+  `src/callouts/*.c` + `tools/std_*.xc` into the vista-meta
+  container, compiles each `.c` against the runtime YDB headers
+  (`/usr/local/lib/yottadb/r2.02/libyottadb.h`) with the per-source
+  `// link: -lfoo` directive (so `-lcrypto`, `-lcurl`, `-lz -lzstd`
+  flow through automatically), stages the artefacts under
+  `~/export/seed/m-stdlib/{lib/<plat>,xc}/`, and idempotently
+  injects a marker block into `/etc/profile.d/ydb_env.sh` (sudo -n)
+  exporting `STDLIB_LIB` + per-package `ydb_xc_<pkg>` so every
+  `m test` SSH session inherits the env. Closes T28 (STDCRYPTOTST
+  flipped 0/0 → 23/23) and T29 (STDHTTPTST 68/68 with http.so
+  loaded). The same machinery applies to `cs_random.so` /
+  `stdfs.so` once their M sides catch up. Marker block is
+  removable: delete everything between
+  `# >>> m-stdlib callouts >>>` / `# <<< m-stdlib callouts <<<`.
+  `make seed` invokes the script automatically when
+  `src/callouts/*.c` is present.
+- **`STDHTTP` iteration 2 (H3, P3)** — `$&stdhttp.*→libcurl` wiring
+  landed (initial commit `940f8ce`, then migrated from bare `$ZF`
+  to namespaced `$&pkg.fn` syntax to match STDCRYPTO's anti-tree-
+  sitter-trip pattern). Network extrinsics `$$get^STDHTTP(url, .resp)` /
   `$$post^STDHTTP(url, body, .resp, contentType)` /
-  `$$request^STDHTTP(.req, .resp)` now drive
-  `src/callouts/http.c::http_perform` through an XECUTE-wrapped `$ZF`
-  call (same anti-`m fmt`-mangling pattern as STDCRYPTO / STDCOMPRESS).
-  C side captures the response header stream + body into
-  caller-allocated 1 MiB buffers; M side splits the captured stream
-  on `\r\n\r\n` and feeds the **final** response (post-redirects)
-  into `parseResponse` for `resp("status")` / `resp("reason")` /
-  `resp("version")` / `resp("header",lcName)`. New `$$available^
-  STDHTTP()` probe — returns 1 iff the .so is loaded and
-  `curl_easy_init()` works; 0 otherwise (never raises). Both
-  `$$available` and `$$dispatchPerform` short-circuit on
-  `$$env^STDOS("ydb_xc_std_http")=""` so engines without the
+  `$$request^STDHTTP(.req, .resp)` drive
+  `src/callouts/http.c::http_perform` through an XECUTE-wrapped
+  `$&stdhttp.http_perform(...)` literal-template (same XECUTE-injection
+  exception STDCRYPTO documented at M-MOD-036). C side captures the
+  response header stream + body into caller-allocated 1 MiB buffers;
+  M side splits the captured stream on `\r\n\r\n` and feeds the
+  **final** response (post-redirects) into `parseResponse` for
+  `resp("status")` / `resp("reason")` / `resp("version")` /
+  `resp("header",lcName)`. New `$$available^STDHTTP()` probe — drives
+  `$&stdhttp.http_available` (`curl_easy_init` smoke); returns 1 iff
+  the .so is loaded and curl is wired in; 0 otherwise (never raises).
+  Both `$$available` and `$$dispatchPerform` short-circuit on
+  `$$env^STDOS("ydb_xc_stdhttp")=""` so engines without the
   descriptor exported fall through to `resp("error")=
   "STDHTTP-NOT-WIRED"` without paying the XECUTE compile cost.
   Deployment runbook (in `docs/modules/stdhttp.md`):
-  `tools/build-callouts.sh` → `STDLIB_LIB` →
-  `ydb_xc_std_http=<abs>/tools/std_http.xc`. New `http_available`
-  symbol added to `tools/std_http.xc` for the probe. STDHTTPTST 68/68
-  green; 94.1% label coverage (the lone uncovered label is the live
-  `parseHeaderStream` path which is only reachable when the .so is
-  loaded — exercised by integration smoke when deployed). Lint
-  clean: 0 errors, 0 warnings.
+  `scripts/seed-callouts.sh` does all four steps in one shot —
+  builds inside the container, stages, exports env vars. New
+  `http_available` symbol in `tools/std_http.xc` for the probe.
+  STDHTTPTST 68/68 green; 94.1% label coverage (the lone uncovered
+  label is the live `parseHeaderStream` path which is only reachable
+  when the .so is loaded — exercised by integration smoke when
+  deployed). Lint clean: 0 errors, 0 warnings.
 - **`STDHTTP` iteration 1 (H3, P3)** — second Phase 3 track to enter
   development; first iteration is pure-M wire-format helpers
   (libcurl integration is iteration 2, queued at T29). Public

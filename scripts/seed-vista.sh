@@ -58,3 +58,11 @@ manifest_lines=$(printf '%s\n' "${!by_name[@]}")
 ssh_v "cat > $STAGE/MANIFEST.txt" <<< "$manifest_lines"
 
 echo "[$PROJECT] seed done — routines staged under \$HOME/$STAGE"
+
+# Build + deploy $ZF callouts (STDCRYPTO / STDCOMPRESS / STDHTTP) when
+# the project has any src/callouts/*.c. Skipped silently otherwise so the
+# pure-M baseline still works on a clean checkout.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if compgen -G 'src/callouts/*.c' >/dev/null; then
+  bash "$SCRIPT_DIR/seed-callouts.sh"
+fi
