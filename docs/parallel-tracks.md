@@ -53,7 +53,7 @@ parallelism — are these eight edges:
 | m-cli `--seed PATH` | STDSEED (v0.1.3) | Hard | m-cli companion lands after STDSEED |
 | STDLOG JSON-line output | STDJSON (v0.2.0) | Hard | STDLOG add-on lands in M4 |
 | STDSEED `LOADJSON` | STDJSON (v0.2.0) | Hard | STDSEED add-on lands in M4 |
-| STDHTTP | STDURL (v0.2.0) + `tools/build-callouts.sh` | Hard | Both ship before Phase 3 |
+| STDHTTP | STDURL (v0.2.0) + `tools/build-callouts.sh` | Hard | Both shipped; STDHTTP iter 1 (pure-M helpers) landed; iter 2 (libcurl callout) queued at T29 |
 | STDCRYPTO / STDCOMPRESS | `tools/build-callouts.sh` | Hard | Build harness ships once before all three |
 
 Everything else is independent.
@@ -145,6 +145,20 @@ but are not gating the tag itself.
 | **L23** | v0.2.x | STDSNAP | STDFS + STDASSERT | ✅ **Landed on `main` 2026-05-07.** Ninth Table 2 promotion (was Pri 2 in the post-STDPROF demoted table). Snapshot testing: `serialize` (canonical line-per-leaf text dump via `$QUERY` walk; numeric subscripts unquoted, string subscripts/values M-quoted) / `save` (writeFile via STDFS) / `matches` (readFile + string-compare) / `asserts` (STDASSERT integration). Lines emitted in `$ORDER` — deterministic, diff-friendly. Out of scope for v1 (T21): root-scalar dumps, auto-update flag, bundled diff helper. 23/23 assertions; 7/7 labels (100%); 0 lint errors. Module doc at `docs/modules/stdsnap.md`. |
 | **L24** | v0.2.x | STDENV | STDFS (parseFile); STDSTR soft (inlined) | ✅ **Landed on `main` 2026-05-07.** Tenth Table 2 promotion (was Pri 2 in the post-STDSNAP demoted table). `.env` loader with typed accessors: `parse` / `parseFile` / `valid` / `has` / `get` / `getInt` / `getBool` / `getFloat`. Format: bare and quoted (`"..."` with `\n \t \r \" \\`, `'...'` literal) values, `#` whole-line comments, blank lines, leading-letter-or-`_` bare keys. `getBool` is case-insensitive against `true/yes/on/1` and `false/no/off/0`. Default-on-miss-or-mistype convention. Out of scope (T22): variable substitution, `export` prefix, multi-line values, write-back via STDOS setenv. 46/46 assertions; 14/15 labels (93.3%, `parseFile` exercised only through integration); 0 lint errors. Module doc at `docs/modules/stdenv.md`. |
 | **L25** | v0.2.x (v0+T23+T24+T25 full; v1 incremental) | STDXML | none (STDREGEX listed soft for future XPath) | ✅ **Landed on `main` 2026-05-07.** Eleventh Table 2 promotion. v0+T23+T24+T25 (full namespaces) is ~65% of the 12-16d full envelope: well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric character references (UTF-8 encoded) + namespaces (element AND attribute). Recursive-descent parser; tree shape mirrors STDJSON's caller-owned-tree convention. Public surface: `parse` / `valid` / `rootName` / `attr` / `text` / `childCount` / `childByName` / `ns` / `attrNs` / `lastError`. T25b adds the built-in `xml:` prefix (no declaration needed) and enforces the spec rule that default xmlns does NOT apply to unprefixed attrs. Remaining queued at T26/T27 (~4-8d): DTDs / DOCTYPE / custom entities (T26), XPath 1.0 query subset (T27). 122/122 assertions; 31/32 labels (96.9%); 0 lint errors. Module doc at `docs/modules/stdxml.md`. |
+
+### 3.3c m-stdlib Phase 3 — host-callout modules (`$ZF`-bound)
+
+Phase 3 begins with the build harness already shipped at A6
+(`tools/build-callouts.sh`) and the v0.2.0 release sync closed via
+v0.3.0. Each H-track produces a C source under `src/callouts/`, a
+YDB call-out descriptor under `tools/<pkg>.xc`, and an M-side
+wrapper under `src/STDxxx.m`.
+
+| Track | Tag | Module | Independent of | Notes |
+|---|---|---|---|---|
+| **H1** | v0.3.x (engine-bound green run pending T28) | STDCRYPTO | STDB64 (test-time hex via STDHEX) | ✅ **Code-complete on `main` 2026-05-07** as the Phase 3 lead per T11. SHA-256/384/512 + HMAC-SHA-256/384/512 via `$ZF → libcrypto` (OpenSSL EVP_Digest + HMAC). Public surface: `sha256` / `sha384` / `sha512` (hex) + `*Bytes` raw forms + `hmacSha{256,384,512}` + `*Bytes` + `available`. C source at `src/callouts/std_crypto.c`; YDB descriptor at `tools/std_crypto.xc` (uses `$STDLIB_LIB` env var for portability); build harness extended with per-source `// link:` directive parsing so libcrypto linkage stays scoped to `std_crypto.c`. 22 RFC-anchored tests in `STDCRYPTOTST.m` (FIPS 180-4 SHA vectors + RFC 4231 HMAC vectors). **Engine-bound green run blocked on T28** — the vista-meta container needs libssl runtime + the .so + .xc deployed + `STDLIB_LIB` / `ydb_xc_std_crypto` env vars exported in the YDB session. Module doc at `docs/modules/stdcrypto.md`. |
+| **H2** | v0.3.x (queued) | STDCOMPRESS | A6; T28 (validates the harness end-to-end via H1 first) | gzip / deflate / zstd via `$ZF → libz` + `$ZF → libzstd`. Mutually parallel with H3 once H1 unblocks the deployment infra. |
+| **H3** | v0.4.x (in progress) | STDHTTP | STDURL; A6; T29 | HTTP/1.1 client (request / response / streaming) via `$ZF → libcurl`. Largest of the three. **Iter 1 landed on `main` 2026-05-07:** pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`) + soft-fail `$$get` / `$$post` / `$$request` stubs that set `resp("error")="STDHTTP-NOT-WIRED"` so consumers can integrate against the final array shape today. Module doc at `docs/modules/stdhttp.md`; tests in `STDHTTPTST.m`. **Iter 2 queued at T29** — `src/callouts/http.c` libcurl glue + `tools/std_http.xc` descriptor + integration-test harness; mutually parallel with H2 (STDCOMPRESS) once T28's deployment infra is exercised. |
 
 ### 3.4 m-cli companion tracks
 

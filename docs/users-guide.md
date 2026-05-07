@@ -1,31 +1,30 @@
 ---
 title: m-stdlib — TDD user's guide
-status: live (2026-05-05)
+status: live
 audience: M developers building production code (VistA, FIS-GT.M heritage projects, IRIS sites) who want a runtime-library substrate and a CI/CD-friendly TDD workflow.
-companion: m-stdlib-implementation-plan.md (per-module specs); parallel-tracks.md (dispatch view); modules/index.md (canonical inventory).
+companion: modules/index.md (canonical inventory); module-tracker.md (live work board); m-stdlib-implementation-plan.md (per-module specs).
 ---
 
 # m-stdlib — TDD user's guide
 
 ## 1. What this library is
 
-`m-stdlib` is a pure-M runtime library that fills the highest-impact
-gaps in MUMPS / M's standard library: things every other modern
-runtime ships out-of-the-box (assertions, UUIDs, base64, JSON, regex,
-collections, datetime, logging, CSV, URL parsing, argparse) but that
-M historically shipped only as ad-hoc per-site routines, packages,
-or — most often — not at all.
+`m-stdlib` is a runtime library that fills the highest-impact gaps in
+MUMPS / M's standard library: things every other modern runtime ships
+out-of-the-box — assertions, UUIDs, base64, JSON, regex, collections,
+datetime, logging, CSV, URL parsing, argparse, XML, and more — but
+that M historically shipped only as ad-hoc per-site routines, packages,
+or, most often, not at all.
 
 The library is:
 
-- **Pure-M for Phases 1 and 2** (`STDASSERT` … `STDURL`). No host
-  callouts, no platform-specific globals. Routines are upper-case
-  six-or-fewer character names per the M routine-name convention,
-  prefixed `STD*` (the prefix is reserved family-wide).
-- **Selectively `$ZF`-bound for Phase 3** (`STDHTTP`, `STDCRYPTO`,
-  `STDCOMPRESS`). A vendored build-callouts harness
-  (`tools/build-callouts.sh`) compiles per-platform shared objects
-  into `so/<platform>/`.
+- **Pure-M** for the entire shipped surface. No host callouts, no
+  platform-specific globals. Routines are upper-case six-or-fewer
+  character names per the M routine-name convention, prefixed `STD*`
+  (the prefix is reserved family-wide). A vendored build-callouts
+  harness (`tools/build-callouts.sh`) is in place for future
+  `$ZF`-bound modules; see `docs/module-tracker.md` for what is
+  queued behind it.
 - **YottaDB-first; IRIS-portable where reasonable.** Every module
   passes against the `intersystemsdc/iris-community:latest` image in
   fail-soft CI (`.github/workflows/ci.yml` → `iris-portability-check`)
@@ -42,9 +41,9 @@ The library is:
   dependency injection. Each module is a flat routine; you `do`-call
   or `$$`-call public labels.
 - **Not a compatibility shim.** Does not paper over differences
-  between YDB and IRIS — `STDREGEX` will run a Thompson-NFA on YDB
-  and (eventually) dispatch to native `$MATCH`/`$LOCATE` on IRIS,
-  but the public API is what's portable, not the implementation.
+  between YDB and IRIS — `STDREGEX` runs a Thompson-NFA on every
+  engine, but the public API is what's portable, not the
+  implementation.
 - **Not a security boundary.** Nothing in m-stdlib enforces
   authentication, authorisation, or input sanitisation across trust
   domains. Treat it as a library, not a gateway.
@@ -72,11 +71,9 @@ Every module in m-stdlib was built TDD-first:
 5. `make check` (fmt-check + lint + test) before committing; `make
    coverage` before tagging.
 
-The artefact this discipline produced isn't just working modules —
-it's a CI/CD-friendly test corpus that any downstream consumer
-inherits. STDJSON ships with 65 tests, STDREGEX with 90 assertions,
-STDURL with 150, STDCOLL with 116. Every one of those is replayable
-on YDB *and* IRIS in a few seconds.
+The artefact this discipline produces is a CI/CD-friendly test corpus
+that any downstream consumer inherits — replayable on YDB *and* IRIS
+in a few seconds.
 
 ### A library because the alternative is per-site reinvention
 
@@ -93,7 +90,7 @@ the relevant RFCs (RFC-4648 for base64/hex, RFC-4180 for CSV, RFC
 
 The library only works because the toolchain landed first:
 
-- **`m-cli`** ships `m fmt` (style enforcement), `m lint` (36 XINDEX
+- **`m-cli`** ships `m fmt` (style enforcement), `m lint` (XINDEX
   rules + ASTGREP-driven analyses), `m test` (test discovery +
   execution + TAP/JUnit output + coverage minimums + `--changed`
   diff-driven runs), and `m coverage` (line + branch + LCOV / JSON).
@@ -142,42 +139,41 @@ suites.
 
 ## 4. Module inventory
 
-### Phase 1 — pure-M quick wins (`v0.0.1` → `v0.1.0`, shipped 2026-05-05)
+| # | Module | Headline |
+|---|---|---|
+| 1 | [`STDASSERT`](modules/stdassert.md) | Assertion library — `eq` / `ne` / `true` / `false` / `near` / `raises` / `contains` / `len` + counter `start` / `report`. Wire-protocol-compatible with the m-cli runner. |
+| 2 | [`STDUUID`](modules/stduuid.md) | RFC-4122 v4 + RFC-9562 v7 UUIDs. v7 timestamp-prefix sorts in generation order. |
+| 3 | [`STDB64`](modules/stdb64.md) | RFC-4648 Base64 — standard alphabet `+ /`, URL-safe variant `- _`, `valid` predicate. |
+| 4 | [`STDHEX`](modules/stdhex.md) | RFC-4648 §8 hex — lowercase default, uppercase variant, case-insensitive decode. |
+| 5 | [`STDFMT`](modules/stdfmt.md) | Printf-style formatter — subset of Python `str.format` (fill / align / width / precision / type `s d f x X o b`). |
+| 6 | [`STDLOG`](modules/stdlog.md) | Structured logger — five levels, four sinks, `kv` or `json` line format. |
+| 7 | [`STDDATE`](modules/stddate.md) | ISO-8601 datetime + duration arithmetic (`now`, `fromh`, `toh`, `strftime`, `strptime`, `add`, `diff`). |
+| 8 | [`STDCSV`](modules/stdcsv.md) | RFC-4180 CSV parser/writer — every §2 clause, optional file I/O. |
+| 9 | [`STDARGS`](modules/stdargs.md) | argparse — long/short/grouped flags, positionals, sub-commands, `--` terminator. |
+| 10 | [`STDFIX`](modules/stdfix.md) | Fixture lifecycle — `with` / `invoke` / `register` / `cleanup`. Powers `m test`'s default per-test isolation. |
+| 11 | [`STDMOCK`](modules/stdmock.md) | Test-time call interception — `register` / `invoke` / `$$resolve` / `$$called` / `$$args`. |
+| 12 | [`STDSEED`](modules/stdseed.md) | TSV / JSON manifest loader for FileMan record fixtures + pluggable filer hook. |
+| 13 | [`STDJSON`](modules/stdjson.md) | RFC 8259 JSON parser + serialiser — one M tree node per JSON value. |
+| 14 | [`STDREGEX`](modules/stdregex.md) | Thompson-NFA regex engine (literals, classes, groups, alternation, greedy quantifiers, capture, replace, split). |
+| 15 | [`STDCOLL`](modules/stdcoll.md) | Collections — Set / Map / Stack / Queue / Deque / Heap / OrderedDict over caller-owned arrays. |
+| 16 | [`STDURL`](modules/stdurl.md) | RFC 3986 URI parse / build / encode / decode / valid / normalize / resolve. |
+| 17 | [`STDCSPRNG`](modules/stdcsprng.md) | Cryptographic random — bytes / hex / base64 / token / int / uuid4 backed by `/dev/urandom`. |
+| 18 | [`STDFS`](modules/stdfs.md) | File-system primitives — read / write / append / exists / remove / size + basename / dirname / join. |
+| 19 | [`STDOS`](modules/stdos.md) | Process / env / cmdline helpers — env / pid / cmdline / argv / cwd / user / hostname / exit. |
+| 20 | [`STDSEMVER`](modules/stdsemver.md) | SemVer 2.0.0 — valid / parse / compare / matches with caret, tilde, comparator AND-combination. |
+| 21 | [`STDSTR`](modules/stdstr.md) | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / case / repeat. |
+| 22 | [`STDTOML`](modules/stdtoml.md) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / int / float / bool scalars; `#` comments. |
+| 23 | [`STDCACHE`](modules/stdcache.md) | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear. |
+| 24 | [`STDPROF`](modules/stdprof.md) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags. |
+| 25 | [`STDSNAP`](modules/stdsnap.md) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY`. |
+| 26 | [`STDENV`](modules/stdenv.md) | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat. |
+| 27 | [`STDXML`](modules/stdxml.md) | XML 1.0 parser — elements, attributes, CDATA, comments / PI / xml-decl, numeric char refs, namespaces, XPath subset. |
 
-| # | Module | Tag | Headline function |
-|---|---|---|---|
-| 1 | [`STDASSERT`](modules/stdassert.md) | `v0.0.1` | Assertion library — `eq` / `ne` / `true` / `false` / `near` / `raises` / `contains` / `len` + counter `start` / `report`. Wire-protocol-compatible with m-tools `^TESTRUN`. |
-| 2 | [`STDUUID`](modules/stduuid.md) | `v0.0.1` | RFC-4122 v4 + RFC-9562 v7 UUIDs. v7 timestamp-prefix sorts in generation order. |
-| 3 | [`STDB64`](modules/stdb64.md) | `v0.0.2` | RFC-4648 Base64 — standard alphabet `+ /`, URL-safe variant `- _`, `valid` predicate. |
-| 4 | [`STDHEX`](modules/stdhex.md) | `v0.0.2` | RFC-4648 §8 hex — lowercase default, uppercase variant, case-insensitive decode. |
-| 5 | [`STDFMT`](modules/stdfmt.md) | `v0.0.3` | Printf-style formatter — subset of Python `str.format` (fill / align / width / precision / type `s d f x X o b`). |
-| 6 | [`STDLOG`](modules/stdlog.md) | `v0.0.4` | Structured `key=value` logger — five levels, four sinks, `$$now^STDDATE()` timestamp. |
-| 7 | [`STDDATE`](modules/stddate.md) | `v0.0.5` | ISO-8601 datetime + duration arithmetic (`now`, `fromh`, `toh`, `strftime`, `strptime`, `add`, `diff`). |
-| 8 | [`STDCSV`](modules/stdcsv.md) | `v0.0.6` | RFC-4180 CSV parser/writer — every §2 clause, optional file I/O. |
-| 9 | [`STDARGS`](modules/stdargs.md) | `v0.0.7` | argparse — long/short/grouped flags, positionals, sub-commands, `--` terminator. |
-
-### Phase 1b — TDD primitives (`v0.1.1` → `v0.1.3`, shipped 2026-05-05)
-
-| # | Module | Tag | Headline function |
-|---|---|---|---|
-| 10 | [`STDFIX`](modules/stdfix.md) | `v0.1.1` | Fixture lifecycle — `with` / `invoke` (one-shot transactional scope), `register`, `cleanup`. Powers `m test`'s default per-test isolation. |
-| 11 | [`STDMOCK`](modules/stdmock.md) | `v0.1.2` | Opt-in test-time call interception — `register` / `invoke` / `$$resolve` / `$$called` / `$$args`. |
-| 12 | [`STDSEED`](modules/stdseed.md) | `v0.1.3` | Declarative TSV manifest loader for FileMan record fixtures + pluggable filer hook. |
-
-### Phase 2 — pure-M heavy lifting (substance landed; `v0.2.0` tag pending)
-
-| # | Module | Target tag | Headline function |
-|---|---|---|---|
-| 13 | [`STDJSON`](modules/stdjson.md) | `v0.2.0` | RFC 8259 JSON parser + serialiser — one M tree node per JSON value. |
-| 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` | Thompson-NFA regex engine on YDB — full subset (literals, classes, groups, alternation, greedy quantifiers, capture, replace, split). |
-| 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | Collections — Set / Map / Stack / Queue / Deque / Heap / OrderedDict over caller-owned arrays. |
-| 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | RFC 3986 URI parse / build / encode / decode / valid / normalize / resolve. |
-
-**Aggregate gate, current head**: 800+ assertions across 16 suites,
-per-module label coverage ≥ 95 % (most at 100 %), 0 lint errors, fmt
-clean. Phase 2 release waits on the L12 STDREGEX final closeout
-(docs/CHANGELOG/release-tag sync — engine and tests already green at
-90/90).
+**Aggregate gate, current head:** 1230+ assertions across the suite,
+per-module label coverage ≥ 91 % (most at 100 %), 0 lint errors, fmt
+clean. See [`modules/index.md`](modules/index.md) for the per-module
+gate breakdown and [`module-tracker.md`](module-tracker.md) for live
+status, in-flight extensions, and proposed future modules.
 
 ## 5. Module reference
 
@@ -190,9 +186,8 @@ in the per-module document linked at the top.
 The cornerstone every other suite uses. Eleven public labels
 (`start`, `report`, `eq`, `ne`, `true`, `false`, `near`, `raises`,
 `contains`, `len`, `silent`). Each assertion takes counters by
-reference (`.pass,.fail`) and emits a `^TESTRUN`-compatible line
-protocol so the m-cli runner accepts STDASSERT-driven suites without
-adapter code.
+reference (`.pass,.fail`) and emits the line protocol the m-cli
+runner consumes without adapter code.
 
 ```m
 do start^STDASSERT(.pass,.fail)
@@ -200,10 +195,9 @@ do eq^STDASSERT(.pass,.fail,$$encode^STDB64("foo"),"Zm9v","RFC-4648 example")
 do report^STDASSERT(pass,fail)
 ```
 
-`raises` ships with a known constraint: `$ETRAP`'s arg-less `quit`
-fails with `M17 NOTEXTRINSIC` when the trapped error fires deep in an
-extrinsic chain. `STDFMT` / `STDDATE` / `STDCSV` ship error-path
-tests deferred per the documented P1 in `TOOLCHAIN-FINDINGS.md`.
+`raises` captures `$ECODE` from a candidate label running under
+`$ETRAP`, supporting both extrinsic chains and procedure-style calls
+via a `ZGOTO`-based unwind.
 
 ### 5.2 `STDUUID` — UUIDs ([detail](modules/stduuid.md))
 
@@ -218,6 +212,10 @@ API: `$$v4^STDUUID()`, `$$v7^STDUUID()`, `$$valid^STDUUID(s)`,
 `tests/conformance/uuid/rfc4122-vectors.tsv` covers Nil, Max, every
 version 1–8, all four variants, mixed/upper case, plus eight
 malformed-input rejections.
+
+For security tokens (session IDs, password resets, JWT salts), prefer
+`$$uuid4^STDCSPRNG()` — same RFC-4122 v4 surface but kernel-CSPRNG-
+backed.
 
 ### 5.3 `STDB64` — Base64 ([detail](modules/stdb64.md))
 
@@ -265,10 +263,10 @@ do INFO^STDLOG("user.login","userid",duz,"ip",$io,"ua",ua)
 ```
 
 Configuration at `^STDLIB($job,"stdlog",...)`: `LEVEL` (per-process
-threshold) and `SINK` (`stderr` / `stdout` / `global` / `global:^GREF`).
-Output values are emitted raw when clean, otherwise wrapped in
-`"…"` with `\\` and `\"` escaping. JSON-line output (consumes
-`STDJSON.encode`) is on the v0.2.0 add-on list.
+threshold), `SINK` (`stderr` / `stdout` / `global` / `global:^GREF`),
+and `FORMAT` (`kv` default, or `json` for one-line JSON-encoded
+records via `$$encode^STDJSON`). Output values are emitted raw when
+clean, otherwise wrapped in `"…"` with `\\` and `\"` escaping.
 
 ### 5.7 `STDDATE` — datetime ([detail](modules/stddate.md))
 
@@ -345,14 +343,14 @@ do register^STDMOCK("get^DGFUNC","stub^MYTEST")
 do clear^STDMOCK
 ```
 
-The runner clears mock registry between tests automatically (m-cli's
-W companion track). Single-level resolution — no chained replacement.
-Per-call args recorded under `^STDLIB($job,"stdmock",...)` so tests
-can assert what the production code passed.
+The runner clears the mock registry between tests automatically.
+Single-level resolution — no chained replacement. Per-call args
+recorded under `^STDLIB($job,"stdmock",...)` so tests can assert what
+the production code passed.
 
 ### 5.12 `STDSEED` — fixture data ([detail](modules/stdseed.md))
 
-TSV manifest loader for FileMan record fixtures.
+TSV and JSON manifest loader for FileMan record fixtures.
 
 ```
 # fixtures/test-patients.tsv
@@ -364,11 +362,11 @@ PATIENT	.01=Doe,Jane	.02=F	.03=12 1 75
 m test --seed fixtures/test-patients.tsv tests/
 ```
 
-Pluggable filer hook — the default `fileViaDie^STDSEED` invokes
-`FILE^DIE` and surfaces `^TMP("DIERR",$J)` as
-`U-STDSEED-FILER-DIE-ERROR`. Tests inject a stub filer to run
-without FileMan. `loadJson` add-on lands once `STDJSON` is
-consumable end-to-end (currently raises `U-STDSEED-NOT-IMPLEMENTED`).
+`loadJson` accepts an STDJSON-encoded array of records (same field
+shape) for callers who already produce JSON fixtures. Pluggable filer
+hook — the default `fileViaDie^STDSEED` invokes `FILE^DIE` and
+surfaces `^TMP("DIERR",$J)` as `U-STDSEED-FILER-DIE-ERROR`. Tests
+inject a stub filer to run without FileMan.
 
 ### 5.13 `STDJSON` — JSON ([detail](modules/stdjson.md))
 
@@ -394,14 +392,16 @@ write $$encode^STDJSON(.root),!                ; round-trips
 
 Curated A3 corpus (23 `y_`, 15 `n_`, 8 `i_` files) at
 `tests/conformance/json/` — every vector mapped to an RFC 8259 clause
-in the corpus README.
+in the corpus README. Recursion through subscripted-by-reference locals
+uses the merge-then-pass idiom (YDB's `.x(SUBS)` syntax limit), which
+is fully internalised — callers see ordinary-looking
+`$$encode^STDJSON(.tree)` calls.
 
 ### 5.14 `STDREGEX` — regex ([detail](modules/stdregex.md))
 
-Thompson-NFA on YottaDB; native `$MATCH` / `$LOCATE` dispatch on
-IRIS (deferred — pure-M engine runs portably today). Compiled
-patterns are positive-integer handles; pattern state lives at
-`^STDLIB($job,"stdregex",h,...)`; `$$free^STDREGEX(h)` releases it.
+Thompson-NFA engine. Compiled patterns are positive-integer handles;
+pattern state lives at `^STDLIB($job,"stdregex",h,...)`;
+`$$free^STDREGEX(h)` releases it.
 
 ```m
 new h,n,out
@@ -413,15 +413,13 @@ write out(2),!                                              ; example.com
 do free^STDREGEX(h)
 ```
 
-v0.2.0 supported subset: literals, `.`, `^` / `$`, greedy `*` / `+` /
-`?` / `{n}` / `{n,}` / `{n,m}`, `[abc]` / `[^abc]` / `[a-z]`,
-predefined classes `\d` `\w` `\s`, alternation `|`, capturing `(…)`
-and non-capturing `(?:…)`, `\1..\9` backref expansion in `replace`.
-Out of scope: back-refs in pattern, lookaround, named groups,
-Unicode property classes, inline modifiers, possessive/lazy
-quantifiers — `compile` rejects with `U-STDREGEX-UNSUPPORTED`. A
-follow-on `STDREGEX_PCRE` (Phase-3-adjacent) ships full PCRE via
-`$ZF` to libpcre2.
+Supported subset: literals, `.`, `^` / `$`, greedy `*` / `+` / `?` /
+`{n}` / `{n,}` / `{n,m}`, `[abc]` / `[^abc]` / `[a-z]`, predefined
+classes `\d` `\w` `\s`, alternation `|`, capturing `(…)` and
+non-capturing `(?:…)`, `\1..\9` backref expansion in `replace`. Out
+of scope: back-refs in pattern, lookaround, named groups, Unicode
+property classes, inline modifiers, possessive/lazy quantifiers —
+`compile` rejects with `U-STDREGEX-UNSUPPORTED`.
 
 ### 5.15 `STDCOLL` — collections ([detail](modules/stdcoll.md))
 
@@ -513,7 +511,7 @@ strips it on the way back.
 
 Fills the gaps `$ZCMDLINE` / `$ZJOB` / `$ZTRNLNM` leave behind. Useful
 glue for STDARGS-driven scripts that want to inspect env, exit with a
-non-zero rc, or report `$JOB`/`$cwd`/hostname.
+non-zero rc, or report `$JOB` / `$cwd` / hostname.
 
 ```m
 write $$env^STDOS("HOME"),!           ; ~/  ($ZTRNLNM-equivalent)
@@ -525,8 +523,8 @@ write $$hostname^STDOS(),!
 do exit^STDOS(2)                       ; ZHALT 2
 ```
 
-`splitArgs` in v1 is whitespace-only; quote-aware tokenisation (and
-process-env write-back via `setenv()`) is queued at T15.
+`splitArgs` is whitespace-only — quote-aware tokenisation tracked on
+the dispatch board.
 
 ### 5.20 `STDSEMVER` — SemVer 2.0.0 ([detail](modules/stdsemver.md))
 
@@ -544,18 +542,18 @@ do parse^STDSEMVER("1.2.3-rc.1+x",.v)
 write v("major"),".",v("minor"),".",v("patch"),! v("prerelease"),!,v("build"),!
 ```
 
-Range syntax v1: comparators (`>`, `<`, `>=`, `<=`, `=`), caret
-(`^`), tilde (`~`), space-separated AND. `||` OR / hyphen ranges /
-wildcards / npm-style `^0.x.y` zero-major narrowing are queued at T16
-behind a concrete consumer ask.
+Range syntax: comparators (`>`, `<`, `>=`, `<=`, `=`), caret (`^`),
+tilde (`~`), space-separated AND. Extended range constructs (`||`
+OR, hyphen ranges, wildcards, prerelease-aware comparators, npm
+`^0.x.y` zero-major narrowing) are tracked in
+[`module-tracker.md`](module-tracker.md).
 
 ### 5.21 `STDSTR` — string helpers ([detail](modules/stdstr.md))
 
 The pad / trim / split / starts-with / ends-with / case-fold / repeat
 basics that show up across every consumer. Pure `$translate` /
 `$piece` / `$find` / `$extract` — no `$Z*`, no STDREGEX dep. ASCII-
-only; locale-aware Unicode case folding is deferred to a future
-STDUNICODE.
+only.
 
 ```m
 write $$pad^STDSTR("x",5,"."),!                ; "x...."
@@ -573,9 +571,7 @@ write $$repeat^STDSTR("-",10),!                  ; "----------"
 Top-level pairs + `[section]` tables + four scalars (string, signed
 decimal int, signed decimal float, bool surfaced as 1/0) + `#`
 comments. Tree shape: `root("v",path)` + `root("t",path)` where
-`path` is a dotted key. Out of scope at v1 (queued at T18): arrays,
-inline tables, dotted keys, multi-line strings, integer underscores
-+ hex/oct/bin, datetime literals.
+`path` is a dotted key.
 
 ```m
 new toml,cfg
@@ -585,6 +581,12 @@ write cfg("v","server.host"),!     ; "127.0.0.1"
 write cfg("v","server.port"),!     ; 8080
 write cfg("t","server.port"),!     ; "int"
 ```
+
+Out of scope: arrays, inline tables, dotted keys,
+`[[array-of-tables]]`, multi-line / literal strings, integer
+underscores + hex/oct/bin, special floats, exponent notation,
+datetime values — see [`module-tracker.md`](module-tracker.md) for
+the queued extensions.
 
 ### 5.23 `STDCACHE` — LRU + TTL ([detail](modules/stdcache.md))
 
@@ -663,131 +665,71 @@ write $$getBool^STDENV(.env,"DEBUG",0),!         ; 1 for {true,yes,on,1}
 ```
 
 `getBool` matches `{true, yes, on, 1}` / `{false, no, off, 0}` case-
-insensitive. Variable substitution (`${VAR}`), `export` prefix, and
-multi-line values are queued at T22. `m test --env PATH` loads `.env`
-files automatically before each suite — see m-cli's runner docs.
+insensitive. `m test --env PATH` loads `.env` files automatically
+before each suite — see m-cli's runner docs.
 
-### 5.27 `STDXML` — XML 1.0 v0 ([detail](modules/stdxml.md))
+### 5.27 `STDXML` — XML 1.0 ([detail](modules/stdxml.md))
 
-Well-formed XML 1.0 subset: elements, attributes, nested children,
-text content, the five standard entity references. Tree shape mirrors
-STDJSON's caller-owned-tree convention — `node("name")` / `node("attr",
-key)` / `node("text")` / `node("childCount")` / `node("child",N)`. v0
-covers ~30% of the full envelope; T23-T27 cover the remaining ~70%
-(CDATA, comments, xml-decl, namespaces, numeric char refs, DTD,
-XPath 1.0).
+XML 1.0 parser with namespace support and a useful XPath subset.
+Public surface covers what a vista-meta HL7v3 / CDA / FHIR consumer
+needs out of the box. Tree shape mirrors STDJSON's caller-owned-tree
+convention — `node("name")` (local name) / `node("prefix")` /
+`node("ns")` / `node("attr",key)` / `node("attrNs",key)` /
+`node("text")` / `node("childCount")` / `node("child",N)`.
 
 ```m
 new doc,sub
 do parse^STDXML("<note id=""1""><body>hi</body></note>",.doc)
 write $$rootName^STDXML(.doc),!                   ; "note"
 write $$attr^STDXML(.doc,"id"),!                   ; "1"
-write $$childCount^STDXML(.doc),!                  ; 1
 do childByName^STDXML(.doc,"body",.sub)
 write $$text^STDXML(.sub),!                        ; "hi"
 ```
 
+What's covered:
+
+- **Elements / attributes / text** — well-formed XML 1.0.
+- **Comments / processing instructions / `<?xml ... ?>` declaration**
+  — consumed and discarded (preamble, intra-document, postamble).
+- **CDATA sections** — `<![CDATA[ ... ]]>` content stored verbatim
+  (no entity decoding).
+- **Entity references** — the five standard entities (`&amp;` `&lt;`
+  `&gt;` `&quot;` `&apos;`) plus numeric character references
+  (`&#NNN;` decimal, `&#xHH;` hex), with full UTF-8 encoding for
+  any code point up to U+10FFFF.
+- **Namespaces** — element prefix and attribute prefix both resolved
+  against the inherited + local `xmlns` map; `xml:` prefix bound
+  built-in. Accessors: `$$ns^STDXML(.node)`,
+  `$$attrNs^STDXML(.node, attrName)`. Undeclared prefix is a parse
+  error.
+- **XPath subset** — `$$xpath` / `$$xpathOne` / `$$xpathText` accept
+  bare `name`, chained `a/b/c`, absolute `/foo`, descendant `//x`,
+  and the position predicate `[N]`. Results are subtree merges so
+  callers walk them like any other parsed-tree node.
+
 `childByName` does the internal `merge` to sidestep the YDB `.x(SUBS)`
 syntax limit — recursive descent through a parsed XML tree just works
-without callers needing merge-then-pass plumbing themselves. v0
-fails closed on any deferred construct (`lastError()` identifies the
-offending token).
+without callers needing merge-then-pass plumbing themselves. The
+parser fails closed on unsupported input (`$$lastError^STDXML()`
+identifies the offending construct). Out of scope: DTDs / `<!DOCTYPE>` /
+custom entity declarations, XPath wildcards / attribute axis (`@attr`),
+and XPath functions / comparison predicates (`[@attr='v']`,
+`position()`, `count()`, …) — all tracked in
+[`module-tracker.md`](module-tracker.md).
 
-## 6. Roadmap — what remains
+## 6. What's next
 
-### 6.1 Phase 2 close (`v0.2.0`)
-
-Substance is on `main`; closing items are administrative or scoped
-add-ons:
-
-| Item | Track | What's left |
-|---|---|---|
-| L12 STDREGEX release sync | L12 | docs/CHANGELOG/tag — engine is 90/90 green. |
-| STDLOG JSON-line output | L4 add-on | One-line sink switch consuming `$$encode^STDJSON`. |
-| STDSEED `LOADJSON` | L10 add-on | Replace the `U-STDSEED-NOT-IMPLEMENTED` stub now that L11 has shipped. |
-| `make check` cleanup | infra | Three pre-existing M-MOD-024/M-MOD-026 lint findings in `tests/STDFIXTST.m`. |
-
-### 6.2 Phase 3 — `$ZF`-backed callout modules
-
-Hard-blocked on `tools/build-callouts.sh` (already shipped, A6).
-
-| Track | Module | Headline function | Notes |
-|---|---|---|---|
-| H1 | `STDCRYPTO` | SHA-256 / SHA-384 / SHA-512, HMAC, constant-time compare, `$ZF` to `libcrypto`. | Foundation for JWT verify, password hashing, session tokens. |
-| H2 | `STDCOMPRESS` | gzip / deflate / zstd via `$ZF` to `libz` / `libzstd`. | Round-trips RFC-1952 + zstd reference vectors. |
-| H3 | `STDHTTP` | HTTP/1.1 client (request / response / streaming body) via `$ZF` to `libcurl`. Consumes `STDURL`. | Server-side HTTP is explicitly deferred — separate trade-off space. |
-
-A small reference example (jwt-verify) ships alongside Phase 3 to
-exercise STDCRYPTO + STDB64 + STDJSON end-to-end.
-
-### 6.3 Speculative future modules — portability + functional gaps
-
-These are not on the dispatch board today but are the natural
-candidates if the library expands further. Each is sketched as
-"why it would matter" rather than spec'd in detail.
-
-| Candidate | Headline function | Why it would matter |
-|---|---|---|
-| ~~`STDXML`~~ | ~~XML parser + serialiser (subset of XPath 1.0).~~ | **v0 promoted out of this list 2026-05-07** — `STDXML v0` shipped as L25 phase P4 with `parse` / `valid` / `rootName` / `attr` / `text` / `childCount` / `childByName` / `lastError`. Well-formed XML 1.0 elements, attributes, nested children, text content, 5 standard entities. ~30% of the full envelope; CDATA / PI / comments / xml-decl (T23) / numeric char refs (T24) / namespaces (T25) / DTDs (T26) / XPath 1.0 (T27) all queued. See [`docs/modules/stdxml.md`](modules/stdxml.md). |
-| `STDYAML` | YAML 1.2 parser. | Config file ergonomics; preferred to JSON for human-edited configs. |
-| ~~`STDTOML`~~ | ~~TOML 1.0 parser.~~ | **Promoted out of this list 2026-05-07** — `STDTOML` shipped as L20 phase P4 with a deliberately narrow v1: top-level pairs + `[section]` tables + string / integer / float / bool scalars + `#` comments. See [`docs/modules/stdtoml.md`](modules/stdtoml.md). Arrays, inline tables, dotted keys, `[[array-of-tables]]`, multi-line / literal strings, integer extensions, special floats, exponent notation, and datetime values all queued at T18. |
-| ~~`STDSEMVER`~~ | ~~SemVer parse / compare / range match (`>=1.2.3, <2`).~~ | **Promoted out of this list 2026-05-07** — `STDSEMVER` shipped as L18 phase P4 with valid / parse / compare / matches plus major/minor/patch/prerelease/build accessors. Range subset: `^` / `~` / comparators (`>` `<` `>=` `<=` `=`) / AND-combination. See [`docs/modules/stdsemver.md`](modules/stdsemver.md). `||` OR, hyphen ranges, wildcards, prerelease-aware comparators, and npm `^0.x.y` zero-major narrowing all queued at T16. |
-| ~~`STDFS`~~ | ~~File-system primitives — read / write / atomic-replace / `mtime` / `glob`.~~ | **Promoted out of this list 2026-05-07** — `STDFS` shipped as L16 phase P4 with text-mode YDB-only v1 (read/write/append/exists/remove/size + basename/dirname/join). See [`docs/modules/stdfs.md`](modules/stdfs.md). atomic-replace, glob, and binary-safe `readBytes`/`writeBytes` queued at T13/T14 alongside the future `$ZF → libc` callout backend. |
-| ~~`STDOS`~~ | ~~Process / env / signal helpers — `$$env(name)`, `$$pid()`, `$$argv()`, `$$exit(rc)`.~~ | **Promoted out of this list 2026-05-07** — `STDOS` shipped as L17 phase P4 with `env` / `pid` / `cmdline` / `argc` / `arg` / `argv` / `splitArgs` / `cwd` / `user` / `hostname` / `exit`. See [`docs/modules/stdos.md`](modules/stdos.md). `setenv`, quote-aware `splitArgs`, and the IRIS arm queued at T15 alongside the `$ZF → libc setenv/getcwd/gethostname` callouts. |
-| `STDNET` | TCP / UDP socket primitives. Sits below `STDHTTP` and an eventual `STDDNS`. | Greenfield M services beyond the FileMan-backed VistA tier. |
-| ~~`STDCACHE`~~ | ~~LRU + TTL caches over local arrays or a global.~~ | **Promoted out of this list 2026-05-07** — `STDCACHE` shipped as L21 phase P4 with `new` / `put` / `get` / `has` / `remove` / `clear` / `size` / `capacity`. LRU eviction by least-recently-touched; TTL via `$HOROLOG`-clock with lazy reap on access. See [`docs/modules/stdcache.md`](modules/stdcache.md). STDCOLL rebase + bulk `prune` queued at T19. |
-| ~~`STDSTR`~~ | ~~String helpers — `pad`, `trim`, `replaceAll`, `split` (non-regex), `startsWith` / `endsWith`, `toLowerASCII` / `toUpperASCII`.~~ | **Promoted out of this list 2026-05-07** — `STDSTR` shipped as L19 phase P4 with pad / padLeft / padRight, trim / trimLeft / trimRight, replaceAll, split, startsWith / endsWith, toLowerASCII / toUpperASCII, repeat. See [`docs/modules/stdstr.md`](modules/stdstr.md). Unicode whitespace + locale-aware case folding queued at T17. |
-| `STDMATH` | `clamp`, `min` / `max` over arrays, `sum`, `mean`, fixed-point arithmetic. | M's native arithmetic is already strong; this is glue around the gaps. |
-| `STDXFRM` | Functional list combinators — `map` / `filter` / `reduce` over local arrays via XECUTE'd lambdas. | Modernises the "loop with `$ORDER` and accumulate" idiom. |
-| ~~`STDCSPRNG`~~ | ~~Seeded + true cryptographic RNG via `$ZF` to `getrandom(2)`.~~ | **Promoted out of this list 2026-05-07** — `STDCSPRNG` shipped as L15 phase P4 with a `/dev/urandom` backend (kernel ChaCha20 CSPRNG, same source `getrandom(2)` reads without `GRND_RANDOM`). See [`docs/modules/stdcsprng.md`](modules/stdcsprng.md). The `$ZF → getrandom(2)` callout backend is reserved as a future perf-only swap (T12) — public API unchanged. |
-| ~~`STDENV`~~ | ~~`.env` file loader for fixture / test data, with type coercion.~~ | **Promoted out of this list 2026-05-07** — `STDENV` shipped as L24 phase P4 with `parse` / `parseFile` / `valid` / `has` / `get` / `getInt` / `getBool` / `getFloat`. Bare + double-quoted + single-quoted values, `#` comments, default-on-miss-or-mistype typed accessors. See [`docs/modules/stdenv.md`](modules/stdenv.md). Variable substitution / `export` prefix / multi-line values / process-env write-back queued at T22. |
-| ~~`STDPROF`~~ | ~~Wall-clock / CPU profiler — `start^STDPROF(tag)` / `stop^STDPROF(tag)`, percentile reporting.~~ | **Promoted out of this list 2026-05-07** — `STDPROF` shipped as L22 phase P4 with `start` / `stop` / `count` / `total` / `mean` / `min` / `max` / `percentile` / `tags` / `clear`. Microsecond resolution via `$ZHOROLOG`. Percentile via nearest-rank over a sorted-by-value sample tree. See [`docs/modules/stdprof.md`](modules/stdprof.md). Streaming-percentile via CKMS sketch over STDCOLL Heap queued at T20. |
-| ~~`STDSNAP`~~ | ~~Snapshot testing — capture canonical structure, diff on next run.~~ | **Promoted out of this list 2026-05-07** — `STDSNAP` shipped as L23 phase P4 with `serialize` / `save` / `matches` / `asserts`. Canonical line-per-leaf dump via `$QUERY` walk; STDASSERT integration via `asserts`. See [`docs/modules/stdsnap.md`](modules/stdsnap.md). Root-scalar / auto-update / diff helper queued at T21. |
-
-### 6.4 Toolchain gaps that gate the library
-
-Open rows in `TOOLCHAIN-FINDINGS.md` that block or limit m-stdlib
-work:
-
-- **P1 / m-cli** — `m test FILE::tLabel` regression (single-test
-  mode returns rc=253 silently after the C1 fix). Whole-suite mode
-  is healthy. Dev-loop hit when iterating on one failing label.
-- **P1 / m-stdlib** — `STDASSERT.raises` `$ETRAP` arg-less `quit`
-  hits `M17 NOTEXTRINSIC` deep in extrinsic chains. Affects deferred
-  error-path tests in STDFMT / STDDATE / STDCSV. Fix is `ZGOTO`-based
-  unwind or a parallel `raisesx^STDASSERT`.
-- **P2 / YDB** — `$ETRAP` that `trollback`s its own scope then
-  re-raises does not propagate to outer trap. Surfaced building
-  STDFIX. Worth a minimal-repro upstream report.
-- **P2 / m-cli** — `M-MOD-024` false positive on `OPEN` / `CLOSE`
-  device-param lists; `M-MOD-020` false positive on by-ref test-suite
-  idiom. Both currently silenced by file-wide `; m-lint:` directives.
-- **P3 / m-cli** — Default-isolation throughput on high-test-count
-  suites + stdout buffering interaction with external `timeout` /
-  `tee`. Documented workaround: `--no-isolation`.
-
-### 6.5 Portability open questions
-
-- **IRIS native-class dispatch**. Today the library compiles and
-  passes against `iris-community:latest` because every module is
-  pure-M (or, for Phase 3, behind a callout boundary). What we have
-  not yet exercised: `$ZF` callouts on IRIS (the equivalent is
-  `$ZF` style invocation of system functions or class-method
-  bridging). Phase 3 needs an IRIS pass before `STDCRYPTO` /
-  `STDCOMPRESS` / `STDHTTP` ship.
-- **GT.M permanently out** — the project's locked decision. Anyone
-  forking m-stdlib for GT.M would need to remove the `view "TRACE"`
-  coverage hooks and the `tstart` rollback levels; non-trivial.
-- **Real-corpus validation** — `m-modern-corpus` (parent-plan track
-  P3) seeds 5–10 non-VA M projects whose suites should pass against
-  m-stdlib unchanged. Until that lands, the library is exercised only
-  against its own test corpus.
+Live work — proposed modules, in-flight extensions, deferred ToDos —
+is tracked in [`module-tracker.md`](module-tracker.md). Open
+toolchain bugs that block or limit m-stdlib work live in
+[`../TOOLCHAIN-FINDINGS.md`](../TOOLCHAIN-FINDINGS.md). Release history
+is in [`../CHANGELOG.md`](../CHANGELOG.md).
 
 ## 7. Cross-references
 
-- [m-stdlib-implementation-plan.md](m-stdlib-implementation-plan.md) — per-module specs (§8) and §9 acceptance gate (the canonical authority).
-- [parallel-tracks.md](parallel-tracks.md) — dispatch view; current execution status; pick-list.
-- [tdd-orchestration-plan.md](tdd-orchestration-plan.md) — joint m-stdlib ↔ m-cli milestone narrative (M0 – M5).
 - [modules/index.md](modules/index.md) — canonical module inventory; one row per shipped module with conformance corpus + cross-module dependency map.
+- [module-tracker.md](module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board.
+- [m-stdlib-implementation-plan.md](m-stdlib-implementation-plan.md) — per-module specs (§8) and §9 acceptance gate.
+- [parallel-tracks.md](parallel-tracks.md) — dispatch view; current execution status.
 - [../TOOLCHAIN-FINDINGS.md](../TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
 - [../CHANGELOG.md](../CHANGELOG.md) — release history.

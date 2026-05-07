@@ -88,23 +88,26 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T20 | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | ✅ C6 |
 | P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T21 | STDFS (save/matches I/O); STDASSERT (asserts integration) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | ✅ C7 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T22 | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | ✅ C8 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.3.x` (v0+T23+T24+T25+T27v0 on `main`; v1 incremental) | ~9d ✅ (v0+T23+T24+T25+T27v0; ~3-5d remaining for T26/T27a/T27b) | T26, T27a, T27b | none (STDREGEX listed as soft dep for future T27b); pure recursive-descent parser + indirection-based path walker | XML parser v0+T23+T24+T25+T27v0 — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces + XPath subset (paths / `[N]` predicates / descendant axis `//`). ~75% of full envelope; T27a (wildcards / `@attr`), T27b (functions / comparison predicates), T26 (DTDs) cover the remaining ~25%. | n/a — m-cli has no XML in `m fmt` / `m lint` / `m test` / `m coverage` / `m lsp` flows; consumer is vista-meta HL7v3 / CDA / FHIR |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.3.x` (incremental on `main`) | ~10d ✅ (v0+T23+T24+T25+T27v0+T27a; ~2-3d remaining for T26/T27b) | T26, T27b | none (STDREGEX listed as soft dep for future T27b); pure recursive-descent parser + indirection-based path walker | XML parser — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces + XPath subset (paths / `[N]` predicates / descendant axis `//` / wildcards `*` `@*` / attribute axis `@attr`). ~80% of full envelope; T27b (functions / comparison predicates) and T26 (DTDs) cover the remaining ~20%. | n/a — m-cli has no XML in `m fmt` / `m lint` / `m test` / `m coverage` / `m lsp` flows; consumer is vista-meta HL7v3 / CDA / FHIR |
 | P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `+` coercion, `$ORDER` walk) | Numeric helpers — clamp / min / max / sum / count / mean over caller-owned arrays | n/a — Python `min` / `max` / `sum` / `statistics.mean`; not inner-loop |
 | P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `@expr` indirection in own stack frame) | Higher-order array transforms — `map` / `filter` / `reduce` via `@expr`-evaluated lambdas (`value` / `key` / `acc` locals) | n/a — Python list-comprehensions / `map` / `filter` / `functools.reduce`; not inner-loop |
-| P3 | H1 | 30 | `STDCRYPTO` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libcrypto`; A6 | SHA-256/384/512 + HMAC | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
+| P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.3.x` (on `main`, awaiting engine deployment for green run) | ~2d code-complete | T28 | `$ZF → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
 | P3 | H2 | 31 | `STDCOMPRESS` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libz`, `$ZF → libzstd`; A6 | gzip / deflate / zstd | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
-| P3 | H3 | 32 | `STDHTTP` | `v0.3.0` (queued) | 8–12d est. | T11 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client (request / response / streaming) | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T11 |
+| P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` (in progress) | ~1d ✅ iter 1 / ~7-11d remaining | T29 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client. **Iter 1 landed:** pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`). **Iter 2 queued:** libcurl callout (`src/callouts/http.c`) + `$$get` / `$$post` / `$$request` extrinsics. | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T29 |
 
-**Aggregate:** ~90d shipped across the 29 landed modules
+**Aggregate:** ~93d shipped across the 30 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
 + STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
-+ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0
-L25 P4 + STDMATH L26 P4 + STDXFRM L27 P4); STDXML covers ~75% of
-the 12-16d envelope so ~3-5d of T26/T27a/T27b remain. ~18–26d
-estimated for the three queued
-Phase 3 modules. Open ToDo work (T1-T27 with T23/T24/T25/T25b/T27v0
-resolved; T27a and T27b new) is incremental on top of the shipped
-totals — see ToDo expansion below for per-task estimates.
++ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0+T27a
+L25 P4 + STDMATH L26 P4 + STDXFRM L27 P4 + **STDCRYPTO H1 P3** —
+code-complete on `main`; engine green-run pending T28); STDXML
+covers ~80% of the 12-16d envelope so ~2-3d of T26/T27b remain.
+~12–18d estimated for the two remaining queued Phase 3 modules
+(STDCOMPRESS, plus STDHTTP iter 2 — STDHTTP iter 1 already landed).
+Open ToDo work (T1-T29 with T23/T24/T25/T25b/T27v0/T27a resolved;
+T11 partially closed — STDCRYPTO landed, STDHTTP iter 1 landed;
+T26, T27b, T28, T29 remaining) is incremental on top of the
+shipped totals — see ToDo expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -125,7 +128,7 @@ out in `docs/parallel-tracks.md` §3.4):
 - **C9** = STDHTTP (P3) consumer of STDURL — m-cli today uses Python `urllib.parse` on the host side; STDURL only enters m-cli through the future STDHTTP path, and only if STDHTTP itself becomes an m-cli dep (which it might not).
 - **C10** = `m install <pkg>@<range>` as consumer of STDSEMVER — m-cli is not a package manager today; if it ever grows one, Python's `packaging.version` is the host-side equivalent. Speculative.
 - **C11** = m-cli runtime config from `.m-cli.toml` via STDTOML — m-cli today reads `.m-cli.toml` and `[tool.m-cli]` in `pyproject.toml` via Python 3.11+ stdlib `tomllib`; STDTOML would only land if config consumption moves to the M side.
-- **C12** = STDCRYPTO P3 hookup — m-cli has no hashing / HMAC / signing path today; queued behind T11 entry.
+- **C12** = STDCRYPTO P3 hookup — m-cli has no hashing / HMAC / signing path today; queued behind T28 (STDCRYPTO is code-complete on `main`, but the m-cli-side companion track has no concrete consumer).
 - **C13** = STDCOMPRESS P3 hookup — m-cli has no compression path today; queued behind T11 entry.
 - **C14** = STDHTTP P3 hookup — m-cli today shells across SSH or uses Python `urllib`/`requests` for any HTTP need; queued behind T11 entry.
 
@@ -212,13 +215,14 @@ toolchain flows. Per-module:
 - **T20** STDPROF streaming-percentile variant via STDCOLL Heap (CKMS sketch) for continuous monitoring; v1 keeps all samples and walks them on demand.
 - **T21** STDSNAP root-scalar serialization + auto-update flag + diff helper (v1 walks `$QUERY` descendants only, no auto-update; humans re-`save` manually after intentional drift).
 - **T22** STDENV variable substitution + `export` prefix + multi-line values + process-environment integration via STDOS setenv (T15).
+- **T28** Engine-bound deployment for STDCRYPTO — push .so + .xc into vista-meta container, wire `STDLIB_LIB` + `ydb_xc_std_crypto` env vars on the YDB session side, install `libcrypto.so.3` in the image. Code-complete on `main` 2026-05-07; this is the gating ticket before STDCRYPTOTST runs green and before STDCOMPRESS / STDHTTP start.
 - ~~**T23** STDXML CDATA / processing instructions / comments / `<?xml ?>` declaration~~ — **resolved 2026-05-07**: `parseContent` dispatches on `<!--` / `<![CDATA[` / `<?`; new `skipDocLevel` walks PIs+comments before/after the root; CDATA content stored as literal text (no entity decode).
 - ~~**T24** STDXML numeric character references~~ — **resolved 2026-05-07**: `decodeEntities` handles `&#NNN;` (decimal) and `&#xHH;` (hex); `encodeUtf8` produces 1-4 byte UTF-8 sequences for any Unicode code point up to U+10FFFF.
 - ~~**T25** STDXML namespaces — element-level~~ — **resolved 2026-05-07**: per-element namespace map threaded through `parseElement`/`parseContent`; `xmlns` / `xmlns:prefix` filtered out of regular attrs; element prefix resolved to URI; new `$$ns^STDXML(.node)` accessor; undeclared prefix is a parse error. **T25b** (attribute-namespace resolution) split off as a separate ToDo entry.
 - ~~**T25b** STDXML attribute-namespace resolution~~ — **resolved 2026-05-07**: `resolveAttrNs` walks `node("attr",...)` and stores `node("attrNs", attrName)` for each prefixed attr; default xmlns does NOT apply to unprefixed attrs (per spec); `xml:` prefix bound to `http://www.w3.org/XML/1998/namespace` as a built-in (no declaration needed); undeclared prefix on an attr is a parse error. New public accessor `$$attrNs^STDXML(.node, attrName)`.
 - **T26** STDXML DTDs / DOCTYPE / custom entity declarations.
 - ~~**T27** STDXML XPath 1.0 query subset — minimal v0~~ — **resolved 2026-05-07**: `parseXPath` compiles expressions into step lists; `applyStep` walks the candidate set via path strings; `buildRef` constructs M name references for indirection-based subtree access. Public surface: `$$xpath` / `$$xpathOne` / `$$xpathText`. Supported syntax: bare `name`, chained `a/b/c`, absolute `/foo`, descendant `//x`, position predicate `[N]`. Out of scope queued at T27a / T27b.
-- **T27a** STDXML XPath wildcards (`*`) and attribute axis (`@attrName`) — common shorthand patterns. Wildcards match any element name; `@attrName` returns attribute values from the current context. ~1d.
+- ~~**T27a** STDXML XPath wildcards (`*`) and attribute axis (`@attrName`)~~ — **implementation landed 2026-05-07** (test verification pending YDB container availability): `parseXPath` accepts `*` as a name token (matched in `collectChildren` / `collectDescendants` via the new `matchName` helper) and detects `@` as an attribute-step prefix that is terminal (parser rejects anything after the attribute name). New `collectAttribute` walks `node("attr", k)` for the candidate path and emits results with `attrValue` / `attrName` subnodes; `mergePathToResult` lifts those into `results(idx,"text")` / `results(idx,"name")` so `xpathText` returns the attribute value transparently. Combinations covered: `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`. 10 new tests (`tXpath{Wildcard,ChildOfWildcard,DescendantWildcard,WildcardWithPredicate,Attribute*}`).
 - **T27b** STDXML XPath functions (`position()`, `count()`, `text()`, `name()`, `normalize-space()`, `contains()`, `starts-with()`, `string-length()`) and comparison predicates (`[@attr='v']`, `[name()='foo']`). The predicate evaluator has to grow into a proper expression evaluator with type promotion (node-set / string / number / boolean). 2-3d.
 
 **Aggregate gate, current head (2026-05-07):** 1780+ assertions
@@ -676,10 +680,23 @@ across three focused T-tickets:
   paths (`a/b/c`), absolute (`/foo`), descendant (`//x`), position
   predicates (`[N]`). 12 new tests; STDXML 122/122 → 145/145
   assertions, 31/32 → 41/42 labels (97.6%).
-- **T27a — XPath wildcards + attribute axis.** Queued. `*` matches
-  any element name; `@attrName` returns attribute values from the
-  current context. Both are common shorthand patterns in HL7v3 /
-  CDA / FHIR XPaths. ~1d.
+- ✅ **T27a — XPath wildcards + attribute axis.** **Implementation
+  landed 2026-05-07** (test verification pending YDB container
+  availability). `parseXPath` recognises `*` as a name token and
+  `@` as an attribute-step prefix; the attribute step is terminal
+  (parser rejects trailing steps). `matchName` factors the
+  wildcard-aware name comparison used by both `collectChildren`
+  and `collectDescendants`. `collectAttribute` walks
+  `node("attr", k)` on the candidate elements (descendant axis
+  supported via the same descendant walker) and stores results
+  with `attrValue` / `attrName` subnodes. `applyPredicate` was
+  factored out of `applyStep` and now uses `merge` (instead of
+  `set`) so the attribute subnodes survive in-place reduction.
+  `mergePathToResult` lifts attribute matches into
+  `results(idx,"text")` / `results(idx,"name")` so `xpathText`
+  returns the attribute value transparently. 10 new tests cover:
+  `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`,
+  `@missing`, attribute via `xpathText`.
 - **T27b — XPath functions + comparison predicates.** Queued.
   `position()`, `count()`, `text()`, `name()`, `normalize-space()`,
   `contains()`, `starts-with()`, `string-length()` plus comparison
@@ -699,18 +716,89 @@ when a real consumer drives the requirement.
 
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
-**Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
-harness `tools/build-callouts.sh` (A6) already shipped.
-**Sequencing:**
-1. v0.2.0 release sync (T7).
-2. IRIS `$ZF` portability spike (validate that callouts compile and
-   run under `intersystemsdc/iris-community:latest`).
-3. Pick one of the three modules as the lead (recommend STDCRYPTO —
-   it's the dependency for the jwt-verify example and unblocks
-   STDHTTP's TLS path indirectly).
-4. The other two are mutually parallel after the lead validates the
-   harness end-to-end.
+**Status:** ✅ **STDCRYPTO landed code-complete 2026-05-07** as the
+Phase 3 lead; STDCOMPRESS and STDHTTP remain queued. STDCRYPTO ships
+as **L26 H1 P3** in Table 1 above. Test verification still needs the
+vista-meta engine reachable + the .so deployed inside it — see T28.
+**Sequencing recap:**
+1. ✅ v0.2.0 release sync (T7) — closed when v0.3.0 shipped 2026-05-07.
+2. IRIS `$ZF` portability spike — deferred behind STDCRYPTO's YDB-side
+   green run; validate against `intersystemsdc/iris-community:latest`
+   once T28 unblocks the YDB run.
+3. ✅ STDCRYPTO chosen as the lead (it's the dep for the jwt-verify
+   example and exercises the `tools/build-callouts.sh` harness end-
+   to-end).
+4. STDCOMPRESS and STDHTTP are mutually parallel and will start once
+   STDCRYPTO clears T28.
 **Per-module specs:** `docs/m-stdlib-implementation-plan.md` §12.
+
+### T28 — Engine-bound deployment for STDCRYPTO
+**Status:** open. Code-complete on `main`; the engine wiring is the
+remaining gap before `make test` can run STDCRYPTOTST green.
+**What's already done (this session):**
+- `src/STDCRYPTO.m` — public extrinsics + `$&std_crypto.*` wrappers.
+- `src/callouts/std_crypto.c` — OpenSSL EVP_Digest + HMAC.
+- `tools/std_crypto.xc` — YDB call-out descriptor (uses `$STDLIB_LIB`
+  env var so it's portable across hosts).
+- `tools/build-callouts.sh` — extended with per-source `// link:`
+  directive parsing so the harness picks up `-lcrypto` for
+  `std_crypto.c` without hardcoding crypto-specific flags.
+- `tests/STDCRYPTOTST.m` — RFC 6234 / RFC 4231 vectors, 22 tests.
+- `docs/modules/stdcrypto.md` — full module doc + deployment runbook.
+**What's still owed:**
+1. **vista-meta container — install libssl.** The container image
+   needs `libcrypto.so.3` (or `.so.1.1`) loadable. Modern base
+   images already do; document explicitly in vista-meta and verify.
+2. **`scripts/seed-vista.sh` — push .so + .xc.** Today the seed
+   only ships routines. Extend it to scp `so/<plat>/std_crypto.so`
+   and `tools/std_crypto.xc` into the container's session staging
+   area.
+3. **YDB session env-var wiring.** The container's `m test` shell
+   wrapper must `export STDLIB_LIB=<path>` and
+   `export ydb_xc_std_crypto=<path>` before invoking the suite. Add
+   to the seed script's per-test bootstrap or to the vista-meta
+   image's entrypoint.
+4. **Build dep gate.** `tools/build-callouts.sh` requires
+   `libssl-dev` + `libyottadb.h` headers on the build host. Document
+   in README install section. (This session's host has neither;
+   `--check` passes but actual build will fail — expected.)
+**Effort estimate:** 2-3d split across vista-meta-side image work
+(item 1) and m-stdlib-side seed-script work (items 2 + 3).
+**Why it didn't ship in the same commit:** vista-meta container was
+unreachable during the STDCRYPTO landing session (SSH connection
+refused 2026-05-07), and the host lacked `libssl-dev` headers, so
+the green-run cycle couldn't be exercised. Code is sound but
+unverified end-to-end against the engine.
+
+### T29 — STDHTTP iteration 2 (libcurl callout)
+**Module affected:** STDHTTP (H3 P3).
+**Status:** open. Iteration 1 (pure-M wire-format helpers) landed
+2026-05-07: `parseStatusLine` / `parseHeader` / `parseResponse` /
+`buildRequest` / `formatHeaders` plus soft-fail `$$get` / `$$post` /
+`$$request` stubs that set `resp("error")="STDHTTP-NOT-WIRED"` so
+consumers can integrate against the final array shape today.
+**What iteration 2 owes:**
+1. `src/callouts/http.c` — libcurl glue (curl_easy_init / setopt /
+   perform / getinfo / cleanup) writing back HTTP response code,
+   header block, and body bytes into M output buffers.
+2. `tools/std_http.xc` — YDB call-out descriptor analogous to
+   `tools/std_crypto.xc` (uses `$STDLIB_LIB` for path portability).
+3. Wire `$$request^STDHTTP` to drive the callout; replace the
+   soft-fail `STDHTTP-NOT-WIRED` path. Map curl error codes →
+   `resp("error")` strings.
+4. Network-bound integration tests against a local httpbin or
+   echo server (vendor under `tests/integration/http/` so they
+   stay separable from the pure-M `STDHTTPTST` suite).
+5. Build-host dep: `libcurl4-openssl-dev`. Per-source `// link:`
+   directive in `http.c` to add `-lcurl` (same idiom STDCRYPTO
+   established for `-lcrypto`).
+6. vista-meta container needs `libcurl.so.4` loadable (typically
+   already present; document in T28-style runbook).
+**Effort:** 5-7d split across the C glue (~2d), $ZF wiring + test
+plumbing (~2d), and the integration-test harness (~1-3d depending
+on whether httpbin is vendored or proxied).
+**IRIS arm:** deferred. The `%Net.HttpRequest` `$CLASSMETHOD` arm
+shares the same M-side req/resp shape and lands as a follow-on.
 
 ---
 
@@ -851,7 +939,6 @@ Promoted out of Table 2 (now in Table 1):
   entities (T26), XPath 1.0 query subset (T27). Coverage: 19/20
   labels (95%, `lastError` only triggers in error paths and
   isn't directly tested), 47/47 assertions green.
-
 - **STDMATH** — promoted 2026-05-08 to Table 1 as **L26 P4**. Numeric
   helpers: `clamp` / `min` / `max` / `sum` / `count` / `mean` over a
   caller-owned array. Pure-M (`+` coercion, `$ORDER` walk at depth 1);
@@ -922,7 +1009,7 @@ Per `docs/parallel-tracks.md` §2:
 | m-cli `--seed PATH` | STDSEED (`v0.1.3`) | Hard | shipped — m-cli `e5818bd` |
 | STDLOG JSON-line output | STDJSON (`v0.2.0`) | Hard | landed on `main` — see T3, T6 |
 | STDSEED `loadJson` | STDJSON (`v0.2.0`) | Hard | landed on `main` — see T3, T6 |
-| STDHTTP | STDURL (`v0.2.0`) + `tools/build-callouts.sh` | Hard | both shipped; STDHTTP queued at T11 |
+| STDHTTP | STDURL (`v0.2.0`) + `tools/build-callouts.sh` | Hard | both shipped; STDHTTP iter 1 (pure-M helpers) landed; iter 2 (libcurl callout) queued at T29 |
 | STDCRYPTO / STDCOMPRESS | `tools/build-callouts.sh` | Hard | A6 shipped; queued at T11 |
 
 Everything else is independent — tracks for different modules can run

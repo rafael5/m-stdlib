@@ -1,0 +1,10 @@
+$STDLIB_LIB/stdcompress.so
+stdcompress_available_libz:    ydb_long_t stdcompress_available_libz()
+stdcompress_available_libzstd: ydb_long_t stdcompress_available_libzstd()
+stdcompress_gzip:              ydb_long_t stdcompress_gzip(I:ydb_string_t*, O:ydb_string_t*[16777216], I:ydb_long_t)
+stdcompress_gunzip:            ydb_long_t stdcompress_gunzip(I:ydb_string_t*, O:ydb_string_t*[16777216])
+stdcompress_deflate:           ydb_long_t stdcompress_deflate(I:ydb_string_t*, O:ydb_string_t*[16777216], I:ydb_long_t)
+stdcompress_inflate:           ydb_long_t stdcompress_inflate(I:ydb_string_t*, O:ydb_string_t*[16777216])
+stdcompress_zstd_compress:     ydb_long_t stdcompress_zstd_compress(I:ydb_string_t*, O:ydb_string_t*[16777216], I:ydb_long_t)
+stdcompress_zstd_decompress:   ydb_long_t stdcompress_zstd_decompress(I:ydb_string_t*, O:ydb_string_t*[16777216])
+stdcompress_lasterror:         ydb_long_t stdcompress_lasterror(O:ydb_string_t*[1024])

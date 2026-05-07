@@ -62,6 +62,30 @@ STDXMLTST       ; Test suite for STDXML (v0.2.x — Phase 4, in-progress).
         do tAttrNsXmlBuiltinPrefix(.pass,.fail)
         do tAttrNsMixedPrefixedUnprefixed(.pass,.fail)
         do tAttrNsUndeclaredPrefixRejected(.pass,.fail)
+        ; ---- T27 ----
+        do tXpathRelativeChild(.pass,.fail)
+        do tXpathAbsoluteRoot(.pass,.fail)
+        do tXpathChainedPath(.pass,.fail)
+        do tXpathMultipleSiblingMatches(.pass,.fail)
+        do tXpathPositionPredicate(.pass,.fail)
+        do tXpathDescendantAxis(.pass,.fail)
+        do tXpathDescendantWithPredicate(.pass,.fail)
+        do tXpathNoMatchReturnsZero(.pass,.fail)
+        do tXpathOneFirstMatch(.pass,.fail)
+        do tXpathOneMissingReturnsZero(.pass,.fail)
+        do tXpathTextReturnsContent(.pass,.fail)
+        do tXpathTextMissingReturnsEmpty(.pass,.fail)
+        ; ---- T27a ----
+        do tXpathWildcardChild(.pass,.fail)
+        do tXpathWildcardWithPredicate(.pass,.fail)
+        do tXpathDescendantWildcard(.pass,.fail)
+        do tXpathChildOfWildcard(.pass,.fail)
+        do tXpathAttributeAxis(.pass,.fail)
+        do tXpathAttributeOnChild(.pass,.fail)
+        do tXpathAttributeMissingReturnsZero(.pass,.fail)
+        do tXpathAttributeWildcard(.pass,.fail)
+        do tXpathDescendantAttribute(.pass,.fail)
+        do tXpathAttributeViaXpathText(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -472,4 +496,176 @@ tAttrNsUndeclaredPrefixRejected(pass,fail)      ;@TEST "an undeclared prefix on 
         new root,rc
         set rc=$$parse^STDXML("<foo bogus:attr=""x""/>",.root)
         do eq^STDASSERT(.pass,.fail,rc,0,"undeclared attr prefix rejected")
+        quit
+        ;
+        ; ---- T27: XPath subset ----
+tXpathRelativeChild(pass,fail)  ;@TEST "xpath('child') finds direct children with that name"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a/><b/><a/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two 'a' children")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"name")),"a","first match name")
+        do eq^STDASSERT(.pass,.fail,$get(results(2,"name")),"a","second match name")
+        quit
+        ;
+tXpathAbsoluteRoot(pass,fail)   ;@TEST "xpath('/foo') matches the root if its name is foo"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<foo><bar/></foo>",.root)
+        set n=$$xpath^STDXML(.root,"/foo",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match (root)")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"name")),"foo","root matched")
+        ; absolute path that doesn't match the root returns 0
+        set n=$$xpath^STDXML(.root,"/bar",.results)
+        do eq^STDASSERT(.pass,.fail,n,0,"absolute /bar does NOT match (root is foo)")
+        quit
+        ;
+tXpathChainedPath(pass,fail)    ;@TEST "xpath('a/b') walks two levels"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><b>hello</b></a></r>",.root)
+        set n=$$xpath^STDXML(.root,"a/b",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one b under a")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"text")),"hello","b text=hello")
+        quit
+        ;
+tXpathMultipleSiblingMatches(pass,fail) ;@TEST "xpath('a/b') gathers from all matching parents"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><b>1</b></a><a><b>2</b><b>3</b></a></r>",.root)
+        set n=$$xpath^STDXML(.root,"a/b",.results)
+        do eq^STDASSERT(.pass,.fail,n,3,"three b's total across two a's")
+        quit
+        ;
+tXpathPositionPredicate(pass,fail)      ;@TEST "xpath('a[2]') returns the 2nd matching child"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/><a id=""3""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a[2]",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"attr","id")),"2","2nd a has id=2")
+        quit
+        ;
+tXpathDescendantAxis(pass,fail) ;@TEST "xpath('//x') matches x at any depth"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><x>1</x></a><b><c><x>2</x></c></b></r>",.root)
+        set n=$$xpath^STDXML(.root,"//x",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two x's anywhere")
+        quit
+        ;
+tXpathDescendantWithPredicate(pass,fail)        ;@TEST "xpath('//x[1]') returns the first descendant match"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><x>1</x></a><b><x>2</x></b></r>",.root)
+        set n=$$xpath^STDXML(.root,"//x[1]",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match (the first)")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"text")),"1","first x has text=1")
+        quit
+        ;
+tXpathNoMatchReturnsZero(pass,fail)     ;@TEST "xpath('missing') returns 0 with empty results"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a/></r>",.root)
+        set n=$$xpath^STDXML(.root,"missing",.results)
+        do eq^STDASSERT(.pass,.fail,n,0,"no match")
+        do false^STDASSERT(.pass,.fail,$data(results(1)),"results(1) undefined")
+        quit
+        ;
+tXpathOneFirstMatch(pass,fail)  ;@TEST "xpathOne returns 1 and merges first match"
+        new root,rc,out
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/></r>",.root)
+        do true^STDASSERT(.pass,.fail,$$xpathOne^STDXML(.root,"a",.out),"found")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.out),"a","first a")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.out,"id"),"1","id=1")
+        quit
+        ;
+tXpathOneMissingReturnsZero(pass,fail)  ;@TEST "xpathOne returns 0 for no match"
+        new root,rc,out
+        set rc=$$parse^STDXML("<r/>",.root)
+        do false^STDASSERT(.pass,.fail,$$xpathOne^STDXML(.root,"missing",.out),"no match")
+        quit
+        ;
+tXpathTextReturnsContent(pass,fail)     ;@TEST "xpathText returns the text of the first match"
+        new root,rc
+        set rc=$$parse^STDXML("<r><a>hello</a><a>world</a></r>",.root)
+        do eq^STDASSERT(.pass,.fail,$$xpathText^STDXML(.root,"a"),"hello","first a's text")
+        do eq^STDASSERT(.pass,.fail,$$xpathText^STDXML(.root,"a[2]"),"world","second a's text")
+        quit
+        ;
+tXpathTextMissingReturnsEmpty(pass,fail)        ;@TEST "xpathText of no match returns ''"
+        new root,rc
+        set rc=$$parse^STDXML("<r/>",.root)
+        do eq^STDASSERT(.pass,.fail,$$xpathText^STDXML(.root,"missing"),"","no match → empty")
+        quit
+        ;
+        ; ---- T27a: wildcards + attribute axis ----
+tXpathWildcardChild(pass,fail)  ;@TEST "xpath('*') matches any direct child regardless of name"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a/><b/><c/></r>",.root)
+        set n=$$xpath^STDXML(.root,"*",.results)
+        do eq^STDASSERT(.pass,.fail,n,3,"three children matched")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"name")),"a","first is a")
+        do eq^STDASSERT(.pass,.fail,$get(results(2,"name")),"b","second is b")
+        do eq^STDASSERT(.pass,.fail,$get(results(3,"name")),"c","third is c")
+        quit
+        ;
+tXpathWildcardWithPredicate(pass,fail)  ;@TEST "xpath('*[2]') returns the second child regardless of name"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a/><b/><c/></r>",.root)
+        set n=$$xpath^STDXML(.root,"*[2]",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"name")),"b","second child=b")
+        quit
+        ;
+tXpathDescendantWildcard(pass,fail)     ;@TEST "xpath('//*') matches every descendant element"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><b/></a><c/></r>",.root)
+        set n=$$xpath^STDXML(.root,"//*",.results)
+        do eq^STDASSERT(.pass,.fail,n,3,"three descendants: a, b, c")
+        quit
+        ;
+tXpathChildOfWildcard(pass,fail)        ;@TEST "xpath('*/x') finds x under any direct child"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a><x>1</x></a><b><x>2</x></b></r>",.root)
+        set n=$$xpath^STDXML(.root,"*/x",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two x's via wildcard")
+        quit
+        ;
+tXpathAttributeAxis(pass,fail)  ;@TEST "xpath('@id') returns the id attribute value of the context"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r id=""abc""/>",.root)
+        set n=$$xpath^STDXML(.root,"@id",.results)
+        do eq^STDASSERT(.pass,.fail,n,1,"one match")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"text")),"abc","value=abc")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"name")),"id","name=id")
+        quit
+        ;
+tXpathAttributeOnChild(pass,fail)       ;@TEST "xpath('a/@id') returns id attribute of every a child"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><a id=""2""/></r>",.root)
+        set n=$$xpath^STDXML(.root,"a/@id",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two id attrs")
+        do eq^STDASSERT(.pass,.fail,$get(results(1,"text")),"1","first id=1")
+        do eq^STDASSERT(.pass,.fail,$get(results(2,"text")),"2","second id=2")
+        quit
+        ;
+tXpathAttributeMissingReturnsZero(pass,fail)    ;@TEST "xpath('@missing') returns 0"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r/>",.root)
+        set n=$$xpath^STDXML(.root,"@missing",.results)
+        do eq^STDASSERT(.pass,.fail,n,0,"no match")
+        quit
+        ;
+tXpathAttributeWildcard(pass,fail)      ;@TEST "xpath('@*') returns every attribute on the context"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r a=""1"" b=""2"" c=""3""/>",.root)
+        set n=$$xpath^STDXML(.root,"@*",.results)
+        do eq^STDASSERT(.pass,.fail,n,3,"three attrs")
+        quit
+        ;
+tXpathDescendantAttribute(pass,fail)    ;@TEST "xpath('//@id') finds @id at any descendant depth"
+        new root,rc,results,n
+        set rc=$$parse^STDXML("<r><a id=""1""/><b><c id=""2""/></b></r>",.root)
+        set n=$$xpath^STDXML(.root,"//@id",.results)
+        do eq^STDASSERT(.pass,.fail,n,2,"two id attrs across descendants")
+        quit
+        ;
+tXpathAttributeViaXpathText(pass,fail)  ;@TEST "xpathText('@id') returns the attribute value as a string"
+        new root,rc
+        set rc=$$parse^STDXML("<r id=""hello""/>",.root)
+        do eq^STDASSERT(.pass,.fail,$$xpathText^STDXML(.root,"@id"),"hello","attr value via xpathText")
         quit

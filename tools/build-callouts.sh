@@ -120,9 +120,14 @@ INC_FLAG="$(ydb_include_flag)"
 for src in "${SOURCES[@]}"; do
   base="$(basename -- "${src}" .c)"
   out="${SO_DIR}/${base}.${SO_EXT}"
+  # Per-source link flags — read a `// link: -lfoo -lbar` directive from the
+  # first 30 lines of the source file. Phase 3 modules use this to pull in
+  # libcrypto / libz / libcurl without the build script having to know which
+  # callout family each .c belongs to.
+  EXTRA_LINK="$(sed -n '1,30s|^// link:[[:space:]]*||p' "${src}" | head -1)"
   echo "[build-callouts] cc ${src#${PROJECT_ROOT}/} -> ${out#${PROJECT_ROOT}/}"
   # shellcheck disable=SC2086
-  "${CC}" ${LD_FLAGS} ${INC_FLAG} -O2 -Wall -Wextra -o "${out}" "${src}"
+  "${CC}" ${LD_FLAGS} ${INC_FLAG} -O2 -Wall -Wextra -o "${out}" "${src}" ${EXTRA_LINK}
   file "${out}" | sed 's/^/  /'
 done
 

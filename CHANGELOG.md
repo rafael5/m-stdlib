@@ -10,6 +10,64 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDHTTP` iteration 1 (H3, P3)** — second Phase 3 track to enter
+  development; first iteration is pure-M wire-format helpers
+  (libcurl integration is iteration 2, queued at T29). Public
+  surface landed: `do parseStatusLine^STDHTTP(line, .s)` (HTTP/1.1
+  status line → `s("version")` / `s("code")` (numeric) / `s("reason")` /
+  `s("ok")`; tolerates a missing reason phrase per RFC 7230 §3.1.2),
+  `do parseHeader^STDHTTP(line, .name, .value)` (splits on the
+  first colon only — colons in values are kept; trims leading SP /
+  HT from the value per RFC 7230 OWS), `do parseResponse^STDHTTP(
+  raw, .resp)` (parses a full HTTP/1.1 response — accepts CRLF or
+  bare-LF line endings, lowercases header keys for case-
+  insensitive lookup, joins duplicate headers with `", "` per RFC
+  7230 §3.2.2, preserves arbitrary body bytes), `$$buildRequest^
+  STDHTTP(.req)` (assembles request line + headers + blank line +
+  body — synthesises `Host:` from `parse^STDURL` when not given,
+  auto-adds `Content-Length:` when a body is present and the
+  header is absent, preserves caller's explicit `Host` /
+  `Content-Length` when set), `$$formatHeaders^STDHTTP(.headers)`
+  (deterministic CRLF-terminated header block via `$ORDER` walk).
+  Network extrinsics `$$get^STDHTTP(url, .resp)` / `$$post^STDHTTP(
+  url, body, .resp, contentType)` / `$$request^STDHTTP(.req,
+  .resp)` are wired to the final req/resp array shape but
+  soft-fail with `resp("error")="STDHTTP-NOT-WIRED"` and return 0
+  — consumers can integrate against the final surface today and
+  swap in the real backend transparently when iteration 2 lands.
+  65 assertions across 33 labels (engine-bound green-run pending —
+  vista-meta container was unreachable during the landing session
+  per T28's documented gap; lint clean: 0 errors, 0 warnings on
+  `src/STDHTTP.m` and `tests/STDHTTPTST.m`). Module doc at
+  `docs/modules/stdhttp.md`; tracker entry at
+  `docs/module-tracker.md` Table 1 H3 with iteration 2 work
+  enumerated under T29.
+- **`STDCRYPTO` (H1, P3) — Phase 3 lead, code-complete on `main`.**
+  First `$ZF`-bound module to land. Public surface: `sha256` /
+  `sha384` / `sha512` (lowercase hex digests) + `*Bytes` raw forms;
+  `hmacSha256` / `hmacSha384` / `hmacSha512` + `*Bytes` raw forms;
+  `available` probe (never raises). Backend: OpenSSL libcrypto via
+  `EVP_DigestInit_ex` / `EVP_DigestUpdate` / `EVP_DigestFinal_ex` for
+  SHA, `HMAC()` for HMAC. C source at `src/callouts/std_crypto.c`;
+  YDB call-out descriptor at `tools/std_crypto.xc` (resolves the .so
+  path through `$STDLIB_LIB` so the descriptor is portable across
+  hosts). The build harness `tools/build-callouts.sh` got a small
+  extension: each `.c` source can declare `// link: -lfoo` in its
+  first 30 lines and the harness will append those flags to the
+  linker invocation — so libcrypto linkage stays scoped to
+  `std_crypto.c` rather than affecting `probe.c` or future
+  callouts. 22 conformance tests in `tests/STDCRYPTOTST.m` against
+  FIPS 180-4 SHA vectors and RFC 4231 HMAC vectors. Module doc at
+  `docs/modules/stdcrypto.md` carries the full deployment runbook.
+  **Engine-bound green run is blocked on T28** (new tracker entry):
+  the vista-meta YDB container needs `libcrypto.so.3` (or `.so.1.1`)
+  loadable, the compiled `.so` + `tools/std_crypto.xc` deployed
+  inside it, and `STDLIB_LIB` / `ydb_xc_std_crypto` exported in the
+  YDB session before `make test` runs the suite green. Code itself
+  is sound but unverified end-to-end against the engine until that
+  wiring lands. T11 (Phase 3 entry) partially closes — STDCRYPTO is
+  the first of three; STDCOMPRESS (H2) and STDHTTP (H3) remain
+  queued and gate on T28 validating the harness end-to-end.
 - **`STDMATH` (L26, P4)** — promoted from Table 2 (was Pri 2). Small
   set of numeric helpers: `$$clamp^STDMATH(x, lo, hi)` (scalar) plus
   the four reductions over a caller-owned array — `$$min` / `$$max` /
@@ -34,6 +92,22 @@ Pre-1.0 minor versions may include breaking changes.
   idiom as STDMOCK's `do @resolved@(.args)`; `M-MOD-036` disabled
   file-wide for the same reason. 19 assertions across 19 labels.
   Per-module doc at `docs/modules/stdxfrm.md`.
+- **`STDXML T27a (XPath wildcards + attribute axis)`** — `parseXPath`
+  recognises `*` as a name token (wildcard) and `@` as an attribute-
+  step prefix. The attribute step is terminal — nothing may follow
+  `@attrName`. New helpers: `matchName` (wildcard-aware name
+  comparison shared by `collectChildren` / `collectDescendants`),
+  `collectAttribute` (walks `node("attr", k)` on candidate elements
+  and emits results with `attrValue` / `attrName` subnodes), and
+  `applyPredicate` (factored out of `applyStep`; uses `merge`
+  rather than `set` so attribute subnodes survive in-place
+  reduction). `mergePathToResult` lifts attribute matches into
+  `results(idx,"text")` / `results(idx,"name")` so `xpathText`
+  returns the attribute value transparently. Combinations
+  supported: `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`,
+  `//@id`. STDXML coverage moves from ~75% to ~80% of the full
+  envelope; T26 (DTDs) and T27b (functions / comparison
+  predicates) remain queued. 10 new tests added.
 
 ## [v0.3.0] — 2026-05-07
 

@@ -1,4 +1,10 @@
 STDXML  ; m-stdlib — XML parser (well-formed XML 1.0 subset, in-progress).
+        ; m-lint: disable-file=M-MOD-036
+        ; M-MOD-036 flags M's `@` indirection on a "tainted" local. The
+        ; XPath helpers (T27) build subscript references from path strings
+        ; that are 100% generated from internal `for i=1:1:childCount` loops
+        ; — no user input flows into the indirection target. The pattern is
+        ; documented in `docs/modules/stdxml.md` "T27 path-walk indirection".
         ;
         ; Public extrinsics (v0):
         ;   $$parse^STDXML(text,.root)              — parse text into root tree; 1/0
@@ -37,15 +43,9 @@ STDXML  ; m-stdlib — XML parser (well-formed XML 1.0 subset, in-progress).
         ;   <name>       ::= [A-Za-z_:] [A-Za-z0-9_:.-]*
         ;   <chardata>   ::= text with the 5 standard entities decoded
         ;
-        ; Out of scope (queued for v0.x.y under T23-T27):
-        ;   - <![CDATA[ ... ]]> sections                            (T23)
-        ;   - <?processing-instructions ?>                          (T23)
-        ;   - <!-- comments -->                                     (T23)
-        ;   - <?xml ... ?> / xml decl                               (T23)
-        ;   - numeric character references &#nnnn; / &#xHH;          (T24)
-        ;   - namespace handling (xmlns="..." / <prefix:tag>)        (T25)
+        ; Out of scope (queued — see docs/module-tracker.md):
         ;   - DTDs / DOCTYPE / custom entities                       (T26)
-        ;   - XPath 1.0 query subset                                 (T27)
+        ;   - XPath functions and comparison predicates              (T27b)
         ;
         quit
         ;
@@ -94,6 +94,49 @@ attrNs(node,name)       ; Return the namespace URI for an attribute; "" if unpre
         ; doc: prefix resolves to `http://www.w3.org/XML/1998/namespace`.
         ; doc: Example: write $$attrNs^STDXML(.tree,"xsi:type")
         quit $get(node("attrNs",name),"")
+        ;
+xpath(tree,expr,results)        ; Run an XPath query; populate results(1..N); return N.
+        ; doc: Supports element paths (`a/b/c`), absolute (`/foo`),
+        ; doc: descendant axis (`//x`), 1-based position predicates
+        ; doc: (`x[1]`), wildcards (`*` and `@*`), and attribute axis
+        ; doc: (`@attr`). Attribute matches surface as result entries
+        ; doc: with `results(i,"text")` set to the attribute value and
+        ; doc: `results(i,"name")` set to the attribute name — so
+        ; doc: `xpathText` returns the attribute value transparently.
+        ; doc: Functions and comparison predicates are out of scope (T27b).
+        ; doc: Returns 0 (with results killed) for an unparseable expression.
+        ; doc: Example: do  set n=$$xpath^STDXML(.doc,"/r/items/item[2]",.r)
+        kill results
+        new steps,paths,n,pathCount,i
+        if '$$parseXPath(expr,.steps) quit 0
+        set paths(1)="",pathCount=1
+        for i=1:1:$get(steps("count"),0) do  if pathCount=0 quit
+        . new newPaths,newCount
+        . set newCount=0
+        . do applyStep(.tree,.steps,i,.paths,pathCount,.newPaths,.newCount)
+        . kill paths
+        . merge paths=newPaths
+        . set pathCount=newCount
+        if pathCount=0 quit 0
+        for i=1:1:pathCount  do mergePathToResult(.tree,.paths,i,.results)
+        quit pathCount
+        ;
+xpathOne(tree,expr,out) ; First match into .out; return 1/0.
+        ; doc: Convenience wrapper over xpath.
+        ; doc: Example: do  if $$xpathOne^STDXML(.doc,"/r/title",.t) ...
+        kill out
+        new results,n
+        set n=$$xpath(.tree,expr,.results)
+        if n=0 quit 0
+        merge out=results(1)
+        quit 1
+        ;
+xpathText(tree,expr)    ; Return the direct text of the first match; "" if none.
+        ; doc: Example: write $$xpathText^STDXML(.doc,"/cfg/host")
+        new results,n
+        set n=$$xpath(.tree,expr,.results)
+        if n=0 quit ""
+        quit $get(results(1,"text"),"")
         ;
 text(node)      ; Return direct text content; "" if no text.
         ; doc: Example: write $$text^STDXML(.tree)
@@ -285,6 +328,205 @@ absorbXmlns(node,nsMap) ; Pull `xmlns` / `xmlns:prefix` attrs out of node into n
         . if k="xmlns" set nsMap("")=uri
         . else  set prefix=$piece(k,":",2),nsMap(prefix)=uri
         . kill node("attr",k)
+        quit
+        ;
+        ; ---------- internal: XPath (T27) ----------
+        ;
+parseXPath(expr,steps)  ; Parse XPath expression into steps(1..N) with axis/name/pred/attrName.
+        ; doc: Internal — supports `name`, `name1/name2`, `/name`, `//name`,
+        ; doc: `name[N]`, the wildcard `*` (T27a), and the attribute axis
+        ; doc: `@attrName` / `@*` (T27a). An attribute step is terminal —
+        ; doc: nothing may follow it.
+        ; doc: Returns 1 on success, 0 on parse failure.
+        kill steps
+        new pos,len,n,axis,name,pred,c,predStr,fail,done,nameDone,attrName
+        set pos=1,n=0,len=$length(expr),fail=0
+        if expr="" quit 0
+        if $extract(expr,1)="/" do
+        . if $extract(expr,2)="/" set axis="descendant",pos=3
+        . else  set axis="absolute",pos=2
+        else  set axis="child"
+        set done=0
+        for  quit:done  quit:fail  do
+        . if pos>len set done=1 quit
+        . ; -- detect attribute axis `@` --
+        . set attrName=""
+        . if $extract(expr,pos)="@" set attrName="<pending>",pos=pos+1
+        . ; -- read element-or-attribute name --
+        . set name="",nameDone=0
+        . for  quit:nameDone  do
+        . . if pos>len set nameDone=1 quit
+        . . set c=$extract(expr,pos)
+        . . if (c="/")!(c="[") set nameDone=1 quit
+        . . set name=name_c,pos=pos+1
+        . if name="" set fail=1 quit
+        . if attrName="<pending>" set attrName=name,name=""
+        . ; -- optional predicate [N] --
+        . set pred=0
+        . if pos'>len,$extract(expr,pos)="[" do
+        . . set pos=pos+1,predStr="",nameDone=0
+        . . for  quit:nameDone  do
+        . . . if pos>len set nameDone=1,fail=1 quit
+        . . . set c=$extract(expr,pos)
+        . . . if c="]" set nameDone=1 quit
+        . . . set predStr=predStr_c,pos=pos+1
+        . . if fail quit
+        . . set pos=pos+1
+        . . if predStr'?1.N set fail=1 quit
+        . . set pred=+predStr
+        . if fail quit
+        . ; -- record step --
+        . set n=n+1
+        . set steps(n,"axis")=axis,steps(n,"name")=name,steps(n,"pred")=pred
+        . set steps(n,"attrName")=attrName
+        . ; -- attribute axis is terminal --
+        . if attrName'="" do  quit
+        . . if pos>len set done=1 quit
+        . . set fail=1
+        . ; -- determine next step's axis (or end) --
+        . if pos>len set done=1 quit
+        . if $extract(expr,pos)'="/" set fail=1 quit
+        . if $extract(expr,pos+1)="/" set axis="descendant",pos=pos+2
+        . else  set axis="child",pos=pos+1
+        if fail quit 0
+        set steps("count")=n
+        quit 1
+        ;
+applyStep(tree,steps,stepIdx,paths,pathCount,newPaths,newCount)
+        ; doc: Apply one XPath step to the current candidate set, producing
+        ; doc: a new candidate set in newPaths(1..newCount). T27a: when the
+        ; doc: step is an attribute axis (`@x`), candidates are sourced per
+        ; doc: the axis (child=basePath, descendant=basePath's descendants)
+        ; doc: and each candidate's matching attribute(s) become results.
+        new axis,name,pred,attrName,i,basePath,elemPaths,elemCount
+        kill newPaths
+        set newCount=0
+        set axis=steps(stepIdx,"axis")
+        set name=steps(stepIdx,"name")
+        set pred=steps(stepIdx,"pred")
+        set attrName=$get(steps(stepIdx,"attrName"),"")
+        if attrName'="" do  quit
+        . set elemCount=0
+        . for i=1:1:pathCount do
+        . . set basePath=paths(i)
+        . . if axis="descendant" do collectDescendants(.tree,basePath,"*",.elemPaths,.elemCount) quit
+        . . set elemCount=elemCount+1,elemPaths(elemCount)=basePath
+        . for i=1:1:elemCount do collectAttribute(.tree,elemPaths(i),attrName,.newPaths,.newCount)
+        . if pred>0 do applyPredicate(.newPaths,.newCount,pred)
+        for i=1:1:pathCount do
+        . set basePath=paths(i)
+        . if axis="absolute" do  quit
+        . . if $$matchName(.tree,basePath,name) set newCount=newCount+1,newPaths(newCount)=basePath
+        . if axis="descendant" do collectDescendants(.tree,basePath,name,.newPaths,.newCount) quit
+        . do collectChildren(.tree,basePath,name,.newPaths,.newCount)
+        if pred>0 do applyPredicate(.newPaths,.newCount,pred)
+        quit
+        ;
+applyPredicate(newPaths,newCount,pred)  ; Keep only the n-th match (1-based).
+        ; doc: Internal — uses merge so any subnodes (attribute results)
+        ; doc: are preserved through the in-place reduction.
+        new kept
+        if pred>newCount kill newPaths set newCount=0 quit
+        merge kept=newPaths(pred)
+        kill newPaths
+        merge newPaths(1)=kept
+        set newCount=1
+        quit
+        ;
+matchName(tree,path,want)       ; 1 if the node at `path` matches `want` (`*` is wildcard).
+        ; doc: Internal — used by axis=absolute and the wildcard-aware
+        ; doc: child / descendant collectors.
+        new actual
+        set actual=$$nameAtPath(.tree,path)
+        if actual="" quit 0
+        if want="*" quit 1
+        quit actual=want
+        ;
+nameAtPath(tree,path)   ; Return the name of the node at the given path; "" if none.
+        ; doc: Internal — path is comma-separated list of child indices.
+        if path="" quit $get(tree("name"),"")
+        quit $get(@$$buildRef(path,"""name"""),"")
+        ;
+buildRef(path,suffix)   ; Build an M name reference like `tree("child",1,"child",3,"name")`.
+        ; doc: Internal — `path` is a comma-separated list of child indices
+        ; doc: (or "" for the root). `suffix` is the trailing subscript term
+        ; doc: (or "" for none). Produces a single subscript list inside the
+        ; doc: outer parens — chaining subscripts is not valid M syntax, so
+        ; doc: helpers must concatenate everything within one ref.
+        new subs,n,i
+        set subs=""
+        if path'="" do
+        . set n=$length(path,",")
+        . for i=1:1:n  set subs=subs_$select(i>1:",",1:"")_$char(34)_"child"_$char(34)_","_$piece(path,",",i)
+        if subs="",suffix="" quit "tree"
+        if subs="" quit "tree("_suffix_")"
+        if suffix="" quit "tree("_subs_")"
+        quit "tree("_subs_","_suffix_")"
+        ;
+collectChildren(tree,basePath,name,newPaths,newCount)
+        ; doc: Append paths to immediate children of basePath whose name
+        ; doc: matches. `name="*"` is a wildcard (any element).
+        new childCount,i,childPath,actualName
+        set childCount=$get(@$$buildRef(basePath,"""childCount"""),0)
+        for i=1:1:childCount do
+        . set childPath=$select(basePath="":i,1:basePath_","_i)
+        . set actualName=$get(@$$buildRef(childPath,"""name"""))
+        . if (name="*")!(actualName=name) do
+        . . set newCount=newCount+1,newPaths(newCount)=childPath
+        quit
+        ;
+collectDescendants(tree,basePath,name,newPaths,newCount)
+        ; doc: Walk all descendants of basePath; append matches by name.
+        ; doc: `name="*"` is a wildcard (any element). Descendant-only —
+        ; doc: does NOT include the basePath node itself; matches strict
+        ; doc: XPath descendant axis semantics.
+        new childCount,i,childPath,actualName
+        set childCount=$get(@$$buildRef(basePath,"""childCount"""),0)
+        for i=1:1:childCount do
+        . set childPath=$select(basePath="":i,1:basePath_","_i)
+        . set actualName=$get(@$$buildRef(childPath,"""name"""))
+        . if (name="*")!(actualName=name) do
+        . . set newCount=newCount+1,newPaths(newCount)=childPath
+        . do collectDescendants(.tree,childPath,name,.newPaths,.newCount)
+        quit
+        ;
+collectAttribute(tree,basePath,attrName,newPaths,newCount)
+        ; doc: T27a — attribute axis terminal step. `attrName="*"` matches
+        ; doc: every attribute on the element at basePath; otherwise only
+        ; doc: the named attribute (if present). Each match writes
+        ; doc: newPaths(idx) = basePath plus subnodes "attrValue" / "attrName"
+        ; doc: which mergePathToResult lifts into results(idx,"text") /
+        ; doc: results(idx,"name").
+        new tmp,k
+        if basePath="" merge tmp=tree
+        else  merge tmp=@$$buildRef(basePath,"")
+        if attrName="*" do  quit
+        . set k=""
+        . for  set k=$order(tmp("attr",k)) quit:k=""  do
+        . . set newCount=newCount+1
+        . . set newPaths(newCount)=basePath
+        . . set newPaths(newCount,"attrValue")=tmp("attr",k)
+        . . set newPaths(newCount,"attrName")=k
+        if '$data(tmp("attr",attrName)) quit
+        set newCount=newCount+1
+        set newPaths(newCount)=basePath
+        set newPaths(newCount,"attrValue")=tmp("attr",attrName)
+        set newPaths(newCount,"attrName")=attrName
+        quit
+        ;
+mergePathToResult(tree,paths,idx,results)
+        ; doc: Lift one path entry into results(idx). Attribute matches
+        ; doc: surface as scalar-like results: results(idx,"text")=value
+        ; doc: and results(idx,"name")=attrName. Element matches merge
+        ; doc: the subtree at paths(idx) so callers walk them like any
+        ; doc: parsed-tree node.
+        new path
+        set path=paths(idx)
+        if $data(paths(idx,"attrValue")) do  quit
+        . set results(idx,"text")=paths(idx,"attrValue")
+        . set results(idx,"name")=paths(idx,"attrName")
+        if path="" merge results(idx)=tree quit
+        merge results(idx)=@$$buildRef(path,"")
         quit
         ;
 resolveAttrNs(node,nsMap)       ; Resolve namespace URIs for any prefixed attrs on node.

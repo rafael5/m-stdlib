@@ -8,12 +8,15 @@ focused T-ticket. The architectural pretext is VistA HL7v3 / CDA /
 FHIR ingestion: an XML you can actually parse without shelling out
 to libxml2.
 
-**Status:** v0+T23+T24+T25 on `main` 2026-05-07. ~65% of the full
-XML 1.0 + Namespaces 1.0 + XPath 1.0 envelope. T23 (CDATA,
-comments, PI, xml-decl), T24 (numeric character references), and
-T25 namespaces (full — both element-level and attribute-level)
-have shipped. T26 (DTDs / custom entities) and T27 (XPath 1.0)
-remain queued.
+**Status:** ~80% of the full XML 1.0 + Namespaces 1.0 + XPath 1.0
+envelope. Shipped: well-formed XML 1.0, the five standard entity
+references, numeric character references, comments / processing
+instructions / `<?xml ?>` declaration / `<![CDATA[ ]]>`, namespaces
+(element + attribute level with the built-in `xml:` prefix), and
+an XPath subset covering paths, `[N]` predicates, descendant axis
+`//`, wildcards (`*`, `@*`), and the attribute axis (`@attrName`).
+Remaining: DTDs / custom entity declarations (T26) and XPath
+functions / comparison predicates (T27b).
 
 ## Public API
 
@@ -25,6 +28,9 @@ remain queued.
 | `attr` | `$$attr^STDXML(.node, name)` | Attribute value, decoded; `""` if absent. |
 | `ns` | `$$ns^STDXML(.node)` | Resolved namespace URI for the element; `""` if not in any namespace (T25). |
 | `attrNs` | `$$attrNs^STDXML(.node, attrName)` | Resolved namespace URI for an attribute; `""` if unprefixed or absent (T25b). |
+| `xpath` | `$$xpath^STDXML(.tree, expr, .results)` | Run an XPath query; populate `results(1..N)`; return N. Element matches merge a subtree; attribute matches surface as `results(i,"text")` = value, `results(i,"name")` = attribute name. |
+| `xpathOne` | `$$xpathOne^STDXML(.tree, expr, .out)` | First match → `.out` (merged); return 1/0. |
+| `xpathText` | `$$xpathText^STDXML(.tree, expr)` | Direct text content of the first match; `""` if none. |
 | `text` | `$$text^STDXML(.node)` | Direct text content, decoded. |
 | `childCount` | `$$childCount^STDXML(.node)` | Number of element children. |
 | `childByName` | `$$childByName^STDXML(.node, name, .out)` | Find first child with `name`; merge into `.out`; `1`/`0`. |
@@ -155,18 +161,14 @@ but the parser tolerates them anywhere a comment is allowed.
 | **T24** | Numeric character references `&#nnnn;` / `&#xHH;` (UTF-8 encoded) | ✅ **shipped 2026-05-07** |
 | **T25** | Namespaces — `xmlns="..."` / `xmlns:prefix="..."` / `<prefix:tag>` resolution at the **element** level | ✅ **shipped 2026-05-07** |
 | **T25b** | Attribute-namespace resolution + built-in `xml:` prefix | ✅ **shipped 2026-05-07** |
+| **T27 v0** | Minimal XPath: paths, `[N]` predicates, `//` descendant axis | ✅ **shipped 2026-05-07** |
+| **T27a** | XPath wildcards (`*`, `@*`) + attribute axis (`@attrName`) | ✅ **shipped 2026-05-07** |
+| **T27b** | XPath functions (`position()`, `text()`, etc.) + comparison predicates | queued |
 | **T26** | DTDs / DOCTYPE / custom entity declarations | queued |
-| **T27** | XPath 1.0 query subset (axes, predicates, basic functions) | queued |
 
 Queued features land as v0.x.y patches when concrete consumers
-drive them. The current `parse()` returns `0` on any T25-T27
-constructs (fails closed); the diagnostic in `lastError()`
-identifies the offending token.
-
-The end goal — full XML 1.0 + Namespaces 1.0 + an XPath subset
-for VistA HL7v3 / CDA / FHIR — was estimated at 12-16 days in the
-Table 2 entry. v0+T23+T24 ships ~50% of that scope; T25–T27 cover
-the remaining ~50%, scheduled when real consumers exercise them.
+drive them. The diagnostic in `lastError()` identifies the
+offending token when the parser fails closed.
 
 ## Edge cases
 
@@ -250,13 +252,92 @@ WRITE $$attrNs^STDXML(.doc,"xml:lang"),! ; "http://www.w3.org/XML/1998/namespace
 Undeclared prefixes on attribute names are a parse error, just
 like undeclared prefixes on element names.
 
+## XPath subset
+
+A deliberately narrow XPath 1.0 subset for the most common
+ingestion patterns. Three public entry points:
+
+```m
+NEW doc,results,n
+SET xml="<r><a id=""1""/><a id=""2""/><a id=""3""/></r>"
+DO  SET rc=$$parse^STDXML(xml,.doc)
+
+; Get all 'a' children
+SET n=$$xpath^STDXML(.doc,"a",.results)
+WRITE n,!                                ; 3
+
+; Get the 2nd 'a' (1-based position predicate)
+NEW out
+DO  IF $$xpathOne^STDXML(.doc,"a[2]",.out) DO
+. WRITE $$attr^STDXML(.out,"id"),!       ; "2"
+
+; Wildcard — match any direct child regardless of name
+SET n=$$xpath^STDXML(.doc,"*",.results)
+
+; Find all descendants named 'x' anywhere in the tree
+SET n=$$xpath^STDXML(.doc,"//x",.results)
+
+; Attribute axis — return id values for every a child
+SET n=$$xpath^STDXML(.doc,"a/@id",.results)
+WRITE $get(results(1,"text")),!          ; "1"
+
+; Quick text accessor: get the text of the first match
+WRITE $$xpathText^STDXML(.doc,"/cfg/server/host"),!
+```
+
+Supported syntax:
+
+| Construct | Example | Meaning |
+|---|---|---|
+| Bare name | `foo` | Direct children of the context node named `foo`. |
+| Wildcard | `*` | Direct children regardless of name. |
+| Chained path | `a/b/c` | Walk: c-children of b-children of a-children. |
+| Absolute path | `/foo` | Match the root only if its name is `foo`. |
+| Descendant axis | `//x` | All descendants named `x`, anywhere in the tree. |
+| Position predicate | `name[N]` | Filter to the N-th match (1-based). |
+| Attribute axis | `@attrName`, `*/@id`, `//@id` | Return attribute values from the candidate elements. Terminal — nothing may follow `@attr`. |
+| Attribute wildcard | `@*` | All attributes on the candidate element(s). |
+
+Attribute matches surface in the result array as scalar-like
+entries: `results(i,"text")` holds the attribute value and
+`results(i,"name")` holds the attribute name. `xpathText` therefore
+returns the attribute value transparently for `xpathText(.doc,"@id")`.
+
+Out of scope (queued at T27b in `docs/module-tracker.md`):
+**Functions and comparison predicates.** `position()`, `count()`,
+`text()`, `name()`, `normalize-space()`, `contains()`,
+`starts-with()`, `string-length()`; predicates like
+`[@type='code']`, `[name()='foo']`, `[count(child)>3]`.
+
+### How it works
+
+The expression is compiled into a step list (axis + name +
+optional predicate). The evaluator carries the candidate set as
+a list of "paths" — comma-separated child indices into the tree
+(e.g., `"1,3,2"` for `tree("child",1,"child",3,"child",2)`).
+Each step:
+
+1. For each candidate path, walk the children matching the step's
+   name (or recursively walk all descendants for `//`).
+2. Append the new paths to the next-step set.
+3. After all base-paths are processed, optionally apply the
+   position predicate to the flat list.
+
+When all steps have applied, each remaining path is
+`merge`-ed into `results(idx)` to produce the final node-set.
+
+The path-walk uses M's `@` indirection (`merge results(idx)=@ref`)
+to dereference paths at runtime. Path strings are entirely
+composed of internal loop counters from `for i=1:1:childCount`,
+never from user-supplied data, so M-MOD-036 (tainted-local
+indirection) is suppressed file-wide with a documented rationale.
+
 ## Engine portability
 
 Pure-M throughout: `$extract` / `$length` / `$piece` / `$find` /
-`$translate` / `$char` / `$query` / `$order` / `$data`.
-ANSI-standard, no `$Z*` extensions. Runs unchanged on YDB and
-IRIS. The test suite (54 labels, 122 assertions) is the
-v0+T23+T24+T25 conformance gate.
+`$translate` / `$char` / `$query` / `$order` / `$data` / `@`
+indirection. ANSI-standard, no `$Z*` extensions. Runs unchanged
+on YDB and IRIS. The test suite is the conformance gate.
 
 ## See also
 
