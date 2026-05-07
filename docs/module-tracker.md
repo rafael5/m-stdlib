@@ -60,66 +60,85 @@ approximation, calibrated against `parallel-tracks.md` §3.1's
 "1–2 weeks per Phase 1 module" baseline). **est.** = forward estimate
 for queued / proposed work. Sub-day effort shown as **Xh**.
 
-| Phase | Track | # | Module | Tag | Headline | Dependency | Effort | m-cli integration | ToDo |
+| Phase | Track | # | Module | Tag | Effort | ToDo | Dependency | Headline | m-cli integration |
 |---|---|---|---|---|---|---|---|---|---|
-| P1 | L0 | 1 | [`STDASSERT`](modules/stdassert.md) | `v0.0.1` | Assertion library | none | ~5d ✅ | ✅ C1 + V4 | none |
-| P1 | L0 | 2 | [`STDUUID`](modules/stduuid.md) | `v0.0.1` | RFC-4122 v4 + RFC-9562 v7 UUIDs | none (would adopt `STDCSPRNG`) | ~3d ✅ | n/a | none |
-| P1 | L1 | 3 | [`STDB64`](modules/stdb64.md) | `v0.0.2` | RFC-4648 Base64 (std + URL-safe) | none | ~3d ✅ | n/a | none |
-| P1 | L2 | 4 | [`STDHEX`](modules/stdhex.md) | `v0.0.2` | RFC-4648 §8 hex | none | ~1d ✅ | n/a | none |
-| P1 | L3 | 5 | [`STDFMT`](modules/stdfmt.md) | `v0.0.3` | Printf-style (`str.format` subset) | none | ~5d ✅ | n/a | none |
-| P1 | L4 | 6 | [`STDLOG`](modules/stdlog.md) | `v0.0.4` (+ L4 add-on at `v0.2.0`) | Structured kv logger; `FORMAT(kv\|json)` | STDDATE (folded); STDJSON (L4 add-on) | ~3d ✅ | n/a | none |
-| P1 | L5 | 7 | [`STDDATE`](modules/stddate.md) | `v0.0.5` | ISO-8601 datetime + duration arithmetic | none | ~5d ✅ | n/a | none |
-| P1 | L6 | 8 | [`STDCSV`](modules/stdcsv.md) | `v0.0.6` | RFC-4180 CSV parse/write + file I/O | none (would adopt `STDFS`) | ~4d ✅ | n/a | none |
-| P1 | L7 | 9 | [`STDARGS`](modules/stdargs.md) | `v0.0.7` | argparse (long/short/group/positional/`--`) | none (uses `$ZCMDLINE`) | ~4d ✅ | n/a | none |
-| P1b | L8 | 10 | [`STDFIX`](modules/stdfix.md) | `v0.1.1` | Per-test transactional isolation | none (uses `tstart`/`trollback`) | ~3d ✅ | ✅ W | none |
-| P1b | L9 | 11 | [`STDMOCK`](modules/stdmock.md) | `v0.1.2` | Test-time call interception | none | ~3d ✅ | ✅ X | none |
-| P1b | L10 | 12 | [`STDSEED`](modules/stdseed.md) | `v0.1.3` (+ L10 `loadJson` add-on at `v0.2.0`) | TSV/JSON fixture loader + pluggable filer | STDJSON (loadJson add-on); runtime-only `FILE^DIE` | ~3d ✅ | ✅ Y | none |
-| P2 | L11 | 13 | [`STDJSON`](modules/stdjson.md) | `v0.2.0` | RFC 8259 JSON parser + serialiser | none | ~7d ✅ | n/a | none |
-| P2 | L12 | 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` | Thompson-NFA regex (no back-refs / lookaround) | none (future `STDREGEX_PCRE` → `$ZF → libpcre2`) | ~10d ✅ | n/a | none |
-| P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | none | ~5d ✅ | n/a | none |
-| P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | RFC 3986 URI parse/build/normalise/resolve | none | ~5d ✅ | 🔮 STDHTTP (P3) | none |
-| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `/dev/urandom`) | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); future-soft `$ZF → getrandom(2)` for batch perf | ~1d ✅ | 🔮 STDUUID `--secure` flag (TBD) | T12 |
-| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` (on `main`, awaiting tag) | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode) | none (uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`); future-soft `$ZF → libc stat/read/write` for IRIS arm + binary I/O | ~1d ✅ | 🔮 STDCSV rebase onto STDFS (TBD) | T13, T14 |
-| P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.2.x` (on `main`, awaiting tag) | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit | none (uses `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT`); future-soft `$ZF → libc setenv/getcwd/gethostname` for IRIS arm | ~1d ✅ | 🔮 STDARGS quote-aware tokeniser back-port (TBD) | T15 |
-| P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | none (pure-M; STDREGEX listed as soft dep but not used in v1) | ~1d ✅ | 🔮 m-cli `m install <pkg>@<range>` (TBD) | T16 |
-| P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.2.x` (on `main`, awaiting tag) | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / toLowerASCII / toUpperASCII / repeat | none (pure-M; `$translate` / `$piece` / `$find` / `$extract`) | ~Xh ✅ | 🔮 STDOS quote-aware splitArgs absorption (TBD); STDFMT pad alignment (TBD) | T17 |
-| P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.2.x` (on `main`, awaiting tag) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments | none in v1 (STDDATE listed as soft dep but datetime values out of scope; STDSTR listed but inlined for self-containment) | ~1d ✅ | 🔮 m-cli runtime-config from `.m-cli.toml` (TBD) | T18 |
-| P4 | L21 | 23 | [`STDCACHE`](modules/stdcache.md) | `v0.2.x` (on `main`, awaiting tag) | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear / size / capacity | none in v1 (STDCOLL listed as soft dep but inlined for self-containment; STDDATE listed but `$HOROLOG`-direct) | ~1d ✅ | 🔮 STDCOLL OrderedDict rebase (TBD) | T19 |
-| P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | ~1d ✅ | ✅ m-cli `m test --timings` (m-cli `8ef34a6`) — subprocess-level wall-clock per suite via Python `time.perf_counter()`; STDPROF is the in-process API for finer-grained intra-suite timing | T20 |
-| P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | STDFS (save/matches I/O); STDASSERT (asserts integration) | ~1d ✅ | ✅ m-cli `m test --update-snapshots` (m-cli `8ef34a6`, m-stdlib `631b4e7`) — sets `^STDLIB($JOB,"stdsnap","update")=1` so `asserts^STDSNAP` rewrites baselines instead of comparing | T21 |
-| P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | ~1d ✅ | ✅ m-cli `m test --env PATH` (m-cli `8ef34a6`) — repeatable; loads each `.env` via `parseFile^STDENV` and merges into `^STDLIB($JOB,"env",KEY)`; tests read via `$get(^STDLIB($JOB,"env","KEY"))` | T22 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.2.x` (v0+T23+T24+T25 full on `main`, awaiting tag; v1 incremental) | XML parser v0+T23+T24+T25 — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces (element + attribute). ~65% of full envelope; T26/T27 cover the remaining ~35%. | none (STDREGEX listed as soft dep for future XPath); pure recursive-descent parser | ~7d ✅ (v0+T23+T24+T25; ~4-8d remaining for T26/T27) | 🔮 vista-meta HL7v3 / CDA / FHIR consumer (TBD) | T26, T27 |
-| P3 | H1 | 28 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H2 | 29 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H3 | 30 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
+| P1 | L0 | 1 | [`STDASSERT`](modules/stdassert.md) | `v0.0.1` | ~5d ✅ | none | none | Assertion library | ✅ C1 + C2 |
+| P1 | L0 | 2 | [`STDUUID`](modules/stduuid.md) | `v0.0.1` | ~3d ✅ | none | none (would adopt `STDCSPRNG`) | RFC-4122 v4 + RFC-9562 v7 UUIDs | n/a — Python `uuid.uuid4` covers host-side; not inner-loop |
+| P1 | L1 | 3 | [`STDB64`](modules/stdb64.md) | `v0.0.2` | ~3d ✅ | none | none | RFC-4648 Base64 (std + URL-safe) | n/a — Python `base64`; not inner-loop |
+| P1 | L2 | 4 | [`STDHEX`](modules/stdhex.md) | `v0.0.2` | ~1d ✅ | none | none | RFC-4648 §8 hex | n/a — Python `binascii`; not inner-loop |
+| P1 | L3 | 5 | [`STDFMT`](modules/stdfmt.md) | `v0.0.3` | ~5d ✅ | none | none | Printf-style (`str.format` subset) | n/a — Python `str.format`; not inner-loop |
+| P1 | L4 | 6 | [`STDLOG`](modules/stdlog.md) | `v0.0.4` (+ L4 add-on at `v0.2.0`) | ~3d ✅ | none | STDDATE (folded); STDJSON (L4 add-on) | Structured kv logger; `FORMAT(kv\|json)` | n/a — Python `logging`; not inner-loop |
+| P1 | L5 | 7 | [`STDDATE`](modules/stddate.md) | `v0.0.5` | ~5d ✅ | none | none | ISO-8601 datetime + duration arithmetic | n/a — Python `datetime`; not inner-loop |
+| P1 | L6 | 8 | [`STDCSV`](modules/stdcsv.md) | `v0.0.6` | ~4d ✅ | none | none (would adopt `STDFS`) | RFC-4180 CSV parse/write + file I/O | n/a — Python `csv`; not inner-loop |
+| P1 | L7 | 9 | [`STDARGS`](modules/stdargs.md) | `v0.0.7` | ~4d ✅ | none | none (uses `$ZCMDLINE`) | argparse (long/short/group/positional/`--`) | n/a — Python `argparse` parses the `m` CLI; STDARGS is for M-side consumers |
+| P1b | L8 | 10 | [`STDFIX`](modules/stdfix.md) | `v0.1.1` | ~3d ✅ | none | none (uses `tstart`/`trollback`) | Per-test transactional isolation | ✅ C3 |
+| P1b | L9 | 11 | [`STDMOCK`](modules/stdmock.md) | `v0.1.2` | ~3d ✅ | none | none | Test-time call interception | ✅ C4 |
+| P1b | L10 | 12 | [`STDSEED`](modules/stdseed.md) | `v0.1.3` (+ L10 `loadJson` add-on at `v0.2.0`) | ~3d ✅ | none | STDJSON (loadJson add-on); runtime-only `FILE^DIE` | TSV/JSON fixture loader + pluggable filer | ✅ C5 |
+| P2 | L11 | 13 | [`STDJSON`](modules/stdjson.md) | `v0.2.0` | ~7d ✅ | none | none | RFC 8259 JSON parser + serialiser | n/a — Python `json`; not inner-loop |
+| P2 | L12 | 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` | ~10d ✅ | none | none (future `STDREGEX_PCRE` → `$ZF → libpcre2`) | Thompson-NFA regex (no back-refs / lookaround) | n/a — Python `re`; not inner-loop |
+| P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | ~5d ✅ | none | none | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | n/a — Python `collections`; not inner-loop |
+| P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | ~5d ✅ | none | none | RFC 3986 URI parse/build/normalise/resolve | 🔮 C9 — speculative; only via future STDHTTP (P3); m-cli host uses `urllib.parse` |
+| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T12 | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); future-soft `$ZF → getrandom(2)` for batch perf | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `/dev/urandom`) | n/a — not inner-loop; m-cli does not generate tokens / session IDs / signing salts |
+| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T13, T14 | none (uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`); future-soft `$ZF → libc stat/read/write` for IRIS arm + binary I/O | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode) | n/a — Python `pathlib` / `os` / `tempfile` / `shutil` cover host side; STDFS is for M-side consumers |
+| P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T15 | none (uses `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT`); future-soft `$ZF → libc setenv/getcwd/gethostname` for IRIS arm | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit | n/a — Python `os` / `sys` / `subprocess` / `shlex` cover host side; STDOS is for M-side consumers |
+| P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T16 | none (pure-M; STDREGEX listed as soft dep but not used in v1) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | 🔮 C10 — speculative; only if m-cli ever grows `m install <pkg>@<range>`; today not a package manager |
+| P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.2.x` (on `main`, awaiting tag) | ~Xh ✅ | T17 | none (pure-M; `$translate` / `$piece` / `$find` / `$extract`) | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / toLowerASCII / toUpperASCII / repeat | n/a — Python `str` methods cover host side; STDSTR is for M-side consumers |
+| P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T18 | none in v1 (STDDATE listed as soft dep but datetime values out of scope; STDSTR listed but inlined for self-containment) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments | 🔮 C11 — speculative; m-cli today reads `.m-cli.toml` via Python `tomllib`; only relevant if config moves M-side |
+| P4 | L21 | 23 | [`STDCACHE`](modules/stdcache.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T19 | none in v1 (STDCOLL listed as soft dep but inlined for self-containment; STDDATE listed but `$HOROLOG`-direct) | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear / size / capacity | n/a — short-lived per-invocation CLI process has no persistent state to cache; for M-side long-running services |
+| P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T20 | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | ✅ C6 |
+| P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T21 | STDFS (save/matches I/O); STDASSERT (asserts integration) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | ✅ C7 |
+| P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T22 | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | ✅ C8 |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.3.x` (v0+T23+T24+T25+T27v0 on `main`; v1 incremental) | ~9d ✅ (v0+T23+T24+T25+T27v0; ~3-5d remaining for T26/T27a/T27b) | T26, T27a, T27b | none (STDREGEX listed as soft dep for future T27b); pure recursive-descent parser + indirection-based path walker | XML parser v0+T23+T24+T25+T27v0 — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces + XPath subset (paths / `[N]` predicates / descendant axis `//`). ~75% of full envelope; T27a (wildcards / `@attr`), T27b (functions / comparison predicates), T26 (DTDs) cover the remaining ~25%. | n/a — m-cli has no XML in `m fmt` / `m lint` / `m test` / `m coverage` / `m lsp` flows; consumer is vista-meta HL7v3 / CDA / FHIR |
+| P3 | H1 | 28 | `STDCRYPTO` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libcrypto`; A6 | SHA-256/384/512 + HMAC | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
+| P3 | H2 | 29 | `STDCOMPRESS` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libz`, `$ZF → libzstd`; A6 | gzip / deflate / zstd | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
+| P3 | H3 | 30 | `STDHTTP` | `v0.3.0` (queued) | 8–12d est. | T11 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client (request / response / streaming) | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T11 |
 
-**Aggregate:** ~87d shipped across the 27 landed modules
+**Aggregate:** ~89d shipped across the 27 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
 + STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
-+ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25 L25 P4);
-STDXML covers ~65% of the 12-16d envelope so ~4-8d of T26/T27
-remain. ~18–26d estimated for the three queued Phase 3 modules.
-Open ToDo work (T1-T27, with T23/T24/T25/T25b resolved) is
-incremental on top of the shipped totals — see ToDo expansion
-below for per-task estimates.
++ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0
+L25 P4); STDXML covers ~75% of the 12-16d envelope so ~3-5d of
+T26/T27a/T27b remain. ~18–26d estimated for the three queued
+Phase 3 modules. Open ToDo work (T1-T27 with T23/T24/T25/T25b/T27v0
+resolved; T27a and T27b new) is incremental on top of the shipped
+totals — see ToDo expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
 
+*Shipped:*
+
 - **C1** = dynamic `^TESTRUN` / `^STDASSERT` protocol detection (m-cli `23241a2`).
-- **V4** = m-tools test-suite migration TESTRUN→STDASSERT (m-tools `3eec0bf`).
-- **W** = runner SETUP/TEARDOWN wrap consuming STDFIX (m-cli `e5818bd`).
-- **X** = `do clear^STDMOCK` between tests (m-cli `e5818bd`).
-- **Y** = `m test --seed PATH` flag consuming STDSEED (m-cli `e5818bd`).
+- **C2** = m-tools test-suite migration TESTRUN→STDASSERT (m-tools `3eec0bf`).
+- **C3** = runner SETUP/TEARDOWN wrap consuming STDFIX (m-cli `e5818bd`).
+- **C4** = `do clear^STDMOCK` between tests (m-cli `e5818bd`).
+- **C5** = `m test --seed PATH` flag consuming STDSEED (m-cli `e5818bd`).
+- **C6** = `m test --timings` consuming STDPROF for subprocess-level wall-clock per suite via Python `time.perf_counter()`; STDPROF is the in-process API for finer-grained intra-suite timing (m-cli `8ef34a6`).
+- **C7** = `m test --update-snapshots` consuming STDSNAP — sets `^STDLIB($JOB,"stdsnap","update")=1` so `asserts^STDSNAP` rewrites baselines instead of comparing (m-cli `8ef34a6`, m-stdlib `631b4e7`).
+- **C8** = `m test --env PATH` consuming STDENV — repeatable; loads each `.env` via `parseFile^STDENV` and merges into `^STDLIB($JOB,"env",KEY)`; tests read via `$get(^STDLIB($JOB,"env","KEY"))` (m-cli `8ef34a6`).
+
+*Future / speculative (no concrete consumer yet, listed for traceability):*
+
+- **C9** = STDHTTP (P3) consumer of STDURL — m-cli today uses Python `urllib.parse` on the host side; STDURL only enters m-cli through the future STDHTTP path, and only if STDHTTP itself becomes an m-cli dep (which it might not).
+- **C10** = `m install <pkg>@<range>` as consumer of STDSEMVER — m-cli is not a package manager today; if it ever grows one, Python's `packaging.version` is the host-side equivalent. Speculative.
+- **C11** = m-cli runtime config from `.m-cli.toml` via STDTOML — m-cli today reads `.m-cli.toml` and `[tool.m-cli]` in `pyproject.toml` via Python 3.11+ stdlib `tomllib`; STDTOML would only land if config consumption moves to the M side.
+- **C12** = STDCRYPTO P3 hookup — m-cli has no hashing / HMAC / signing path today; queued behind T11 entry.
+- **C13** = STDCOMPRESS P3 hookup — m-cli has no compression path today; queued behind T11 entry.
+- **C14** = STDHTTP P3 hookup — m-cli today shells across SSH or uses Python `urllib`/`requests` for any HTTP need; queued behind T11 entry.
 
 **m-cli integrations not done — rationale.** Eight P4 modules carry no
-m-cli companion track and **none is planned**. Each was evaluated as
-an inner-loop binding (would `m fmt` / `m lint` / `m test` / `m watch`
-benefit?) and the answer was no for one of three reasons: the function
-is **not part of the dev inner loop**, the function is **already
-covered by the Python CLI side** (Python's stdlib does the job natively
-and m-cli's host code is Python), or the function is **for M consumers
-of m-stdlib** rather than for m-cli's own toolchain flows. Per-module:
+*active* m-cli companion track. Six of those (L15, L16, L17, L19, L21,
+L25) have **none planned** — the rationale below is the durable answer.
+The remaining two (L18 STDSEMVER → C10, L20 STDTOML → C11) are tagged
+as speculative future hookups in the table for traceability, but the
+rationale below is the same: today they are not on the m-cli roadmap.
+Each was evaluated as an inner-loop binding (would `m fmt` / `m lint` /
+`m test` / `m watch` benefit?) and the answer was no for one of three
+reasons: the function is **not part of the dev inner loop**, the
+function is **already covered by the Python CLI side** (Python's stdlib
+does the job natively and m-cli's host code is Python), or the function
+is **for M consumers of m-stdlib** rather than for m-cli's own
+toolchain flows. Per-module:
 
 - **L15 STDCSPRNG** — Cryptographic random. *Not inner-loop.* m-cli
   doesn't generate security tokens, session IDs, or signing salts.
@@ -195,19 +214,21 @@ of m-stdlib** rather than for m-cli's own toolchain flows. Per-module:
 - ~~**T25** STDXML namespaces — element-level~~ — **resolved 2026-05-07**: per-element namespace map threaded through `parseElement`/`parseContent`; `xmlns` / `xmlns:prefix` filtered out of regular attrs; element prefix resolved to URI; new `$$ns^STDXML(.node)` accessor; undeclared prefix is a parse error. **T25b** (attribute-namespace resolution) split off as a separate ToDo entry.
 - ~~**T25b** STDXML attribute-namespace resolution~~ — **resolved 2026-05-07**: `resolveAttrNs` walks `node("attr",...)` and stores `node("attrNs", attrName)` for each prefixed attr; default xmlns does NOT apply to unprefixed attrs (per spec); `xml:` prefix bound to `http://www.w3.org/XML/1998/namespace` as a built-in (no declaration needed); undeclared prefix on an attr is a parse error. New public accessor `$$attrNs^STDXML(.node, attrName)`.
 - **T26** STDXML DTDs / DOCTYPE / custom entity declarations.
-- **T27** STDXML XPath 1.0 query subset — axes, predicates, functions, comparison operators.
+- ~~**T27** STDXML XPath 1.0 query subset — minimal v0~~ — **resolved 2026-05-07**: `parseXPath` compiles expressions into step lists; `applyStep` walks the candidate set via path strings; `buildRef` constructs M name references for indirection-based subtree access. Public surface: `$$xpath` / `$$xpathOne` / `$$xpathText`. Supported syntax: bare `name`, chained `a/b/c`, absolute `/foo`, descendant `//x`, position predicate `[N]`. Out of scope queued at T27a / T27b.
+- **T27a** STDXML XPath wildcards (`*`) and attribute axis (`@attrName`) — common shorthand patterns. Wildcards match any element name; `@attrName` returns attribute values from the current context. ~1d.
+- **T27b** STDXML XPath functions (`position()`, `count()`, `text()`, `name()`, `normalize-space()`, `contains()`, `starts-with()`, `string-length()`) and comparison predicates (`[@attr='v']`, `[name()='foo']`). The predicate evaluator has to grow into a proper expression evaluator with type promotion (node-set / string / number / boolean). 2-3d.
 
-**Aggregate gate, current head (2026-05-07):** 1755+ assertions
+**Aggregate gate, current head (2026-05-07):** 1780+ assertions
 across 27 suites, per-module label coverage ≥ 91% (most at 100%;
-STDOS at 91.7%, STDENV at 93.3%, STDXML at 96.9% — `exit()`,
+STDOS at 91.7%, STDENV at 93.3%, STDXML at 97.6% — `exit()`,
 `parseFile()`, and `lastError()` respectively unreachable /
-un-tested by automated tests), 0 lint errors, fmt clean. v0.2.0
-shipped (commit `c3a0880`); the eleven P4 promotions sit on top:
+un-tested by automated tests), 0 lint errors, fmt clean. v0.3.0
+shipped (commit `363b990`); the eleven P4 promotions sit on top:
 STDCSPRNG (L15), STDFS (L16), STDOS (L17), STDSEMVER (L18),
 STDSTR (L19), STDTOML (L20), STDCACHE (L21), STDPROF (L22),
-STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24+T25 (L25). The
-joint canonical-index regen covers 28 modules total (Phase 1: 9;
-Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 11).
+STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24+T25+T27v0 (L25).
+The joint canonical-index regen covers 28 modules total (Phase 1:
+9; Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 11).
 
 ---
 
@@ -637,13 +658,32 @@ across three focused T-tickets:
   rare in modern usage but VistA HL7v2 / CDA samples occasionally
   ship DTDs. External DTDs (with `SYSTEM "..."`) stay out of
   scope; internal subsets only. 2-3d.
-- **T27 — XPath 1.0 subset.** Axes (`child`, `parent`,
-  `descendant`, `attribute`), predicates (`[1]`, `[@attr='v']`,
-  `[name()='foo']`), functions (`position()`, `count()`, `text()`,
-  `name()`, `normalize-space()`), comparison and logical
-  operators, path expressions (`/`, `//`, `..`, `.`). Largest
-  T-ticket — 4-6d. Could lean on STDREGEX for the text-pattern
-  pieces.
+- ✅ **T27 v0 — Minimal XPath subset.** **Resolved 2026-05-07.**
+  `parseXPath` compiles expressions into a step list (axis +
+  name + optional position predicate). `applyStep` walks the
+  candidate set across the step list using path strings (e.g.
+  `"1,3,2"` meaning `tree("child",1,"child",3,"child",2)`).
+  `buildRef` constructs M name references for indirection-based
+  subtree access — paths are entirely composed of internal loop
+  counters so the indirection target is fully internal-controlled
+  (file-wide M-MOD-036 disable with rationale). `mergePathToResult`
+  uses `merge results(idx)=@ref` to copy each matching subtree
+  into the result array. New public surface: `$$xpath` /
+  `$$xpathOne` / `$$xpathText`. Supported: bare `name`, chained
+  paths (`a/b/c`), absolute (`/foo`), descendant (`//x`), position
+  predicates (`[N]`). 12 new tests; STDXML 122/122 → 145/145
+  assertions, 31/32 → 41/42 labels (97.6%).
+- **T27a — XPath wildcards + attribute axis.** Queued. `*` matches
+  any element name; `@attrName` returns attribute values from the
+  current context. Both are common shorthand patterns in HL7v3 /
+  CDA / FHIR XPaths. ~1d.
+- **T27b — XPath functions + comparison predicates.** Queued.
+  `position()`, `count()`, `text()`, `name()`, `normalize-space()`,
+  `contains()`, `starts-with()`, `string-length()` plus comparison
+  predicates (`[@attr='v']`, `[name()='foo']`). The predicate
+  evaluator has to grow into a proper expression evaluator with
+  type promotion (node-set / string / number / boolean). 2-3d.
+  Could lean on STDREGEX for the text-pattern pieces.
 
 **Action:** T25 is the next natural extension — VistA HL7v3 / CDA /
 FHIR is namespaced. T27 is the largest remaining lift. T26 stays
