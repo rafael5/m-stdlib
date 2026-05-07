@@ -10,6 +10,33 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDPROF`** — wall-clock profiler (track L22, phase P4 — eighth
+  Table 2 promotion in two days). Caller-owned profiler tree;
+  multiple profilers per process are independent variables. Public
+  surface: `new(.prof)` / `start(.prof, tag)` / `stop(.prof, tag)` /
+  `count(.prof, tag)` / `total(.prof, tag)` / `mean(.prof, tag)` /
+  `min(.prof, tag)` / `max(.prof, tag)` / `percentile(.prof, tag, p)`
+  / `tags(.prof, .out)` / `clear(.prof)`. Time source: `$ZHOROLOG`
+  collapsed to microseconds since 1840-12-31 (the ANSI `$HOROLOG`
+  is too coarse at second resolution). Each `stop()` records one
+  sample into a sorted-by-value tree
+  (`prof("samples", tag, value, seq) = ""`); `percentile(p)` does
+  nearest-rank — `ceil(p * N / 100)` into the sorted samples,
+  walking via `$ORDER` until the target rank is reached. `p=0`
+  short-circuits to `min`; `p=100` short-circuits to `max`. Edge
+  cases: a clock skew producing negative elapsed clamps to `0`;
+  double-`start()` is a no-op preserving the original start time;
+  `stop()` without matching `start()` is a no-op. STDCOLL Heap
+  listed as soft dep for a future T20 streaming-percentile (CKMS
+  sketch) variant; v1 keeps every sample for exactness, which is
+  the right default for one-shot end-of-run reports. Test suite:
+  18 labels, 25 assertions green (some labels exercise multiple
+  asserts; some HANG to cross the host-clock-resolution boundary).
+  Coverage: 12/12 labels (100%). `m fmt` clean; `m lint
+  --error-on=error` 0E (file-wide M-MOD-022 disable on `$ZHOROLOG`,
+  with rationale anchored on STDDATE's precedent and the
+  microsecond-resolution requirement). Per-module doc:
+  `docs/modules/stdprof.md`.
 - **`STDCACHE`** — LRU + TTL cache (track L21, phase P4 — seventh
   Table 2 promotion in two days). Caller-owned local-array tree;
   no globals, no per-process singletons; multiple caches in one
