@@ -112,6 +112,60 @@ out in `docs/parallel-tracks.md` §3.4):
 - **X** = `do clear^STDMOCK` between tests (m-cli `e5818bd`).
 - **Y** = `m test --seed PATH` flag consuming STDSEED (m-cli `e5818bd`).
 
+**m-cli integrations not done — rationale.** Eight P4 modules carry no
+m-cli companion track and **none is planned**. Each was evaluated as
+an inner-loop binding (would `m fmt` / `m lint` / `m test` / `m watch`
+benefit?) and the answer was no for one of three reasons: the function
+is **not part of the dev inner loop**, the function is **already
+covered by the Python CLI side** (Python's stdlib does the job natively
+and m-cli's host code is Python), or the function is **for M consumers
+of m-stdlib** rather than for m-cli's own toolchain flows. Per-module:
+
+- **L15 STDCSPRNG** — Cryptographic random. *Not inner-loop.* m-cli
+  doesn't generate security tokens, session IDs, or signing salts.
+  Consumers are downstream M apps (JWT issuers, password resetters);
+  m-cli has no need.
+- **L16 STDFS** — File-system primitives. *Replicated in Python CLI
+  interface.* m-cli's host code uses `pathlib.Path`, `os`, `tempfile`,
+  `shutil` natively — richer than STDFS and already debugged. STDFS
+  is for M-side consumers writing portable file I/O; m-cli wouldn't
+  shell across the SSH boundary just to call `readFile^STDFS` when
+  Python can read the file in-process.
+- **L17 STDOS** — Process / env / cmdline helpers. *Replicated in
+  Python CLI interface.* `os.environ`, `sys.argv`, `subprocess`, and
+  `shlex.split` cover the same surface in Python. STDOS is for M code
+  that needs `$$env^STDOS("KEY")` to escape `$ZTRNLNM` portability
+  quirks — m-cli has no equivalent need.
+- **L18 STDSEMVER** — SemVer parse / compare / range match. *Not
+  inner-loop, not used today.* m-cli has no `m install <pkg>@<range>`
+  command and isn't a package manager. Python's `packaging.version`
+  is the host-side equivalent if a package manager is ever built.
+  Speculative future hookup only.
+- **L19 STDSTR** — String helpers (pad / trim / replaceAll / split /
+  startsWith / endsWith / case-fold / repeat). *Replicated in Python
+  CLI interface.* `str.ljust`, `str.rjust`, `str.strip`, `str.replace`,
+  `str.split`, `str.startswith`, `str.endswith`, `str.lower`, `str.upper`,
+  `str * N` cover every helper natively. STDSTR is for M-side string
+  manipulation; m-cli's CLI text never crosses to the M side.
+- **L20 STDTOML** — TOML 1.0 subset parser. *Replicated in Python CLI
+  interface.* m-cli already reads `.m-cli.toml` and `[tool.m-cli]` in
+  `pyproject.toml` via Python 3.11+ `tomllib` (stdlib). STDTOML is for
+  M-side config consumers (a hypothetical M-only project that wants
+  to read its own `.config.toml` at runtime); m-cli's config is loaded
+  on the Python side and the lint/fmt/test/watch flows consume the
+  parsed dict, not the raw text.
+- **L21 STDCACHE** — LRU + TTL cache. *Lower value for end-user CLI.*
+  m-cli is a short-lived per-invocation CLI process — every `m test`
+  is a fresh Python interpreter that exits when done. There's no
+  persistent state for a cache to warm. STDCACHE pays off in M-side
+  long-running services (RPC handlers, FileMan-backed apps); not in
+  the m-cli inner loop.
+- **L25 STDXML** — XML parser (well-formed XML 1.0 v0). *Not inner-loop.*
+  m-cli has no XML in any of its flows — `m fmt` / `m lint` / `m test` /
+  `m coverage` / `m lsp` operate on `.m` source via tree-sitter-m, not
+  on XML. STDXML's documented consumer is vista-meta's HL7v3 / CDA /
+  FHIR pipeline, which is a separate downstream project.
+
 **ToDo — short codes** (expanded in the next section):
 
 - **T1** STDASSERT raises P1 (resolved; downstream re-enables owed).
