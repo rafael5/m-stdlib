@@ -1,18 +1,17 @@
-STDCOMPRESS     ; m-stdlib — gzip / deflate / zstd via $ZF callouts.
+STDCOMPRESS     ; m-stdlib — gzip / deflate / zstd via $&stdcompress callouts.
         ; m-lint: disable-file=M-MOD-024
         ; m-lint: disable-file=M-MOD-036
         ; m-lint: disable-file=M-MOD-020
         ; M-MOD-024 false positives: rc / out are initialised before every
-        ; XECUTE'd $ZF call but the analyser cannot follow flow through the
+        ; XECUTE'd $& call but the analyser cannot follow flow through the
         ; XECUTE indirection.
         ; M-MOD-036 (XECUTE injection) is intentional: the XECUTE wrapper is
-        ; the only way to invoke $ZF without the m fmt abbreviation expander
-        ; mangling the token (longest-prefix match against $ZFIND). The
-        ; XECUTE source is built from a literal template plus a `sym` symbol
-        ; that the M-side public surface controls — no user data flows into
-        ; the XECUTE string. Same trick as STDCRYPTO / STDXFRM.
+        ; the only way to invoke $&pkg.fn from M code that tree-sitter-m can
+        ; still parse — same trick as STDCRYPTO. The XECUTE source is built
+        ; from a literal template plus a `sym` symbol that the M-side public
+        ; surface controls; no user data flows into the XECUTE string.
         ; M-MOD-020 (by-ref formal not written) false positives: dispatch
-        ; helpers write to `out` via the XECUTE'd $ZF call.
+        ; helpers write to `out` via the XECUTE'd $& call.
         ;
         ; Public extrinsics (output via .out byref; return 1=ok / 0=fail):
         ;   $$gzip^STDCOMPRESS(data,.out[,level])           — RFC 1952 gzip
@@ -32,16 +31,18 @@ STDCOMPRESS     ; m-stdlib — gzip / deflate / zstd via $ZF callouts.
         ; (default 3). Level 0 (no compression) is rejected to avoid surprise
         ; pass-through.
         ;
-        ; Output cap: 16 MiB per call (declared in tools/std_compress.xc).
-        ; Streaming for larger payloads is queued.
+        ; Output cap: 1 MiB per call (YDB's max M-string length on this
+        ; build; declared in tools/std_compress.xc). Streaming for larger
+        ; payloads is queued.
         ;
-        ; Backend: $ZF → libz (gzip / deflate) + libzstd (zstd). Source at
-        ; src/callouts/stdcompress.c; descriptor at tools/std_compress.xc.
+        ; Backend: $&stdcompress.<sym> → libz (gzip / deflate) + libzstd
+        ; (zstd). Source at src/callouts/stdcompress.c; descriptor at
+        ; tools/std_compress.xc.
         ;
         ; Deployment runbook (full detail in docs/modules/stdcompress.md):
-        ;   1. tools/build-callouts.sh       ; produce so/<plat>/stdcompress.so
+        ;   1. tools/build-callouts.sh                  ; produce so/<plat>/stdcompress.so
         ;   2. export STDLIB_LIB=<dir-of-so>
-        ;   3. export ydb_ci=<abs>/tools/std_compress.xc
+        ;   3. export ydb_xc_stdcompress=<abs>/tools/std_compress.xc
         ;   4. ensure libz.so.1 + libzstd.so.1 are on the loader path
         ;
         quit
@@ -57,33 +58,33 @@ gzip(data,out,level)    ; RFC 1952 gzip-format compress.
         new lvl
         set lvl=$$libzLevel($get(level,6))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
-        quit $$dispatchC("stdcompress_gzip",data,.out,lvl,"libz")
+        quit $$dispatchC("gzip",data,.out,lvl,"libz")
         ;
 gunzip(data,out)        ; RFC 1952 gunzip.
         ; doc: Example: do gunzip^STDCOMPRESS(buf,.raw)
-        quit $$dispatchD("stdcompress_gunzip",data,.out,"libz")
+        quit $$dispatchD("gunzip",data,.out,"libz")
         ;
 deflate(data,out,level) ; RFC 1951 raw deflate (no header / trailer).
         ; doc: Example: do deflate^STDCOMPRESS("hello",.buf)
         new lvl
         set lvl=$$libzLevel($get(level,6))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
-        quit $$dispatchC("stdcompress_deflate",data,.out,lvl,"libz")
+        quit $$dispatchC("deflate",data,.out,lvl,"libz")
         ;
 inflate(data,out)       ; RFC 1951 raw inflate.
         ; doc: Example: do inflate^STDCOMPRESS(buf,.raw)
-        quit $$dispatchD("stdcompress_inflate",data,.out,"libz")
+        quit $$dispatchD("inflate",data,.out,"libz")
         ;
 zstdCompress(data,out,level)    ; Zstandard (RFC 8478) compress.
         ; doc: Example: do zstdCompress^STDCOMPRESS("hello",.buf)
         new lvl
         set lvl=$$zstdLevel($get(level,3))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
-        quit $$dispatchC("stdcompress_zstd_compress",data,.out,lvl,"libzstd")
+        quit $$dispatchC("zstdCompress",data,.out,lvl,"libzstd")
         ;
 zstdDecompress(data,out)        ; Zstandard decompress.
         ; doc: Example: do zstdDecompress^STDCOMPRESS(buf,.raw)
-        quit $$dispatchD("stdcompress_zstd_decompress",data,.out,"libzstd")
+        quit $$dispatchD("zstdDecompress",data,.out,"libzstd")
         ;
 available()     ; "" iff both libz and libzstd loaded; else missing list.
         ; doc: Example: if $$available^STDCOMPRESS()'="" w "missing libs",!
@@ -114,36 +115,38 @@ zstdLevel(n)    ; Validate zstd compression level — 1..22 valid, else -1.
         if n>22 quit -1
         quit n
         ;
-preallocBuf()   ; 16 MiB pre-allocated output buffer for the C side to fill.
+preallocBuf()   ; 1 MiB pre-allocated output buffer for the C side to fill.
         ; doc: Internal — YDB callouts need the M-side string at full
         ; doc: capacity before the C side writes into it. $justify("",N)
         ; doc: allocates N spaces in one O(N) pass; the C side overwrites
         ; doc: the contents and updates ydb_string_t.length on return.
-        quit $justify("",16777216)
+        ; doc: Capped at 1 MiB (YDB's max M-string length on r2.02);
+        ; doc: matches the [1048576] declaration in tools/std_compress.xc.
+        quit $justify("",1048576)
         ;
-dispatchC(sym,data,out,lvl,backend)     ; Compress dispatch — 3-arg $ZF.
-        ; doc: Internal — XECUTE-wraps $ZF(sym, data, .out, lvl) so the
-        ; doc: m fmt token-mangler doesn't touch $ZF. Sets $ECODE on
-        ; doc: failure: ,U-STDCOMPRESS-CALLOUT-MISSING, if the .so is
-        ; doc: unloaded; ,U-STDCOMPRESS-LIBZ-FAIL, / -LIBZSTD-FAIL,
+dispatchC(sym,data,out,lvl,backend)     ; Compress dispatch — 3-arg $&.
+        ; doc: Internal — XECUTE-wraps $&stdcompress.<sym>(data,.out,lvl)
+        ; doc: so tree-sitter-m doesn't trip on the $&pkg.fn syntax. Sets
+        ; doc: $ECODE on failure: ,U-STDCOMPRESS-CALLOUT-MISSING, if the
+        ; doc: .so is unloaded; ,U-STDCOMPRESS-LIBZ-FAIL, / -LIBZSTD-FAIL,
         ; doc: depending on the backend.
         new $etrap,rc,cmd
-        set $etrap="set $ecode="""" set rc=-1 quit"
+        set $etrap="set $ecode="""" set rc=-1 quit 0"
         set rc=0
         set out=$$preallocBuf()
-        set cmd="set rc=$ZF("""_sym_""",data,.out,lvl)"
+        set cmd="set rc=$&stdcompress."_sym_"(data,.out,lvl)"
         xecute cmd
         if rc=-1 set $ecode=",U-STDCOMPRESS-CALLOUT-MISSING," quit 0
         if 'rc set $ecode=$select(backend="libz":",U-STDCOMPRESS-LIBZ-FAIL,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
         quit 1
         ;
-dispatchD(sym,data,out,backend) ; Decompress dispatch — 2-arg $ZF.
+dispatchD(sym,data,out,backend) ; Decompress dispatch — 2-arg $&.
         ; doc: Internal — same wrap as dispatchC but without the level arg.
         new $etrap,rc,cmd
-        set $etrap="set $ecode="""" set rc=-1 quit"
+        set $etrap="set $ecode="""" set rc=-1 quit 0"
         set rc=0
         set out=$$preallocBuf()
-        set cmd="set rc=$ZF("""_sym_""",data,.out)"
+        set cmd="set rc=$&stdcompress."_sym_"(data,.out)"
         xecute cmd
         if rc=-1 set $ecode=",U-STDCOMPRESS-CALLOUT-MISSING," quit 0
         if 'rc set $ecode=$select(backend="libz":",U-STDCOMPRESS-LIBZ-FAIL,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0

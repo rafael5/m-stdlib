@@ -1,6 +1,6 @@
 ---
 title: m-stdlib — master module development tracker
-status: live (2026-05-07; STDCSPRNG promoted to Table 1)
+status: live (2026-05-07; STDCSPRNG promoted to Table 1; T21 closed — STDSNAP complete; T20 closed — STDPROF complete; T13+T14 closed — STDFS byte-faithful I/O via $ZF→libc)
 audience: anyone landing or proposing a module in m-stdlib.
 authority: this file is the canonical "what's done / in flight / proposed" view. All
   module-level commits MUST update the relevant row(s) here in the same commit.
@@ -78,35 +78,35 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P2 | L12 | 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` | ~10d ✅ | none | none (future `STDREGEX_PCRE` → `$ZF → libpcre2`) | Thompson-NFA regex (no back-refs / lookaround) | n/a — Python `re`; not inner-loop |
 | P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | ~5d ✅ | none | none | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | n/a — Python `collections`; not inner-loop |
 | P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | ~5d ✅ | none | none | RFC 3986 URI parse/build/normalise/resolve | 🔮 C9 — speculative; only via future STDHTTP (P3); m-cli host uses `urllib.parse` |
-| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T12 | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); future-soft `$ZF → getrandom(2)` for batch perf | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `/dev/urandom`) | n/a — not inner-loop; m-cli does not generate tokens / session IDs / signing salts |
-| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T13, T14 | none (uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`); future-soft `$ZF → libc stat/read/write` for IRIS arm + binary I/O | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode) | n/a — Python `pathlib` / `os` / `tempfile` / `shutil` cover host side; STDFS is for M-side consumers |
+| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ + ~Xh ✅ T12 | none | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); `$ZF → getrandom(2)` for batch perf (with `/dev/urandom` soft-fall-back) | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `cs_random` callout `\|` `/dev/urandom`) | n/a — not inner-loop; m-cli does not generate tokens / session IDs / signing salts |
+| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` shipped + `v0.3.x` byte-I/O on `main` (awaiting tag) | ~1d ✅ + ~Xh ✅ T13+T14 | none | `$ZF → libc open/read/write/close` (T13+T14 closed; pure-M text I/O still uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`) | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode); **readBytes / writeBytes / appendBytes / available** (byte-faithful I/O via libc callout, atomic `O_APPEND`) | n/a — Python `pathlib` / `os` / `tempfile` / `shutil` cover host side; STDFS is for M-side consumers |
 | P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T15 | none (uses `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT`); future-soft `$ZF → libc setenv/getcwd/gethostname` for IRIS arm | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit | n/a — Python `os` / `sys` / `subprocess` / `shlex` cover host side; STDOS is for M-side consumers |
 | P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T16 | none (pure-M; STDREGEX listed as soft dep but not used in v1) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | 🔮 C10 — speculative; only if m-cli ever grows `m install <pkg>@<range>`; today not a package manager |
 | P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.2.x` (on `main`, awaiting tag) | ~Xh ✅ | T17 | none (pure-M; `$translate` / `$piece` / `$find` / `$extract`) | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / toLowerASCII / toUpperASCII / repeat | n/a — Python `str` methods cover host side; STDSTR is for M-side consumers |
 | P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T18 | none in v1 (STDDATE listed as soft dep but datetime values out of scope; STDSTR listed but inlined for self-containment) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments | 🔮 C11 — speculative; m-cli today reads `.m-cli.toml` via Python `tomllib`; only relevant if config moves M-side |
 | P4 | L21 | 23 | [`STDCACHE`](modules/stdcache.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T19 | none in v1 (STDCOLL listed as soft dep but inlined for self-containment; STDDATE listed but `$HOROLOG`-direct) | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear / size / capacity | n/a — short-lived per-invocation CLI process has no persistent state to cache; for M-side long-running services |
-| P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T20 | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | ✅ C6 |
-| P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T21 | STDFS (save/matches I/O); STDASSERT (asserts integration) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | ✅ C7 |
+| P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | none | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for the streaming-percentile variant T20 reserved but did not deliver) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | ✅ C6 |
+| P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | none | STDFS (save/matches I/O); STDASSERT (asserts integration) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | ✅ C7 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T22 | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | ✅ C8 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.3.x` (incremental on `main`) | ~10d ✅ (v0+T23+T24+T25+T27v0+T27a; ~2-3d remaining for T26/T27b) | T26, T27b | none (STDREGEX listed as soft dep for future T27b); pure recursive-descent parser + indirection-based path walker | XML parser — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces + XPath subset (paths / `[N]` predicates / descendant axis `//` / wildcards `*` `@*` / attribute axis `@attr`). ~80% of full envelope; T27b (functions / comparison predicates) and T26 (DTDs) cover the remaining ~20%. | n/a — m-cli has no XML in `m fmt` / `m lint` / `m test` / `m coverage` / `m lsp` flows; consumer is vista-meta HL7v3 / CDA / FHIR |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.3.x` (incremental on `main`) | ~12d ✅ (v0+T23+T24+T25+T27v0+T27a+T27b; ~2d remaining for T26 only) | T26 | none (pure recursive-descent parser + indirection-based path walker; predicate expression evaluator inlined in src/STDXML.m) | XML parser — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces + XPath subset (paths / `[N]` predicates / descendant axis `//` / wildcards `*` `@*` / attribute axis `@attr` / **comparison predicates `[@id='v']` `[name()='b']` `[count(x)>1]`** / **functions `position()` `last()` `name()` `text()` `count()` `string-length()` `normalize-space()` `contains()` `starts-with()` `not()` `string()` `number()`**). ~95% of full envelope; T26 (DTDs) is the only remaining queued lift. | n/a — m-cli has no XML in `m fmt` / `m lint` / `m test` / `m coverage` / `m lsp` flows; consumer is vista-meta HL7v3 / CDA / FHIR |
 | P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `+` coercion, `$ORDER` walk) | Numeric helpers — clamp / min / max / sum / count / mean over caller-owned arrays | n/a — Python `min` / `max` / `sum` / `statistics.mean`; not inner-loop |
 | P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `@expr` indirection in own stack frame) | Higher-order array transforms — `map` / `filter` / `reduce` via `@expr`-evaluated lambdas (`value` / `key` / `acc` locals) | n/a — Python list-comprehensions / `map` / `filter` / `functools.reduce`; not inner-loop |
-| P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.3.x` (on `main`, awaiting engine deployment for green run) | ~2d code-complete | T28 | `$ZF → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
-| P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.3.x` (in flight on `main`; host-build verified) | ~3d ✅ scaffolded / ~1-2d remaining (engine deploy only) | T28 | `$ZF → libz`, `$ZF → libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress / available. Output via `.out` byref (16 MiB cap); errors via `$ECODE`. **Scaffolded 2026-05-07:** C shim (`src/callouts/stdcompress.c`), .xc descriptor (`tools/std_compress.xc`), M wrapper (`src/STDCOMPRESS.m`), test suite (28 labels in `tests/STDCOMPRESSTST.m`), per-module doc — all on `main`; lint clean (0E). **Host build verified 2026-05-07:** added missing `// link: -lz -lzstd` directive to `stdcompress.c`; `libzstd-dev` installed on the dev host; `gcc -shared -fPIC … -lz -lzstd` produces `so/linux-x86_64/stdcompress.so` with all 10 `stdcompress_*` entrypoints exported and `libz.so.1` + `libzstd.so.1` resolved via `ldd`. (Note: `tools/build-callouts.sh` itself currently fails earlier because `http.c` requires `libcurl-dev`; tracked separately under T29 / H3 iter 2.) **Remaining:** engine green-run blocked on T28 alongside STDCRYPTO — push the .so + `tools/std_compress.xc` into the vista-meta container, wire `STDLIB_LIB` + union the .xc into `ydb_ci`, ensure `libzstd.so.1` is on the loader path. | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
+| P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.3.x` (on `main`, **green on engine 2026-05-07**) | ~2d ✅ | T28 ✅ | `$&pkg.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512. STDCRYPTOTST 23/23 green; coverage 17/17 = 100%. T28 closed via `scripts/seed-callouts.sh` automation. | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
+| P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.3.x` (engine-deployed; 55/57 green) | ~3d ✅ scaffolded / ~3d migration + deploy ✅ / ~0.5d remaining (M-side $ECODE redesign — T30) | T28 done, T30 open | `$&stdcompress.<sym>` → `libz` + `libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress / available. Output via `.out` byref (1 MiB cap); errors via `$ECODE`. **Scaffolded 2026-05-07:** C shim, .xc, M wrapper, 24-label test suite, doc. **Host build verified 2026-05-07:** `// link: -lz -lzstd` directive added; libzstd-dev installed; `so/linux-x86_64/stdcompress.so` builds with all 10 entrypoints exported. **T28 engine-deployed 2026-05-07:** scp'd .so + .xc into vista-meta `~/export/seed/m-stdlib/lib/`, wired `STDLIB_LIB` + `ydb_xc_stdcompress` env vars. Engine reports as GT.M V7.0-005, which (a) rejects `.var` byref output for `$ZF`, forcing a migration `$ZF(name,…)` → `$&stdcompress.<short>(…)` in STDCOMPRESS.m (mirrors STDCRYPTO); (b) requires `int argc` prepended to every C entry point under the `$&pkg.fn` ABI, so stdcompress.c got argc-checked; (c) caps M-string length at 1 MiB, so the .xc's `[16777216]` was rejected and the buffer cap (`STDCOMPRESS_OUT_BUFSIZE`, `preallocBuf()`, .xc declarations) was lowered to 1 MiB. **Engine results: 55/57 green** — all round-trips at 0–10 KB pass for all three codecs, bytes 0x00–0xFF preservation passes, magic-byte assertions pass, default-level sentinel passes, corrupt-input rejections return falsy. **Remaining 2 failures** are the `$ECODE tagged LIBZ-FAIL` / `$ECODE tagged LIBZSTD-FAIL` contains-asserts: dispatchC/D's local `$etrap` clears `$ecode` so the dispatch can quit 0 cleanly; by the time the test reads `$ecode` it's empty. Setting `$ecode` and returning falsy from an extrinsic *while leaving `$ecode` set for the caller* is incompatible with YDB r2.02's etrap semantics. Same latent bug in STDCRYPTO's dispatch3/dispatch4. Tracked under **new ticket T30** — route U-error code through a routine-local global that the public extrinsic copies to `$ECODE` after dispatch returns, instead of `set $ecode=",U-…,"` inside the dispatch helper. ~0.5d M-side rewrite; deployment infra unaffected. | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
 | P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` (in progress) | ~1d ✅ iter 1 / ~7-11d remaining | T29 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client. **Iter 1 landed:** pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`). **Iter 2 queued:** libcurl callout (`src/callouts/http.c`) + `$$get` / `$$post` / `$$request` extrinsics. | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T29 |
 
 **Aggregate:** ~93d shipped across the 30 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
 + STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
-+ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0+T27a
++ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0+T27a+T27b
 L25 P4 + STDMATH L26 P4 + STDXFRM L27 P4 + **STDCRYPTO H1 P3** —
 code-complete on `main`; engine green-run pending T28); STDXML
-covers ~80% of the 12-16d envelope so ~2-3d of T26/T27b remain.
+covers ~95% of the 12-16d envelope so ~2d of T26 remains.
 ~12–18d estimated for the two remaining queued Phase 3 modules
 (STDCOMPRESS, plus STDHTTP iter 2 — STDHTTP iter 1 already landed).
-Open ToDo work (T1-T29 with T23/T24/T25/T25b/T27v0/T27a resolved;
-T11 partially closed — STDCRYPTO landed, STDHTTP iter 1 landed;
-T26, T27b, T28, T29 remaining) is incremental on top of the
+Open ToDo work (T1-T29 with T13/T14/T20/T21/T23/T24/T25/T25b/T27v0/T27a/T27b
+resolved; T11 partially closed — STDCRYPTO landed, STDHTTP iter 1
+landed; T26, T28, T29 remaining) is incremental on top of the
 shipped totals — see ToDo expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
@@ -204,18 +204,19 @@ toolchain flows. Per-module:
 - **T9** STDREGEX `classEscape` coverage gap.
 - **T10** STDREGEX IRIS native `$MATCH`/`$LOCATE` dispatch.
 - **T11** Phase 3 entry (STDCRYPTO / STDCOMPRESS / STDHTTP).
-- **T12** STDCSPRNG `$ZF → getrandom(2)` callout backend (perf-only swap).
-- **T13** STDFS native append (replace read-then-rewrite with `$ZF → write(2)` once Phase 3 cuts).
-- **T14** STDFS `readBytes` / `writeBytes` for byte-faithful binary I/O (deferred alongside T13).
+- ~~**T12** STDCSPRNG `$ZF → getrandom(2)` callout backend (perf-only swap)~~ — **resolved 2026-05-07**: `src/callouts/cs_random.c` (single `cs_random(n,out)` entry; loops over `getrandom(2)` until `n` bytes filled; `EINTR` retry); `tools/std_csprng.xc` descriptor (1 MiB output cap). M side: new `$$useCallout^STDCSPRNG()` probe + internal `dispatchRandom(n)` XECUTE-wrapped `$ZF` call (same anti-fmt-mangle pattern as STDCRYPTO/STDHTTP); `$$bytes^STDCSPRNG` tries the callout first, falls back to the existing `/dev/urandom` `READ *b` loop on miss. Public API unchanged. Soft-fall-back keeps STDCSPRNGTST 406/406 green when the descriptor isn't deployed; engine-deployed perf path verified separately under T28's deployment harness.
+- ~~**T13** STDFS native append (replace read-then-rewrite with `$ZF → write(2)` once Phase 3 cuts)~~ — **resolved 2026-05-07**: `src/callouts/stdfs.c` (`stdfs_appendBytes` issues `open(O_APPEND)` + looped `write(2)`); `tools/std_fs.xc` descriptor; `src/STDFS.m` adds `appendBytes^STDFS` extrinsic — atomic at EOF, byte-faithful, no lseek race. The text-mode `append^STDFS` keeps its read-then-rewrite implementation because rerouting it through native `O_APPEND` would leave an interior LF whenever the previous content ended with one (breaking the `readFile(append(x,y)) == readFile(x) + y` round-trip contract). Callers picking between them: `appendBytes` for binary streams / structured logs; `append` for text-mode concat + trailing-LF semantics.
+- ~~**T14** STDFS `readBytes` / `writeBytes` for byte-faithful binary I/O (deferred alongside T13)~~ — **resolved 2026-05-07**: same C shim adds `stdfs_readBytes` (looped `read(2)` into a 16 MiB caller buffer; surfaces `,U-STDFS-READ-TRUNCATED,` instead of silent truncation) and `stdfs_writeBytes` (`O_TRUNC` + looped `write(2)`); M side adds `$$readBytes^STDFS` / `do writeBytes^STDFS` extrinsics. No CR/LF normalisation, no implicit trailing LF — exact byte counts preserved. Tests gate on `$$available^STDFS()` and assert the soft-fail path sets `,U-STDFS-NOT-WIRED,`.
 - **T15** STDOS `setenv` / quote-aware `splitArgs` / IRIS arm via `$ZF → libc setenv/getcwd/gethostname` callouts.
 - **T16** STDSEMVER range syntax extensions (`||` OR, hyphen ranges, `*`/`x`/`X` placeholders, prerelease-aware comparators, `^0.x.y` zero-major narrowing per npm semantics).
 - **T17** STDSTR Unicode whitespace + locale-aware case folding (deferred to a future STDUNICODE; STDSTR v1 is byte-wise ASCII-only by design).
 - **T18** STDTOML out-of-scope features (arrays, inline tables, dotted keys, array-of-tables, multi-line / literal strings, integer underscores + hex/oct/bin, special floats, exponent notation, datetime values via STDDATE).
 - **T19** STDCACHE rebase onto STDCOLL OrderedDict + explicit `prune` operation for batch expired-entry sweeping.
-- **T20** STDPROF streaming-percentile variant via STDCOLL Heap (CKMS sketch) for continuous monitoring; v1 keeps all samples and walks them on demand.
-- **T21** STDSNAP root-scalar serialization + auto-update flag + diff helper (v1 walks `$QUERY` descendants only, no auto-update; humans re-`save` manually after intentional drift).
+- ~~**T20** STDPROF streaming-percentile variant via STDCOLL Heap (CKMS sketch) for continuous monitoring~~ — **closed 2026-05-07** as won't-fix-without-consumer-driver per the original `Action:` ("schedule when a real consumer — `m test --profile` continuous mode, or a long-running service — drives the requirement"). No such consumer has emerged: m-cli's `--timings` consumer (C6) calls `percentile()` once per tag at end-of-run, where the v1 sorted-sample walk is `O(N)` but on small N. Reopen if a real caller hits the linear-walk limitation. STDPROF v1 (exact percentiles via the `prof("samples", tag, value, seq)` tree) is the final deliverable.
+- ~~**T21** STDSNAP root-scalar serialization + auto-update flag + diff helper~~ — **closed 2026-05-07**: item 2 (auto-update) delivered via C7's `^STDLIB($JOB,"stdsnap","update")=1` global-flag mechanism (m-stdlib `631b4e7`, m-cli `8ef34a6`) — functionally equivalent to the originally-proposed `STDSNAP_UPDATE` env var. Items 1 (root-scalar serialization) and 3 (bundled diff helper) closed as won't-fix-without-consumer-driver per their original `Action:` ("schedule when a concrete consumer drives the requirement"); reopen if a real caller hits the limitation. STDSNAP v1 + C7's update mode is the final deliverable.
 - **T22** STDENV variable substitution + `export` prefix + multi-line values + process-environment integration via STDOS setenv (T15).
-- **T28** Engine-bound deployment for STDCRYPTO — push .so + .xc into vista-meta container, wire `STDLIB_LIB` + `ydb_ci` env vars on the YDB session side, install `libcrypto.so.3` in the image. Code-complete on `main` 2026-05-07; this is the gating ticket before STDCRYPTOTST runs green and before STDCOMPRESS / STDHTTP start.
+- ~~**T28** Engine-bound deployment for STDCRYPTO~~ — **closed 2026-05-07** by `scripts/seed-callouts.sh` (the m-stdlib-side close of the deployment loop). The script (1) scps `src/callouts/*.c` + `tools/std_*.xc` into `~/export/seed/m-stdlib/build/{callouts,xc}/` on the vista-meta container, (2) compiles each .c against `/usr/local/lib/yottadb/r2.02/libyottadb.h` with the per-source `// link: -lfoo` directive (so `-lcrypto`, `-lcurl`, `-lz -lzstd` flow through automatically), and (3) idempotently injects a marker block into `/etc/profile.d/ydb_env.sh` (sudo -n) that exports `STDLIB_LIB` + per-package `ydb_xc_<pkg>` (`ydb_xc_stdcrypto` / `ydb_xc_stdcompress` / `ydb_xc_stdhttp` / `ydb_xc_stdcsprng` / `ydb_xc_stdfs`) so every `m test` SSH session inherits them via the existing `source /etc/profile.d/ydb_env.sh` step in m-cli's engine. `make seed` invokes it automatically when `src/callouts/*.c` is present. Engine-verified: STDCRYPTOTST flipped from 0/0 → 23/23 on 2026-05-07. STDCOMPRESS / STDXFRM remain 0/0 under separate non-deployment bugs (QUITARGREQD `quit` from extrinsic etrap context — different from the deployment problem T28 closed).
+- ~~**T29** STDHTTP iteration 2 (libcurl callout)~~ — **closed 2026-05-07** alongside T28. iteration 2's M-side wiring (commit `940f8ce` 2026-05-07) drove `$$request` / `$$get` / `$$post` through an XECUTE-wrapped `$&stdhttp.http_perform` (later migrated from bare `$ZF` to namespaced `$&pkg.fn` syntax to match STDCRYPTO); `$$available^STDHTTP()` probes via `$&stdhttp.http_available` + `curl_easy_init` smoke. Engine-verified: STDHTTPTST 68/68 green with the .so deployed via `seed-callouts.sh`. Iteration 3 (IRIS arm via `%Net.HttpRequest`) queued.
 - ~~**T23** STDXML CDATA / processing instructions / comments / `<?xml ?>` declaration~~ — **resolved 2026-05-07**: `parseContent` dispatches on `<!--` / `<![CDATA[` / `<?`; new `skipDocLevel` walks PIs+comments before/after the root; CDATA content stored as literal text (no entity decode).
 - ~~**T24** STDXML numeric character references~~ — **resolved 2026-05-07**: `decodeEntities` handles `&#NNN;` (decimal) and `&#xHH;` (hex); `encodeUtf8` produces 1-4 byte UTF-8 sequences for any Unicode code point up to U+10FFFF.
 - ~~**T25** STDXML namespaces — element-level~~ — **resolved 2026-05-07**: per-element namespace map threaded through `parseElement`/`parseContent`; `xmlns` / `xmlns:prefix` filtered out of regular attrs; element prefix resolved to URI; new `$$ns^STDXML(.node)` accessor; undeclared prefix is a parse error. **T25b** (attribute-namespace resolution) split off as a separate ToDo entry.
@@ -223,7 +224,7 @@ toolchain flows. Per-module:
 - **T26** STDXML DTDs / DOCTYPE / custom entity declarations.
 - ~~**T27** STDXML XPath 1.0 query subset — minimal v0~~ — **resolved 2026-05-07**: `parseXPath` compiles expressions into step lists; `applyStep` walks the candidate set via path strings; `buildRef` constructs M name references for indirection-based subtree access. Public surface: `$$xpath` / `$$xpathOne` / `$$xpathText`. Supported syntax: bare `name`, chained `a/b/c`, absolute `/foo`, descendant `//x`, position predicate `[N]`. Out of scope queued at T27a / T27b.
 - ~~**T27a** STDXML XPath wildcards (`*`) and attribute axis (`@attrName`)~~ — **implementation landed 2026-05-07** (test verification pending YDB container availability): `parseXPath` accepts `*` as a name token (matched in `collectChildren` / `collectDescendants` via the new `matchName` helper) and detects `@` as an attribute-step prefix that is terminal (parser rejects anything after the attribute name). New `collectAttribute` walks `node("attr", k)` for the candidate path and emits results with `attrValue` / `attrName` subnodes; `mergePathToResult` lifts those into `results(idx,"text")` / `results(idx,"name")` so `xpathText` returns the attribute value transparently. Combinations covered: `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`. 10 new tests (`tXpath{Wildcard,ChildOfWildcard,DescendantWildcard,WildcardWithPredicate,Attribute*}`).
-- **T27b** STDXML XPath functions (`position()`, `count()`, `text()`, `name()`, `normalize-space()`, `contains()`, `starts-with()`, `string-length()`) and comparison predicates (`[@attr='v']`, `[name()='foo']`). The predicate evaluator has to grow into a proper expression evaluator with type promotion (node-set / string / number / boolean). 2-3d.
+- ~~**T27b** STDXML XPath functions and comparison predicates~~ — **implementation landed 2026-05-07** (test verification pending YDB container availability): `parseXPath` predicate scanner extended to consume quoted-string content so `]` inside a literal doesn't terminate the predicate; numeric `[N]` filters keep their O(1) fast path while expression predicates route through the new `applyExprPredicate` per-candidate evaluator. New helpers (~330 LoC): `parsePredExpr` / `parseExpr` / `parsePrimary` build a tagged AST; `evalPredExpr` walks it against each candidate's path with full XPath 1.0 type coercion (`toBool` / `toStr` / `toNum`); `compareOp` does the `=`/`!=`/`<`/`>`/`<=`/`>=` dispatch (numeric promotion for ordering, string-or-number for equality). Supported functions: `position()`, `last()`, `name()`, `text()`, `count(...)`, `string-length(...)`, `normalize-space(...)`, `contains(.,.)`, `starts-with(.,.)`, plus `not(...)`, `string(...)`, `number(...)`. `count()` accepts `name` / `*` / `@name` / `@*` (single-step relative paths only — full XPath inside count is queued under a future ticket if a real consumer drives it). 15 new tests (`tXpathPredicate{AttrEqualsString,AttrEqualsDoubleQuoted,AttrNotEquals,NameEquals,TextEquals,Contains,StartsWith,PositionEqual,CountEquals,CountGreaterThan,StringLengthGt,NormalizeSpace,AttrExistsTruthy,AttrExistsFiltersOut,RejectsBadExpr}`).
 
 **Aggregate gate, current head (2026-05-07):** 1780+ assertions
 across 27 suites, per-module label coverage ≥ 91% (most at 100%;
@@ -390,44 +391,68 @@ What was deferred is a perf-only follow-up: native `$MATCH` /
 `iris-portability-check` CI job continues to surface any
 regressions in fail-soft mode without gating merges.
 
-### T12 — STDCSPRNG `$ZF → getrandom(2)` callout backend
+### T12 — STDCSPRNG `$ZF → getrandom(2)` callout backend (resolved 2026-05-07)
 **Module:** STDCSPRNG.
-**Status:** queued; STDCSPRNG ships in v0.2.x with a `/dev/urandom`
-backend (single-byte `READ *b` to avoid record-terminator truncation).
-A `$ZF → getrandom(2)` callout would batch reads and shave the per-byte
-device round-trip — mostly a perf concern, not a security one.
-`/dev/urandom` and `getrandom(0)` share the same kernel ChaCha20
-CSPRNG, so the upgrade is **API-stable**: callers do not change.
-**Action:** schedule alongside T11. Add `src/callouts/cs_random.c`,
-register the call-in table entry, gate the new backend behind a
-`$$useCallout()` probe so degraded environments still work via
-`/dev/urandom`. Coverage gate stays unchanged.
+**Status:** ✅ **closed 2026-05-07.** Both backends now coexist:
+the new `cs_random` callout (`$ZF → getrandom(2)`) is tried first, the
+existing `/dev/urandom` `READ *b` loop is the soft-fall-back. Same
+kernel ChaCha20 pool either way — API stable, callers unchanged.
+**What landed:**
+- `src/callouts/cs_random.c` — single `cs_random(n, out)` entry;
+  loops over `getrandom(2)` until `n` bytes are filled (handling the
+  256-byte syscall cap and `EINTR` retry); writes through caller's
+  `ydb_string_t*` buffer (1 MiB capacity declared in the .xc).
+- `tools/std_csprng.xc` — call-in descriptor; consumes `STDLIB_LIB`
+  the same way `std_crypto.xc` and `std_http.xc` do.
+- `src/STDCSPRNG.m` — new `$$useCallout^STDCSPRNG()` probe
+  (env-var fast-path → 1-byte probe via the callout) and internal
+  `dispatchRandom(n)` helper (XECUTE-wrapped `$ZF` to dodge m fmt's
+  longest-prefix mangle of `$ZF → $zfind`; same trick as STDCRYPTO /
+  STDHTTP / STDCOMPRESS). `$$bytes` tries `dispatchRandom` first; on
+  empty return (env unset, .so missing, getrandom(2) failure) falls
+  back to the device-read path (now factored out as `bytesFromDevice`).
+- `tests/STDCSPRNGTST.m` — added `tUseCalloutReturnsBoolean`; suite
+  green at 406/406 with the callout undeployed (soft-fall-back path).
 **Reference:** `docs/modules/stdcsprng.md` "Entropy source" section.
 
-### T13 — STDFS native append + native I/O backend
+### T13 — STDFS native append + native I/O backend ✅ **CLOSED 2026-05-07**
 **Module:** STDFS.
-**Status:** queued; STDFS ships in v0.2.x with append() implemented
-as **read-then-rewrite** (read existing file, concatenate, writeFile
-back). This sidesteps a YDB SEQ device quirk where the first WRITE
-after `OPEN dev:(append)` lands at byte 0 instead of EOF — observed
-in `tAppendExtendsFile` while landing L16. Cost is `O(file size)`
-per append call.
-**Action:** wire `$ZF → write(2)` once the Phase 3 build harness is
-exercised by a real consumer. Public API does not change. Same patch
-adds the `readBytes` / `writeBytes` pair (T14).
+**Status:** closed. New `do appendBytes^STDFS(path, data)` extrinsic
+calls `$ZF → stdfs_appendBytes` which issues
+`open(O_WRONLY|O_CREAT|O_APPEND)` + a single looped `write(2)` —
+atomic at EOF, no lseek race, no SEQ-device byte-0 quirk, no implicit
+trailing LF. The text-mode `append^STDFS` keeps its read-then-rewrite
+implementation by design: rerouting it through native `O_APPEND` would
+leave an interior LF in the file whenever the previous content already
+ended with one, breaking the documented `readFile(append(x, y)) ==
+readFile(x) + y` contract. Callers that want byte-faithful append at
+EOF use `appendBytes` directly; callers that want text-mode "concat
++ trailing LF" semantics keep using `append`.
+**Source:** `src/callouts/stdfs.c` (`stdfs_appendBytes`),
+`src/STDFS.m` (`appendBytes` extrinsic; `append` doc note clarifying
+the text-mode rationale),
+`tests/STDFSTST.m` (`tAppendBytesAtomic`, `tAppendBytesCreatesIfMissing`).
 **Reference:** `docs/modules/stdfs.md` "Append semantics" section.
 
-### T14 — STDFS binary-safe `readBytes` / `writeBytes`
+### T14 — STDFS binary-safe `readBytes` / `writeBytes` ✅ **CLOSED 2026-05-07**
 **Module:** STDFS.
-**Status:** queued. STDFS v0.2.x is text-mode only — `writeFile`
-always emits a trailing LF (POSIX text-file convention; YDB SEQ
-stream-mode close finalisation), and `readFile` strips the trailing
-LF on the way back. Round-trips strings cleanly but does not preserve
-exact byte counts for binary payloads.
-**Action:** add `readBytes(path,n)` and `writeBytes(path,data)` that
-use the `$ZF → read(2)/write(2)` callout backend so byte boundaries
-are preserved. Schedule alongside T13 (same callout entry points).
-**Reference:** `docs/modules/stdfs.md` "Trailing-LF semantics" section.
+**Status:** closed. `$$readBytes^STDFS(path)` and
+`do writeBytes^STDFS(path,data)` go through `$ZF → stdfs_readBytes` /
+`stdfs_writeBytes` which issue raw `open(2)` / `read(2)` / `write(2)`
+at the libc layer — no trailing LF added on write, no CR/LF
+normalisation on read, exact byte counts preserved. 16 MiB per-call
+output cap is declared in the `.xc` descriptor; oversize reads surface
+`,U-STDFS-READ-TRUNCATED,` rather than silently truncating. The
+text-I/O entries (`readFile` / `writeFile` / `readLines` /
+`writeLines`) keep their POSIX text-file semantics.
+**Source:** `src/callouts/stdfs.c` (`stdfs_readBytes`,
+`stdfs_writeBytes`), `tools/std_fs.xc`, `src/STDFS.m`
+(`readBytes` / `writeBytes` / `available` extrinsics),
+`tests/STDFSTST.m` (`tWriteBytesByteFaithful`,
+`tReadBytesPreservesAllBytes`, `tReadBytesPreservesEmbeddedCR`,
+`tReadBytesMissingRaises`, `tNotWiredSoftFail`).
+**Reference:** `docs/modules/stdfs.md` "Byte-faithful I/O (T13 + T14)"
+section.
 
 ### T15 — STDOS `setenv` / quote-aware `splitArgs` / IRIS arm
 **Module:** STDOS.
@@ -541,53 +566,71 @@ neither is urgent.
 
 ### T20 — STDPROF streaming-percentile via STDCOLL Heap (CKMS sketch)
 **Module:** STDPROF.
-**Status:** queued. STDPROF v1 keeps every sample in
+**Status:** ✅ **closed 2026-05-07** as won't-fix-without-consumer-driver.
+**What it was:** STDPROF v1 keeps every sample in
 `prof("samples", tag, value, seq)` and walks them in `$ORDER` on
 each `percentile()` call. Memory grows linearly with sample count;
 `percentile()` is `O(N)` worst case (typically a small walk near
 the requested rank). For a one-shot end-of-run report this is fine,
 but a continuous-monitoring use case (calling `percentile` thousands
 of times in a hot loop) would benefit from a streaming variant.
-**Action:** add a `newStreaming^STDPROF(.prof, epsilon)` constructor
-that allocates a CKMS (Cormode-Korn-Muthukrishnan-Srivastava) sketch
-backed by STDCOLL's Heap. `stop()` inserts into the sketch instead
-of the full sample tree; `percentile()` queries the sketch in
-`O(log N)`. Samples are bounded by the `epsilon` parameter (typical
-1% error gives a sketch of ~100 entries). Public API surface stays
-the same; `tags()` continues to work; the tree shape changes only
-under `prof("sketch", tag, ...)`. Schedule when a real consumer
-(m-cli `m test --profile` continuous mode, or a long-running
-service) drives the requirement.
+**Originally proposed action:** add a
+`newStreaming^STDPROF(.prof, epsilon)` constructor that allocates a
+CKMS (Cormode-Korn-Muthukrishnan-Srivastava) sketch backed by
+STDCOLL's Heap. `stop()` inserts into the sketch instead of the
+full sample tree; `percentile()` queries the sketch in `O(log N)`.
+Samples are bounded by the `epsilon` parameter (typical 1% error
+gives a sketch of ~100 entries). Public API surface stays the same;
+`tags()` continues to work; the tree shape changes only under
+`prof("sketch", tag, ...)`.
+**Why closed:** the original action ended with "schedule when a
+real consumer (m-cli `m test --profile` continuous mode, or a
+long-running service) drives the requirement," and no such consumer
+has emerged. The only consumer today is m-cli `m test --timings`
+(C6), which calls `percentile()` once per tag at end-of-run — the
+exact one-shot report the v1 walk is sized for. The exact-sample
+contract is also stricter than a sketch can deliver, so closing T20
+removes a forward reference that would have to be qualified with
+"approximate" caveats indefinitely.
+**Reopen criteria:** a caller emerges that calls `percentile()`
+inside a hot path (thousands of queries against a long-lived tag),
+or a long-running service (e.g. a request-handling loop) instruments
+itself with STDPROF and observes the linear-walk cost. At that point
+the original `Action:` above is the implementation plan; STDCOLL's
+Heap surface (`heapPush` / `heapPop` / `heapSize`) is the soft-dep.
 **Reference:** `docs/modules/stdprof.md` "Percentile semantics"
-section (documents the inline sorted-sample walk that T20 replaces).
+section (documents the inline sorted-sample walk; the forward
+reference to T20 has been replaced with a "no streaming variant
+ships in v1; reopen-on-need" note).
 
-### T21 — STDSNAP root-scalar + auto-update + diff helper
+### T21 — STDSNAP root-scalar + auto-update + diff helper (closed 2026-05-07)
 **Module:** STDSNAP.
-**Status:** queued. STDSNAP v1 walks `$QUERY` descendants only,
-which means a tree with a scalar at the root (`set data="value"`,
-no subscripts) doesn't serialise. Three follow-ups make sense as
-real consumers exercise the surface:
-1. **Root-scalar serialization.** Add a special-case line at the
-   top of the dump for the root value, e.g. `=value` (no
-   subscripts). Trivial to add but breaks the file format
-   slightly — schedule when a real caller hits the limitation.
-2. **Auto-update flag.** A common pattern in other ecosystems
-   (`pytest --snapshot-update`, Jest `--updateSnapshot`) is to
-   re-`save` automatically when a flag is set. STDSNAP v1
-   intentionally requires explicit `save` — humans must review
-   drift before refreshing. Add an opt-in `STDSNAP_UPDATE`
-   environment-variable check that flips `matches` to "save and
-   pass" mode when set.
-3. **Bundled diff helper.** v1 reports the snapshot path on
-   mismatch; humans run `diff -u baseline current` themselves.
-   A small `$$diff^STDSNAP(path, .data)` returning a unified-
-   diff string would be a nice ergonomic — implementable with a
-   tiny LCS algorithm or shelled out to `/usr/bin/diff` via
-   STDOS once setenv lands (T15).
-**Action:** schedule when a concrete consumer drives the
-requirement. v1 covers the practical 80% case (testing parsed
-JSON / FileMan trees with subscripted leaves).
-**Reference:** `docs/modules/stdsnap.md` "Edge cases" section.
+**Status:** ✅ **closed.** STDSNAP v1 + C7's update mode is the
+final deliverable; item 2 was delivered via a slightly different
+mechanism than originally proposed, items 1 and 3 close as
+won't-fix-without-consumer-driver:
+1. **Root-scalar serialization.** Closed as won't-fix-without-driver.
+   STDSNAP v1 walks `$QUERY` descendants only, so a tree with a
+   scalar at the root (`set data="value"`, no subscripts) doesn't
+   serialise. v1 covers the practical 80% case (parsed JSON /
+   FileMan trees with subscripted leaves); reopen with a new ticket
+   if a real caller hits the limitation.
+2. ✅ **Auto-update flag — delivered via C7.** The originally-proposed
+   `STDSNAP_UPDATE` env-var mechanism shipped instead as a global
+   flag: `^STDLIB($JOB,"stdsnap","update")=1` flips `asserts^STDSNAP`
+   from compare-mode to rewrite-baselines-and-pass mode. m-cli's
+   `m test --update-snapshots` sets the global before each suite
+   (m-stdlib `631b4e7`, m-cli `8ef34a6`). Functionally equivalent to
+   `pytest --snapshot-update` / Jest `--updateSnapshot`; the global
+   is preferred over an env var for in-process control without a
+   shell round-trip.
+3. **Bundled diff helper.** Closed as won't-fix-without-driver.
+   v1 reports the snapshot path on mismatch; humans run `diff -u
+   baseline current` themselves. A `$$diff^STDSNAP(path, .data)`
+   ergonomic remains nice-to-have but is not blocking any consumer;
+   reopen with a new ticket when one materialises.
+**Reference:** `docs/modules/stdsnap.md` "Edge cases" section;
+C7 entry above for the auto-update wiring.
 
 ### T22 — STDENV out-of-scope features
 **Module:** STDENV.
@@ -611,10 +654,10 @@ T22)" section.
 
 ### T23-T27 — STDXML deferred features
 **Module:** STDXML.
-**Status:** **T23 and T24 resolved 2026-05-07** (this commit);
-T25-T27 still queued. STDXML now covers ~50% of the 12-16d full
-XML 1.0 + Namespaces 1.0 + XPath 1.0 envelope. Remaining ~7-11d
-across three focused T-tickets:
+**Status:** **T23/T24/T25/T25b/T27v0/T27a/T27b all resolved 2026-05-07**;
+**T26 alone remains queued.** STDXML now covers ~95% of the 12-16d full
+XML 1.0 + Namespaces 1.0 + XPath 1.0 envelope. Remaining ~2d across
+the single T-ticket:
 
 - ✅ **T23 — CDATA / PI / comments / xml-decl.** **Resolved
   2026-05-07.** `parseContent` dispatches on `<!--` / `<![CDATA[`
@@ -697,22 +740,49 @@ across three focused T-tickets:
   returns the attribute value transparently. 10 new tests cover:
   `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`,
   `@missing`, attribute via `xpathText`.
-- **T27b — XPath functions + comparison predicates.** Queued.
-  `position()`, `count()`, `text()`, `name()`, `normalize-space()`,
-  `contains()`, `starts-with()`, `string-length()` plus comparison
-  predicates (`[@attr='v']`, `[name()='foo']`). The predicate
-  evaluator has to grow into a proper expression evaluator with
-  type promotion (node-set / string / number / boolean). 2-3d.
-  Could lean on STDREGEX for the text-pattern pieces.
+- ✅ **T27b — XPath functions + comparison predicates.**
+  **Implementation landed 2026-05-07** (test verification pending
+  YDB container availability). `parseXPath`'s predicate scanner
+  was extended to consume content inside single-/double-quoted
+  string literals so that `]` inside a literal does not terminate
+  the predicate. Numeric `[N]` predicates retain their O(1) fast
+  path through the legacy `applyPredicate`; expression predicates
+  route through the new `applyExprPredicate` per-candidate
+  evaluator. The predicate body is parsed into a tagged AST:
+  `parsePredExpr` → `parseExpr` (single-level comparison: `=` /
+  `!=` / `<` / `>` / `<=` / `>=`) → `parsePrimary` (string lit /
+  number / `@name` / `@*` / `*` / parenthesised expr / function
+  call / bare-name node-ref). `evalPredExpr` recursively walks
+  the AST against the candidate path with full XPath 1.0 type
+  coercion (`toBool` / `toStr` / `toNum`); `compareOp` uses
+  numeric promotion for ordering operators and the
+  string-or-number rule for equality. Functions implemented:
+  `position()` / `last()` (use the candidate-set position +
+  size), `name()` / `text()` (read directly off the candidate
+  path via `nameAtPath` / `textAtPath`), `count(...)` (single-
+  step relative-path arg: `name` / `*` / `@name` / `@*` —
+  full-XPath sub-expressions queued behind a future ticket if
+  a real consumer drives it), `string-length(...)` /
+  `normalize-space(...)` (zero-arg context form + one-arg
+  string form), `contains(.,.)`, `starts-with(.,.)`, plus
+  XPath-1.0 conversion helpers `not(...)`, `string(...)`,
+  `number(...)`. 15 new tests
+  (`tXpathPredicate{AttrEqualsString,AttrEqualsDoubleQuoted,
+  AttrNotEquals,NameEquals,TextEquals,Contains,StartsWith,
+  PositionEqual,CountEquals,CountGreaterThan,StringLengthGt,
+  NormalizeSpace,AttrExistsTruthy,AttrExistsFiltersOut,
+  RejectsBadExpr}`).
 
-**Action:** T25 is the next natural extension — VistA HL7v3 / CDA /
-FHIR is namespaced. T27 is the largest remaining lift. T26 stays
-lowest-priority for modern XML.
+**Action:** T26 is now the only queued STDXML lift, and stays
+lowest-priority for modern XML — DTDs are rare in HL7v3 / CDA /
+FHIR. The W3C XML Test Suite remains the conformance corpus to
+vendor under `tests/conformance/xml/` once a real consumer drives
+the T26 requirement.
 
 **Reference:** `docs/modules/stdxml.md` "Out of scope (queued)"
 section. The W3C XML Test Suite is the conformance corpus for
-T25-T27 acceptance; vendor it under `tests/conformance/xml/`
-when a real consumer drives the requirement.
+T26 acceptance; vendor it under `tests/conformance/xml/` when
+a real consumer drives the requirement.
 
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
@@ -733,72 +803,100 @@ vista-meta engine reachable + the .so deployed inside it — see T28.
 **Per-module specs:** `docs/m-stdlib-implementation-plan.md` §12.
 
 ### T28 — Engine-bound deployment for STDCRYPTO
-**Status:** open. Code-complete on `main`; the engine wiring is the
-remaining gap before `make test` can run STDCRYPTOTST green.
-**What's already done (this session):**
-- `src/STDCRYPTO.m` — public extrinsics + `$&std_crypto.*` wrappers.
-- `src/callouts/std_crypto.c` — OpenSSL EVP_Digest + HMAC.
-- `tools/std_crypto.xc` — YDB call-out descriptor (uses `$STDLIB_LIB`
-  env var so it's portable across hosts).
-- `tools/build-callouts.sh` — extended with per-source `// link:`
-  directive parsing so the harness picks up `-lcrypto` for
-  `std_crypto.c` without hardcoding crypto-specific flags.
-- `tests/STDCRYPTOTST.m` — RFC 6234 / RFC 4231 vectors, 22 tests.
-- `docs/modules/stdcrypto.md` — full module doc + deployment runbook.
-**What's still owed:**
-1. **vista-meta container — install libssl.** The container image
-   needs `libcrypto.so.3` (or `.so.1.1`) loadable. Modern base
-   images already do; document explicitly in vista-meta and verify.
-2. **`scripts/seed-vista.sh` — push .so + .xc.** Today the seed
-   only ships routines. Extend it to scp `so/<plat>/std_crypto.so`
-   and `tools/std_crypto.xc` into the container's session staging
-   area.
-3. **YDB session env-var wiring.** The container's `m test` shell
-   wrapper must `export STDLIB_LIB=<path>` and
-   `export ydb_ci=<path>` before invoking the suite. Add
-   to the seed script's per-test bootstrap or to the vista-meta
-   image's entrypoint.
-4. **Build dep gate.** `tools/build-callouts.sh` requires
-   `libssl-dev` + `libyottadb.h` headers on the build host. Document
-   in README install section. (This session's host has neither;
-   `--check` passes but actual build will fail — expected.)
-**Effort estimate:** 2-3d split across vista-meta-side image work
-(item 1) and m-stdlib-side seed-script work (items 2 + 3).
-**Why it didn't ship in the same commit:** vista-meta container was
-unreachable during the STDCRYPTO landing session (SSH connection
-refused 2026-05-07), and the host lacked `libssl-dev` headers, so
-the green-run cycle couldn't be exercised. Code is sound but
-unverified end-to-end against the engine.
+**Status:** ✅ **closed 2026-05-07.** STDCRYPTOTST runs 23/23 against
+the vista-meta YDB engine via `make test`. Per-module label coverage
+is 17/17 = 100%; lint clean (0E).
+
+**What landed in the closing session (2026-05-07 evening):**
+
+1. **C-side argc fix.** YottaDB r2.02's `$&pkg.fn` external-call ABI
+   prepends an `int argc` to every C entry point. Every public
+   function in `src/callouts/std_crypto.c` (`crypto_sha256` /
+   `crypto_sha384` / `crypto_sha512` / `crypto_hmac_sha256` etc.)
+   now takes `int argc` first and bails with `-5` on a wrong arity.
+   Without this fix, YDB was passing the literal arg-count value
+   (e.g. `2`) into the slot the C side was treating as
+   `ydb_string_t* in`, and dereferencing it crashed at vaddr 0x2.
+
+2. **M-side dispatch rewrite.** `src/STDCRYPTO.m::dispatch3` /
+   `dispatch4` now build the XECUTE'd command as
+   `set rc=$&stdcrypto.<fn>(...)` instead of
+   `set rc=$ZF("crypto_<fn>",...)`. The legacy `$ZF` form was
+   abandoned because YDB r2.02's M parser rejects the `.var`
+   byref-output syntax outright (`%YDB-E-EXPR, Expression expected
+   but not found`). The XECUTE wrap also keeps tree-sitter-m
+   happy with the `$&pkg.fn` syntax (open grammar gap).
+
+3. **Descriptor LHS rename.** `tools/std_crypto.xc` LHS names are
+   now `sha256` / `sha384` / `sha512` / `hmacSha256` / `hmacSha384` /
+   `hmacSha512` (no underscore — YDB package names must be
+   alphanumeric, so the env var becomes `ydb_xc_stdcrypto`).
+
+4. **`scripts/seed-callouts.sh` — package-name strip.** When
+   computing `ydb_xc_<pkg>` exports for the marker block in
+   `/etc/profile.d/ydb_env.sh`, the script strips non-alphanumerics
+   from the descriptor base. So `std_crypto.xc` → `ydb_xc_stdcrypto`,
+   matching what the M-side `$&stdcrypto.<fn>` syntax requires.
+
+5. **$ETRAP body returns a value.** `dispatch3` / `dispatch4`'s
+   `$etrap` body now ends with `quit -1` (instead of bare `quit`)
+   so the etrap firing inside an extrinsic frame doesn't trip
+   `%YDB-E-QUITARGREQD`.
+
+6. **$etrap propagation flow.** Etrap path now stores `rc=-1` and
+   the post-xecute `if rc=-1 set $ecode=...` chain still surfaces
+   the `,U-STDCRYPTO-CALLOUT-MISSING,` error code — preserving
+   the public contract documented in `docs/modules/stdcrypto.md`.
+
+**Cross-project followup:** STDCOMPRESS (T28's other half) and
+STDHTTP iter 2 (T29) are still on the legacy `$ZF` + `ydb_ci` path.
+They will need the same argc + `$&pkg.fn` migration before they can
+run green on the engine; the descriptor → env-var stripping done in
+`scripts/seed-callouts.sh` already accommodates them automatically
+when they catch up.
 
 ### T29 — STDHTTP iteration 2 (libcurl callout)
 **Module affected:** STDHTTP (H3 P3).
-**Status:** open. Iteration 1 (pure-M wire-format helpers) landed
-2026-05-07: `parseStatusLine` / `parseHeader` / `parseResponse` /
-`buildRequest` / `formatHeaders` plus soft-fail `$$get` / `$$post` /
-`$$request` stubs that set `resp("error")="STDHTTP-NOT-WIRED"` so
-consumers can integrate against the final array shape today.
-**What iteration 2 owes:**
-1. `src/callouts/http.c` — libcurl glue (curl_easy_init / setopt /
-   perform / getinfo / cleanup) writing back HTTP response code,
-   header block, and body bytes into M output buffers.
-2. `tools/std_http.xc` — YDB call-out descriptor analogous to
-   `tools/std_crypto.xc` (uses `$STDLIB_LIB` for path portability).
-3. Wire `$$request^STDHTTP` to drive the callout; replace the
-   soft-fail `STDHTTP-NOT-WIRED` path. Map curl error codes →
-   `resp("error")` strings.
-4. Network-bound integration tests against a local httpbin or
-   echo server (vendor under `tests/integration/http/` so they
-   stay separable from the pure-M `STDHTTPTST` suite).
-5. Build-host dep: `libcurl4-openssl-dev`. Per-source `// link:`
-   directive in `http.c` to add `-lcurl` (same idiom STDCRYPTO
-   established for `-lcrypto`).
-6. vista-meta container needs `libcurl.so.4` loadable (typically
-   already present; document in T28-style runbook).
-**Effort:** 5-7d split across the C glue (~2d), $ZF wiring + test
-plumbing (~2d), and the integration-test harness (~1-3d depending
-on whether httpbin is vendored or proxied).
-**IRIS arm:** deferred. The `%Net.HttpRequest` `$CLASSMETHOD` arm
-shares the same M-side req/resp shape and lands as a follow-on.
+**Status:** ✅ **closed 2026-05-07.** STDHTTPTST runs 68/68 against
+the vista-meta YDB engine via `make test` with the http.so deployed.
+Per-module label coverage 94.1%; lint clean (0E).
+
+**What landed (commits `940f8ce` + post-T28 migration):**
+1. ✅ `src/callouts/http.c` — libcurl glue (251 LOC):
+   `curl_easy_init` / setopt-everything / `easy_perform` / getinfo /
+   cleanup. Single `http_perform` entry point captures the response
+   header stream + body into 1 MiB caller-allocated buffers; HTTP
+   status returned out-of-band so 4xx/5xx is C-side success.
+   `http_available` smoke probe (init+cleanup) added for
+   `$$available^STDHTTP()`.
+2. ✅ `tools/std_http.xc` — YDB call-out descriptor; `$STDLIB_LIB`
+   for portability.
+3. ✅ M-side wiring: `$$request` / `$$get` / `$$post` drive
+   `$&stdhttp.http_perform` through an XECUTE-wrapped command-string
+   (same anti-tree-sitter-trip pattern as STDCRYPTO). Response header
+   stream split on `\r\n\r\n` to keep the **final** response after
+   redirects; body installed afterwards. libcurl error string flows
+   into `resp("error")`. Both `$$available` and `$$dispatchPerform`
+   short-circuit on `$$env^STDOS("ydb_xc_stdhttp")=""` so engines
+   without the descriptor exported soft-fail to
+   `resp("error")="STDHTTP-NOT-WIRED"` without touching XECUTE.
+4. ✅ `// link: -lcurl` directive in `http.c` flows through
+   `seed-callouts.sh`'s per-source link parser (same idiom
+   STDCRYPTO established for `-lcrypto`).
+5. ✅ Container deploy via `scripts/seed-callouts.sh`
+   (T28 close). vista-meta container has `libcurl4-openssl-dev` +
+   `libcurl.so.4` already; the script compiles `http.c` against the
+   container's `libyottadb.h` so output ABI matches the runtime.
+6. ⏳ Network-bound integration tests against a local httpbin —
+   queued. Hermetic transport-error coverage today
+   (`tNetworkTransportErrorWhenCalloutLoaded` against
+   `nonexistent.invalid` per RFC 2606) is sufficient for the
+   green-run gate; live happy-path validation lands when a concrete
+   consumer wires httpbin under `tests/integration/http/`.
+
+**IRIS arm (iteration 3):** deferred. The `%Net.HttpRequest`
+`$CLASSMETHOD` arm shares the same M-side req/resp shape and
+lands when the IRIS portability spike unblocks behind T28.
 
 ---
 
@@ -838,9 +936,15 @@ Promoted out of Table 2 (now in Table 1):
   build harness is exercised by a real consumer.
 - **STDFS** — promoted 2026-05-07 to Table 1 as **L16 P4**. Shipped
   as text-mode YDB-only v1: read/write/append/exists/remove/size +
-  basename/dirname/join. Append uses a read-then-rewrite workaround
-  for a YDB SEQ APPEND-mode position quirk; binary-safe I/O and the
-  IRIS arm both wait on the `$ZF → libc` callout backend (T13/T14).
+  basename/dirname/join. **Closed T13+T14 same day** — `src/callouts/stdfs.c`
+  adds `stdfs_writeBytes` / `stdfs_appendBytes` / `stdfs_readBytes` over
+  raw `open(2)` / `read(2)` / `write(2)`; M side adds `readBytes` /
+  `writeBytes` / `appendBytes` / `available` extrinsics. The text-mode
+  `append^STDFS` keeps its read-then-rewrite implementation by design
+  (a native O_APPEND reroute would leave interior LFs and break the
+  `readFile(append(x,y)) == readFile(x) + y` round-trip contract);
+  byte-faithful append at EOF lives at `appendBytes^STDFS`. The IRIS arm
+  follows the same `$ZF` host-call pattern once a real consumer drives it.
 - **STDOS** — promoted 2026-05-07 to Table 1 as **L17 P4**. Shipped
   as YDB-only v1: env / pid / cmdline / argc / arg / argv /
   splitArgs / cwd / user / hostname / exit. Built over `$ZTRNLNM` /
@@ -894,9 +998,13 @@ Promoted out of Table 2 (now in Table 1):
   resolution; `$HOROLOG`'s second resolution is too coarse for
   profiling). Percentile uses nearest-rank into a sorted-by-value
   sample tree (`prof("samples", tag, value, seq) = ""`); `O(N)`
-  worst case but typically a small walk. STDCOLL Heap listed as
-  soft dep for a future T20 streaming-percentile (CKMS sketch)
-  variant; v1 keeps all samples for exactness. Coverage: 12/12
+  worst case but typically a small walk. STDCOLL Heap was listed
+  as soft dep for a streaming-percentile (CKMS sketch) variant
+  reserved under T20; **T20 closed 2026-05-07** as won't-fix-
+  without-consumer-driver — m-cli `--timings` (C6) calls
+  `percentile()` once per tag at end-of-run, where the v1 walk is
+  sized exactly right, and no other caller has surfaced. v1's
+  exact-sample tree is the final deliverable. Coverage: 12/12
   labels (100%), 25/25 assertions green.
 - **STDSNAP** — promoted 2026-05-07 to Table 1 as **L23 P4**.
   Snapshot testing: `serialize` / `save` / `matches` / `asserts`.
@@ -906,10 +1014,13 @@ Promoted out of Table 2 (now in Table 1):
   deterministic, diff-friendly. Hard deps: STDFS (file I/O for
   save/matches), STDASSERT (asserts integration with pass/fail
   counters). No STDJSON dep — pre-listed as soft but inlined dq()
-  helper. Out of scope for v1 (queued at T21): root-scalar
-  snapshots (`$QUERY` walks descendants only), auto-update flag,
-  bundled diff helper (humans run `diff -u baseline current` for
-  inspection). Coverage: 7/7 labels (100%), 23/23 assertions green.
+  helper. T21 closed 2026-05-07: auto-update flag delivered via
+  C7's `^STDLIB($JOB,"stdsnap","update")=1` global mechanism
+  (m-stdlib `631b4e7`); root-scalar snapshots (`$QUERY` walks
+  descendants only) and bundled diff helper (humans run `diff -u
+  baseline current` for inspection) closed as
+  won't-fix-without-consumer-driver. Coverage: 7/7 labels (100%),
+  23/23 assertions green.
 - **STDENV** — promoted 2026-05-07 to Table 1 as **L24 P4**. `.env`
   loader with typed accessors: `parse` / `parseFile` / `valid` /
   `has` / `get` / `getInt` / `getBool` / `getFloat`. Format covers

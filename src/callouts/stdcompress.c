@@ -47,7 +47,7 @@ typedef struct {
 typedef long ydb_long_t;
 #endif
 
-#define STDCOMPRESS_OUT_BUFSIZE (16 * 1024 * 1024)
+#define STDCOMPRESS_OUT_BUFSIZE (1 * 1024 * 1024)
 #define STDCOMPRESS_ERR_BUFSIZE 1024
 
 static char g_lasterr[STDCOMPRESS_ERR_BUFSIZE];
@@ -82,13 +82,15 @@ static void set_err_libzstd(const char *prefix, size_t rc) {
 
 /* ---------- availability ---------- */
 
-ydb_long_t stdcompress_available_libz(void) {
+ydb_long_t stdcompress_available_libz(int argc) {
+    (void)argc;
     /* zlibVersion() is a libz-resident symbol; if dlopen succeeded we can
      * call it. Returns the linked version string; non-null = available. */
     return zlibVersion() != NULL ? 1 : 0;
 }
 
-ydb_long_t stdcompress_available_libzstd(void) {
+ydb_long_t stdcompress_available_libzstd(int argc) {
+    (void)argc;
     return ZSTD_versionNumber() > 0 ? 1 : 0;
 }
 
@@ -153,28 +155,33 @@ static ydb_long_t libz_decompress_with_window(ydb_string_t *in, ydb_string_t *ou
     return 1;
 }
 
-ydb_long_t stdcompress_gzip(ydb_string_t *in, ydb_string_t *out, ydb_long_t level) {
+ydb_long_t stdcompress_gzip(int argc, ydb_string_t *in, ydb_string_t *out, ydb_long_t level) {
+    if (argc != 3) return 0;
     /* windowBits = 15 + 16 selects gzip framing per zlib.h. */
     return libz_compress_with_window(in, out, level, 15 + 16);
 }
 
-ydb_long_t stdcompress_gunzip(ydb_string_t *in, ydb_string_t *out) {
+ydb_long_t stdcompress_gunzip(int argc, ydb_string_t *in, ydb_string_t *out) {
+    if (argc != 2) return 0;
     return libz_decompress_with_window(in, out, 15 + 16);
 }
 
-ydb_long_t stdcompress_deflate(ydb_string_t *in, ydb_string_t *out, ydb_long_t level) {
+ydb_long_t stdcompress_deflate(int argc, ydb_string_t *in, ydb_string_t *out, ydb_long_t level) {
+    if (argc != 3) return 0;
     /* windowBits = -15 selects raw deflate (no header / trailer). */
     return libz_compress_with_window(in, out, level, -15);
 }
 
-ydb_long_t stdcompress_inflate(ydb_string_t *in, ydb_string_t *out) {
+ydb_long_t stdcompress_inflate(int argc, ydb_string_t *in, ydb_string_t *out) {
+    if (argc != 2) return 0;
     return libz_decompress_with_window(in, out, -15);
 }
 
 /* ---------- libzstd ---------- */
 
-ydb_long_t stdcompress_zstd_compress(ydb_string_t *in, ydb_string_t *out,
+ydb_long_t stdcompress_zstd_compress(int argc, ydb_string_t *in, ydb_string_t *out,
                                      ydb_long_t level) {
+    if (argc != 3) return 0;
     clear_err();
 
     size_t bound = ZSTD_compressBound(in->length);
@@ -194,7 +201,8 @@ ydb_long_t stdcompress_zstd_compress(ydb_string_t *in, ydb_string_t *out,
     return 1;
 }
 
-ydb_long_t stdcompress_zstd_decompress(ydb_string_t *in, ydb_string_t *out) {
+ydb_long_t stdcompress_zstd_decompress(int argc, ydb_string_t *in, ydb_string_t *out) {
+    if (argc != 2) return 0;
     clear_err();
 
     size_t rc = ZSTD_decompress(out->address, STDCOMPRESS_OUT_BUFSIZE,
@@ -210,7 +218,8 @@ ydb_long_t stdcompress_zstd_decompress(ydb_string_t *in, ydb_string_t *out) {
 
 /* ---------- last-error reader ---------- */
 
-ydb_long_t stdcompress_lasterror(ydb_string_t *out) {
+ydb_long_t stdcompress_lasterror(int argc, ydb_string_t *out) {
+    if (argc != 1) return 0;
     size_t n = strlen(g_lasterr);
     if (n > STDCOMPRESS_OUT_BUFSIZE) n = STDCOMPRESS_OUT_BUFSIZE;
     if (n > 0) memcpy(out->address, g_lasterr, n);
@@ -220,7 +229,8 @@ ydb_long_t stdcompress_lasterror(ydb_string_t *out) {
 
 /* ---------- error setter for M-side checks (level validation) ---------- */
 
-ydb_long_t stdcompress_set_bad_level(ydb_string_t *codec) {
+ydb_long_t stdcompress_set_bad_level(int argc, ydb_string_t *codec) {
+    if (argc != 1) return 0;
     char buf[STDCOMPRESS_ERR_BUFSIZE];
     int n = (int)codec->length;
     if (n >= STDCOMPRESS_ERR_BUFSIZE - 64) n = STDCOMPRESS_ERR_BUFSIZE - 64;
