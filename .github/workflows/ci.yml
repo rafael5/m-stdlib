@@ -37,11 +37,15 @@ jobs:
           python3.12 -m venv /tmp/venv
           /tmp/venv/bin/pip install --upgrade pip
 
-      - name: Install m-cli (from git until post-Phase-1 publication)
+      - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
+          # Distribution model: clone-and-install (no package registry).
+          # tree-sitter-m must land before m-cli so its local checkout
+          # satisfies m-cli's dependency declaration.
+          git clone --depth=1 https://github.com/rafael5/tree-sitter-m /tmp/tree-sitter-m
           git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          /tmp/venv/bin/pip install /tmp/tree-sitter-m
           /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
-          /tmp/venv/bin/pip install tree-sitter-m
 
       - name: Initialise YDB workspace
         run: |
@@ -110,11 +114,15 @@ jobs:
           python3.12 -m venv /tmp/venv
           /tmp/venv/bin/pip install --upgrade pip
 
-      - name: Install m-cli (from git until post-Phase-1 publication)
+      - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
+          # Distribution model: clone-and-install (no package registry).
+          # tree-sitter-m must land before m-cli so its local checkout
+          # satisfies m-cli's dependency declaration.
+          git clone --depth=1 https://github.com/rafael5/tree-sitter-m /tmp/tree-sitter-m
           git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          /tmp/venv/bin/pip install /tmp/tree-sitter-m
           /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
-          /tmp/venv/bin/pip install tree-sitter-m
 
       - name: Format check (engine-agnostic)
         run: /tmp/venv/bin/m fmt --check src/ tests/
