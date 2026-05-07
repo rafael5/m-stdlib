@@ -60,21 +60,25 @@ edge cases: empty key, key-longer-than-block, and the canonical RFC
 ## Architecture
 
 ```
-M side                      C side                  OpenSSL
-──────                      ──────                  ───────
-$$sha256^STDCRYPTO(data)    crypto_sha256()         EVP_DigestInit_ex(EVP_sha256())
-       │                           │                EVP_DigestUpdate(in)
-       │   $&std_crypto.           │                EVP_DigestFinal_ex(out)
-       └─→  crypto_sha256(data,    │
-            .out)            ─────→│                returns 32 bytes
-                                   │
-       ←──────────────────  out (32 bytes) ←─────────
+M side                       C side               OpenSSL
+──────                       ──────               ───────
+$$sha256^STDCRYPTO(data)     crypto_sha256()      EVP_DigestInit_ex(EVP_sha256())
+       │                            │             EVP_DigestUpdate(in)
+       │  XECUTE "set rc=             │             EVP_DigestFinal_ex(out)
+       │   $ZF(""crypto_sha256"",     │
+       └─→  data,.out)"          ──→ │             returns 32 bytes
+                                     │
+       ←────────────────  out (32 bytes) ←────────
        │
        └─→ $$encode^STDHEX(out)  →  hex digest
 ```
 
-- M-side `$&std_crypto.crypto_sha256` invokes the C function via the
-  YDB external-call mechanism.
+- M-side calls go through `dispatch3` / `dispatch4` helpers that
+  build the `set rc=$ZF(...)` command as a string and `XECUTE` it.
+  The string-literal indirection sidesteps an `m fmt` abbreviation-
+  expansion bug (`$ZF` → `$zfind`); see TOOLCHAIN-FINDINGS for
+  detail. The runtime semantics are identical to a direct `$ZF`
+  call — only the source spelling differs.
 - The C side uses OpenSSL's EVP interface (`EVP_DigestInit_ex` /
   `EVP_DigestUpdate` / `EVP_DigestFinal_ex`) and `HMAC()` from
   `<openssl/hmac.h>`.
@@ -99,7 +103,10 @@ tools/build-callouts.sh                         # produces so/<plat>/std_crypto.
 
 # 2. Point YottaDB at the call-out descriptor.
 export STDLIB_LIB="$PWD/so/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
-export ydb_xc_std_crypto="$PWD/tools/std_crypto.xc"
+export ydb_ci="$PWD/tools/std_crypto.xc"
+# (ydb_ci is the legacy global call-out table loaded by $ZF; the newer
+# ydb_xc_std_crypto env var would also work but only via $&std_crypto.func
+# syntax which tree-sitter-m's grammar doesn't yet parse.)
 
 # 3. Verify.
 ydb -run %XCMD 'write $$available^STDCRYPTO(),!'
@@ -123,7 +130,7 @@ container** needs the same wiring inside it:
    `ydb-perl-plugin` package has it as a transitive dependency.
 2. `scripts/seed-vista.sh` must scp `so/<plat>/std_crypto.so` and
    `tools/std_crypto.xc` into the container alongside the routines.
-3. The container's YDB session must `export ydb_xc_std_crypto=...` and
+3. The container's YDB session must `export ydb_ci=...` and
    `STDLIB_LIB=...` before `m test` invokes the suite.
 
 Steps 2 and 3 are the open work tracked at **T28 — engine-bound
