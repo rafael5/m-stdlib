@@ -15,14 +15,13 @@ follows. See `docs/parallel-tracks.md` §3.5 (Phase 3) and
 
 | Extrinsic | Signature | Returns |
 |---|---|---|
-| `gzip` | `do gzip^STDCOMPRESS(data, .out [, level])` | `1` on success, `0` on failure (see `lastError`). Writes gzip-framed bytes to `.out`. Default level `6`, range `1..9`. |
-| `gunzip` | `do gunzip^STDCOMPRESS(data, .out)` | `1` / `0`. Decompresses RFC 1952 gzip stream into `.out`. |
-| `deflate` | `do deflate^STDCOMPRESS(data, .out [, level])` | `1` / `0`. Raw RFC 1951 deflate stream (no header, no trailer). Default level `6`. |
-| `inflate` | `do inflate^STDCOMPRESS(data, .out)` | `1` / `0`. Decompresses raw RFC 1951 deflate. |
-| `zstdCompress` | `do zstdCompress^STDCOMPRESS(data, .out [, level])` | `1` / `0`. Zstandard frame. Default level `3`, range `1..22`. |
-| `zstdDecompress` | `do zstdDecompress^STDCOMPRESS(data, .out)` | `1` / `0`. Decompresses a zstd frame. |
-| `available` | `$$available^STDCOMPRESS()` | `""` if both libz and libzstd resolve at load time; otherwise a comma-separated list of missing backends (`"libz"`, `"libzstd"`, or `"libz,libzstd"`). |
-| `lastError` | `$$lastError^STDCOMPRESS()` | Last error message from libz (`zError(rc)`) or libzstd (`ZSTD_getErrorName`), or `""` if the last call succeeded. |
+| `gzip` | `$$gzip^STDCOMPRESS(data, .out [, level])` | `1` on success, `0` on failure (see `$ECODE`). Writes gzip-framed bytes to `.out`. Default level `6`, range `1..9`. |
+| `gunzip` | `$$gunzip^STDCOMPRESS(data, .out)` | `1` / `0`. Decompresses RFC 1952 gzip stream into `.out`. |
+| `deflate` | `$$deflate^STDCOMPRESS(data, .out [, level])` | `1` / `0`. Raw RFC 1951 deflate stream (no header, no trailer). Default level `6`. |
+| `inflate` | `$$inflate^STDCOMPRESS(data, .out)` | `1` / `0`. Decompresses raw RFC 1951 deflate. |
+| `zstdCompress` | `$$zstdCompress^STDCOMPRESS(data, .out [, level])` | `1` / `0`. Zstandard frame. Default level `3`, range `1..22`. |
+| `zstdDecompress` | `$$zstdDecompress^STDCOMPRESS(data, .out)` | `1` / `0`. Decompresses a zstd frame. |
+| `available` | `$$available^STDCOMPRESS()` | `""` if both libz and libzstd resolve at load time; otherwise a comma-separated list of missing backends (`"libz"`, `"libzstd"`, or `"libz,libzstd"`). Never raises. |
 
 ### Output-by-reference, not return value
 
@@ -34,14 +33,12 @@ variable by reference; the routine populates it. The function-form
 return is the success boolean so the call composes cleanly with `if`.
 
 ```m
-new buf,raw
-if '$$gzip^STDCOMPRESS("hello, world",.buf) write $$lastError^STDCOMPRESS(),! quit
-if '$$gunzip^STDCOMPRESS(buf,.raw) write $$lastError^STDCOMPRESS(),! quit
+new buf,raw,$etrap
+set $etrap="write $zstatus,!  set $ecode=""""  quit"
+if '$$gzip^STDCOMPRESS("hello, world",.buf) write $ecode,! quit
+if '$$gunzip^STDCOMPRESS(buf,.raw) write $ecode,! quit
 write raw,!  ; "hello, world"
 ```
-
-(`gzip`/`gunzip` etc. are also exposed as `$$` extrinsics returning the
-same `1`/`0` for callers that prefer the boolean-in-condition form.)
 
 ### Binary-safe semantics
 
@@ -78,15 +75,15 @@ the underlying libz call only differs by `windowBits`.
 
 ## Errors
 
-All errors set `lastError()` and return `0`:
+All errors set `$ECODE` and the call returns `0`. Wrap in `$ETRAP` to
+recover, or check `$ECODE` after the call.
 
 | Code | Cause |
 |---|---|
 | `,U-STDCOMPRESS-BAD-LEVEL,` | Level argument outside the codec's supported range. |
-| `,U-STDCOMPRESS-LIBZ-` _zError_ `,` | libz returned a non-Z_OK status. _zError_ is the human string from `zError(rc)`. |
-| `,U-STDCOMPRESS-LIBZSTD-` _name_ `,` | libzstd returned an error frame. _name_ is `ZSTD_getErrorName(rc)`. |
-| `,U-STDCOMPRESS-OUT-OF-MEMORY,` | The C shim's output buffer allocation failed. |
-| `,U-STDCOMPRESS-NOT-AVAILABLE-` _backend_ `,` | The requested codec's backend (`libz` or `libzstd`) failed to load at startup. Use `available()` for an upfront check. |
+| `,U-STDCOMPRESS-CALLOUT-MISSING,` | The `stdcompress` callout shared object isn't loaded (env not set, .so not built, or library missing). Use `available()` for an upfront check. |
+| `,U-STDCOMPRESS-LIBZ-FAIL,` | libz returned a non-Z_OK status — usually corrupt / truncated input on inflate, or a `Z_BUF_ERROR` if compressed output exceeded the 16 MiB cap. |
+| `,U-STDCOMPRESS-LIBZSTD-FAIL,` | libzstd returned an error frame — same shape as libz on the corrupt-input path. |
 
 ## Build
 
@@ -102,10 +99,20 @@ links against `-lz` and `-lzstd`. The build host must have `zlib.h`
 and `zstd.h` available (Debian/Ubuntu: `apt install zlib1g-dev
 libzstd-dev`; macOS: `brew install zlib zstd`).
 
-The YDB external-call table is `src/callouts/stdcompress.xc`. At
-test / runtime time, `ydb_xc_path` (or the legacy `GTMXC_<name>`
-fallback) must point at it. The `m test` runner exports both before
-launching the suite when `src/callouts/*.xc` exists.
+The YDB call-out descriptor is `tools/std_compress.xc`. Deployment
+runbook (matches STDCRYPTO):
+
+```bash
+tools/build-callouts.sh                                     # produce .so
+export STDLIB_LIB=$PWD/so/$(uname -s | tr 'A-Z' 'a-z')-$(uname -m)
+export ydb_ci=$PWD/tools/std_compress.xc
+# ensure libz.so.1 + libzstd.so.1 are on the loader path
+```
+
+After that, `make test` picks up the callout via `$ZF` calls inside
+`STDCOMPRESS.m`. The wiring is the same single-package model that
+STDCRYPTO uses; running both modules in one session requires unioning
+their `.xc` files (queued at T28 / T29).
 
 ## Out of scope (queued)
 
