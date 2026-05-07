@@ -45,19 +45,19 @@ STDLOGTST       ; Test suite for STDLOG (v0.0.4).
         ; ---- json format ----
         ; STDJSON's recursive descent was refactored to copy subtrees via
         ; `merge tmp=node(k)` before recursing (TOOLCHAIN-FINDINGS row
-        ; 2026-05-06 P1, partially resolved 2026-05-07). The two emission
-        ; tests below that don't probe the result tree with subscripted
-        ; by-ref are now re-enabled; the four that use
-        ; `$$valueOf^STDJSON(.tree("key"))` remain deferred under the
-        ; broader YDB-harness limit on subscripted-by-ref param passing.
+        ; 2026-05-06 P1, partially resolved 2026-05-07). The four
+        ; `valueOf(.tree("k"))` / `type(.tree("k"))` consumers below were
+        ; refactored 2026-05-07 to merge-then-pass via a non-subscripted
+        ; `sub` local, sidestepping the YDB-harness subscripted-by-ref
+        ; limit. All six STDLOG-JSON-emission tests now run.
         do tFormatDefaultIsKv(.pass,.fail)
         do tFormatInvalidRaises(.pass,.fail)
         do tFormatJsonEmitsValidJson(.pass,.fail)
+        do tFormatJsonHasTsLevelEvent(.pass,.fail)
+        do tFormatJsonKvPairsBecomeKeys(.pass,.fail)
+        do tFormatJsonValuesAreStrings(.pass,.fail)
+        do tFormatJsonEscapesQuotesAndBackslash(.pass,.fail)
         do tFormatKvAfterJsonReverts(.pass,.fail)
-        ; do tFormatJsonHasTsLevelEvent(.pass,.fail)        ; needs valueOf(.tree(k))
-        ; do tFormatJsonKvPairsBecomeKeys(.pass,.fail)      ; needs valueOf(.tree(k))
-        ; do tFormatJsonValuesAreStrings(.pass,.fail)       ; needs valueOf(.tree(k)) + type(.tree(k))
-        ; do tFormatJsonEscapesQuotesAndBackslash(.pass,.fail) ; needs valueOf(.tree(k))
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -325,47 +325,57 @@ tFormatJsonEmitsValidJson(pass,fail)    ;@TEST "FORMAT('json') emits parseable R
         quit
         ;
 tFormatJsonHasTsLevelEvent(pass,fail)   ;@TEST "FORMAT('json') line carries ts/level/event keys"
-        new line,tree
+        ; merge tree(k) into a non-subscripted local before $$valueOf —
+        ; passing `.tree(k)` directly trips a YDB-harness subscripted-by-ref
+        ; crash in this image (TOOLCHAIN-FINDINGS row 2026-05-06 P1).
+        new line,tree,sub,ok
         do reset
         do FORMAT^STDLOG("json")
         do WARN^STDLOG("login_throttled")
         set line=$$lastLine()
-        do parse^STDJSON(line,.tree)
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.tree("level")),"WARN","level=WARN")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.tree("event")),"login_throttled","event preserved")
-        do len^STDASSERT(.pass,.fail,$length($$valueOf^STDJSON(.tree("ts"))),24,"ts is 24-char ISO-8601")
+        set ok=$$parse^STDJSON(line,.tree)
+        kill sub  merge sub=tree("level")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"WARN","level=WARN")
+        kill sub  merge sub=tree("event")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"login_throttled","event preserved")
+        kill sub  merge sub=tree("ts")
+        do len^STDASSERT(.pass,.fail,$length($$valueOf^STDJSON(.sub)),24,"ts is 24-char ISO-8601")
         quit
         ;
 tFormatJsonKvPairsBecomeKeys(pass,fail)         ;@TEST "FORMAT('json') kv pairs render as object keys"
-        new line,tree
+        new line,tree,sub,ok
         do reset
         do FORMAT^STDLOG("json")
         do INFO^STDLOG("login","user","alice","ip","1.2.3.4")
         set line=$$lastLine()
-        do parse^STDJSON(line,.tree)
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.tree("user")),"alice","user key")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.tree("ip")),"1.2.3.4","ip key")
+        set ok=$$parse^STDJSON(line,.tree)
+        kill sub  merge sub=tree("user")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"alice","user key")
+        kill sub  merge sub=tree("ip")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"1.2.3.4","ip key")
         quit
         ;
 tFormatJsonValuesAreStrings(pass,fail)  ;@TEST "FORMAT('json') emits all kv values as JSON strings"
-        new line,tree
+        new line,tree,sub,ok
         do reset
         do FORMAT^STDLOG("json")
         do INFO^STDLOG("count","n","42")
         set line=$$lastLine()
-        do parse^STDJSON(line,.tree)
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.tree("n")),"string","n stored as string sigil, not number")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.tree("n")),"42","value preserved")
+        set ok=$$parse^STDJSON(line,.tree)
+        kill sub  merge sub=tree("n")
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"string","n stored as string sigil, not number")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"42","value preserved")
         quit
         ;
 tFormatJsonEscapesQuotesAndBackslash(pass,fail) ;@TEST "FORMAT('json') escapes embedded \\\" and \\\\"
-        new line,tree
+        new line,tree,sub,ok
         do reset
         do FORMAT^STDLOG("json")
         do INFO^STDLOG("msg","text","he said ""hi"" and \\backslash")
         set line=$$lastLine()
-        do parse^STDJSON(line,.tree)
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.tree("text")),"he said ""hi"" and \\backslash","embedded quote+bs round-trip")
+        set ok=$$parse^STDJSON(line,.tree)
+        kill sub  merge sub=tree("text")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"he said ""hi"" and \\backslash","embedded quote+bs round-trip")
         quit
         ;
 tFormatKvAfterJsonReverts(pass,fail)    ;@TEST "FORMAT('kv') after FORMAT('json') reverts to kv lines"
