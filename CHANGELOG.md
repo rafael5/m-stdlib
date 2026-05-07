@@ -8,6 +8,30 @@ Pre-1.0 minor versions may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **`STDOS`** — process / env / cmdline helpers (track L17, phase P4
+  — third Table 2 promotion in two days; was Pri 3, then Pri 1 after
+  STDCSPRNG and STDFS demoted ahead of it). Fills the `$ZCMDLINE` /
+  `$ZJOB` / `$ZGETENV` gap with a coherent surface: `env(name)`,
+  `pid()`, `cmdline()`, `argc()` / `arg(i)` / `argv(.args)` /
+  `splitArgs(s,.args)`, `cwd()`, `user()`, `hostname()`, `exit(rc)`.
+  Built over `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT` (the YDB
+  intrinsic boundary) — `$ZTRNLNM` is the VAX/VMS-equivalent of
+  `$ZGETENV` that the project's `m fmt` profile leaves alone (the
+  GT.M / IRIS-style `$zgetenv` mangles to `$zgbldiretenv` under the
+  default abbreviation-expansion rules; tracked as a TOOLCHAIN-
+  FINDINGS row). `splitArgs` in v1 is whitespace-only — quote-aware
+  tokenisation and `setenv()` are queued at T15 alongside the IRIS
+  arm via `$ZF → libc setenv/getcwd/gethostname` callouts. `exit()`
+  is unreachable from automated tests by design (calling it ends the
+  test process), so per-module label coverage sits at 91.7% (11/12)
+  — well above the 85% gate. Test suite: 19 labels, 30 assertions
+  green. `m fmt` clean; `m lint --error-on=error` clean (file-wide
+  `M-MOD-022` disable on the YDB-extension intrinsics, with the
+  rationale anchored on the doc's "Engine portability" note). Per-
+  module doc: `docs/modules/stdos.md`.
+
 ## [v0.2.0] — 2026-05-07
 
 **Phase 2 release.** Four pure-M heavy-lift modules complete the

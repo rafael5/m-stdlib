@@ -324,6 +324,26 @@ use the `$ZF → read(2)/write(2)` callout backend so byte boundaries
 are preserved. Schedule alongside T13 (same callout entry points).
 **Reference:** `docs/modules/stdfs.md` "Trailing-LF semantics" section.
 
+### T15 — STDOS `setenv` / quote-aware `splitArgs` / IRIS arm
+**Module:** STDOS.
+**Status:** queued; STDOS ships in v0.2.x with read-only env access,
+whitespace-only `splitArgs`, YDB-only intrinsics (`$ZTRNLNM`, `$JOB`,
+`$ZCMDLINE`, `ZHALT`). Three deferred features:
+1. `setenv(name, val)` — needs `$ZF → libc setenv(3)` (the C library
+   call also re-exec's child processes' env), so depends on the
+   Phase 3 callout convention being established.
+2. Quote-aware `splitArgs` — preserve embedded spaces inside `'...'`
+   and `"..."`. STDARGS already has the tokeniser; back-port (or
+   factor STDARGS' tokeniser out into STDOS as the canonical
+   home).
+3. IRIS arm — `$CLASSMETHOD %SYSTEM.Util.GetEnviron()` /
+   `%SYS.System` for env / pid / cwd / hostname; the public surface
+   stays unchanged.
+**Action:** schedule alongside T11 (Phase 3 entry). The setenv
+callout reuses the cs_random.c harness pattern. Quote-aware splitArgs
+can land sooner as a pure-M change without a callout dep.
+**Reference:** `docs/modules/stdos.md` "Argument splitting" section.
+
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
 **Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
@@ -390,10 +410,18 @@ Promoted out of Table 2 (now in Table 1):
   basename/dirname/join. Append uses a read-then-rewrite workaround
   for a YDB SEQ APPEND-mode position quirk; binary-safe I/O and the
   IRIS arm both wait on the `$ZF → libc` callout backend (T13/T14).
+- **STDOS** — promoted 2026-05-07 to Table 1 as **L17 P4**. Shipped
+  as YDB-only v1: env / pid / cmdline / argc / arg / argv /
+  splitArgs / cwd / user / hostname / exit. Built over `$ZTRNLNM` /
+  `$JOB` / `$ZCMDLINE` / `ZHALT` (the YDB intrinsic boundary). The
+  earlier `$zgetenv` choice would have triggered a `m fmt` mangling
+  bug; `$ztrnlnm` is the equivalent VAX/VMS-style intrinsic that
+  fmt leaves alone. setenv() and quote-aware splitArgs deferred to
+  T15 alongside the IRIS arm via `$ZF → libc setenv/getcwd/gethostname`.
 
-**Aggregate proposal effort:** ~54–87d est. for the remaining 13
+**Aggregate proposal effort:** ~52–84d est. for the remaining 12
 candidates if every row eventually lands. Practical near-term
-roadmap (priorities 1–4) is ~7–13d est.
+roadmap (priorities 1–3) is ~5–11d est.
 
 When promoting a row into Table 1, also:
 
