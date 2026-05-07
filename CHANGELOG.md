@@ -10,6 +10,37 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDXML v0`** — XML 1.0 well-formed parser (track L25, phase P4 —
+  eleventh Table 2 promotion; the long-deferred Pri 1 finally
+  starts). v0 covers ~30% of the 12-16d full XML 1.0 +
+  Namespaces 1.0 + XPath 1.0 envelope: elements with attributes,
+  nested children, text content, the 5 standard entity references
+  (`&amp;` `&lt;` `&gt;` `&quot;` `&apos;`). Public surface:
+  `$$parse(text, .root)` / `$$valid(text)` / `$$rootName(.node)` /
+  `$$attr(.node, name)` / `$$text(.node)` / `$$childCount(.node)` /
+  `$$childByName(.node, name, .out)` / `$$lastError()`.
+  Recursive-descent parser; tree shape mirrors STDJSON's
+  caller-owned-tree convention with `node("name")` /
+  `node("attr", k)` / `node("text")` / `node("childCount")` /
+  `node("child", n)`. `childByName` does the internal `merge` to
+  sidestep the YDB `.x(SUBS)` syntax limit — recursive descent
+  through a parsed XML tree works without callers needing to know
+  about merge-then-pass. Pure-M, no `$Z*` extensions, no STDREGEX
+  dep. Out of scope, queued at T23-T27 (~9-13d remaining for full
+  envelope): CDATA / PI / comments / `<?xml ?>` declaration (T23),
+  numeric character references `&#nnnn;` / `&#xHH;` (T24),
+  namespaces (T25), DTDs / DOCTYPE / custom entities (T26),
+  XPath 1.0 query subset (T27). v0's `parse()` returns `0` on any
+  of these constructs (fails closed); `lastError()` identifies the
+  offending token. Test suite: 22 labels, 47 assertions green.
+  Coverage: 19/20 labels (95% — `lastError` only triggers in
+  error paths and isn't directly tested). `m fmt` clean; `m lint
+  --error-on=error` 0E (49 non-gating warnings: complexity flags
+  on `parseContent` / `decodeEntities` and a cluster of
+  M-MOD-020 by-ref false positives across the helper chain — all
+  callees that take `.ctx` write to `ctx` somewhere, but lint
+  can't follow that across the call boundary). Per-module doc:
+  `docs/modules/stdxml.md`.
 - **`STDENV`** — `.env` loader + typed accessors (track L24, phase P4
   — tenth Table 2 promotion). Container-tooling ergonomic: read once
   at startup, query many times, sensible defaults filled in. Public
