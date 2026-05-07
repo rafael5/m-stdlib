@@ -218,8 +218,8 @@ parseObject(ctx,node)   ; Parse {...} into `node`.
         ; doc: empty-string keys (RFC 8259 allows them). Recurses into a
         ; doc: non-subscripted local (`tmp`) and merges back into
         ; doc: node(key) afterwards; passing subscripted formals by
-        ; doc: reference (`do parseValue(.ctx,.node(key))`) crashes the
-        ; doc: YDB harness in this environment (TOOLCHAIN-FINDINGS).
+        ; doc: reference (`do parseValue(.ctx,.node(key))`) is invalid
+        ; doc: YDB syntax — only whole locals can be passed `.byref`.
         new c,key,done,tmp
         set node="o"
         do advance(.ctx,1)
@@ -413,8 +413,8 @@ encodeObject(node)      ; Emit {k:v,...} for an object node.
         ; doc: Internal — walks node() children in M collation order.
         ; doc: Uses `merge tmp=node(k)` to copy the child subtree into a
         ; doc: non-subscripted local before recursing; passing subscripted
-        ; doc: formals by reference (`$$encodeValue(.node(k))`) crashes
-        ; doc: the YDB harness in this environment (TOOLCHAIN-FINDINGS).
+        ; doc: formals by reference (`$$encodeValue(.node(k))`) is invalid
+        ; doc: YDB syntax — only whole locals can be passed `.byref`.
         new out,k,first,tmp
         set out="{"
         set first=1

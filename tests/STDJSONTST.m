@@ -268,73 +268,93 @@ tParseEmptyArray(pass,fail)     ;@TEST "parse() of '[]' yields an empty array no
         ;
 tParseObjectSinglePair(pass,fail)       ;@TEST "parse() of a single-pair object"
         ; y_object_basic-style:  {"foo":"bar"}
-        new root,src
+        new root,src,sub
         set src="{"_""""_"foo"_""""_":"_""""_"bar"_""""_"}"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse ok")
         do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root),"object","root is object")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("foo")),"bar","foo -> bar")
+        kill sub  merge sub=root("foo")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"bar","foo -> bar")
         quit
         ;
 tParseObjectMultiplePairs(pass,fail)    ;@TEST "parse() of an object with multiple keys"
         ; y_object_string_keys.json:  {"foo":"bar","baz":"qux"}
-        new root,src
+        new root,src,sub
         set src="{"_""""_"foo"_""""_":"_""""_"bar"_""""_","_""""_"baz"_""""_":"_""""_"qux"_""""_"}"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("foo")),"bar","foo -> bar")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("baz")),"qux","baz -> qux")
+        kill sub  merge sub=root("foo")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"bar","foo -> bar")
+        kill sub  merge sub=root("baz")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"qux","baz -> qux")
         quit
         ;
 tParseObjectEmptyKeyAllowed(pass,fail)  ;@TEST "parse() allows an empty-string key (RFC 8259 §4)"
-        new root,src
+        new root,src,sub
         set src="{"_""""_""""_":"_""""_"v"_""""_"}"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("")),"v","empty key -> v")
+        kill sub  merge sub=root("")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"v","empty key -> v")
         quit
         ;
 tParseArraySingleElement(pass,fail)     ;@TEST "parse() of a one-element array"
-        new root
+        new root,sub
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON("[42]",.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(1)),"42","root[1] = 42")
+        kill sub  merge sub=root(1)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"42","root[1] = 42")
         quit
         ;
 tParseArrayMultipleElements(pass,fail)  ;@TEST "parse() of a multi-element numeric array"
-        new root
+        new root,sub
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON("[1,2,3]",.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(1)),"1","[1]")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(2)),"2","[2]")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(3)),"3","[3]")
+        kill sub  merge sub=root(1)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"1","[1]")
+        kill sub  merge sub=root(2)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"2","[2]")
+        kill sub  merge sub=root(3)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"3","[3]")
         quit
         ;
 tParseArrayMixedTypes(pass,fail)        ;@TEST "parse() of a heterogeneous array"
         ; y_array_mixed.json:  [1,"two",true,false,null,{"k":"v"},[1,2]]
-        new root,src
+        new root,src,sub
         set src="[1,"_""""_"two"_""""_",true,false,null,{"_""""_"k"_""""_":"_""""_"v"_""""_"},[1,2]]"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(1)),"number","[1]=number")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(2)),"string","[2]=string")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(3)),"true","[3]=true")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(4)),"false","[4]=false")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(5)),"null","[5]=null")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(6)),"object","[6]=object")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(6,"k")),"v","[6].k=v")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.root(7)),"array","[7]=array")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(7,2)),"2","[7][2]=2")
+        kill sub  merge sub=root(1)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"number","[1]=number")
+        kill sub  merge sub=root(2)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"string","[2]=string")
+        kill sub  merge sub=root(3)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"true","[3]=true")
+        kill sub  merge sub=root(4)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"false","[4]=false")
+        kill sub  merge sub=root(5)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"null","[5]=null")
+        kill sub  merge sub=root(6)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"object","[6]=object")
+        kill sub  merge sub=root(6,"k")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"v","[6].k=v")
+        kill sub  merge sub=root(7)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"array","[7]=array")
+        kill sub  merge sub=root(7,2)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"2","[7][2]=2")
         quit
         ;
 tParseNestedDeep(pass,fail)     ;@TEST "parse() of a 5-deep nested array"
         ; y_nested_deep.json:  [[[[[42]]]]]
-        new root
+        new root,sub
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON("[[[[[42]]]]]",.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root(1,1,1,1,1)),"42","leaf at depth 5")
+        kill sub  merge sub=root(1,1,1,1,1)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"42","leaf at depth 5")
         quit
         ;
 tParseWhitespaceAroundTokens(pass,fail) ;@TEST "parse() ignores RFC-8259 whitespace (sp/ht/lf/cr)"
         ; y_whitespace_around.json:  "   {\n  \"a\"  :  1\t,\n  \"b\" : 2  }"
-        new root,src
+        new root,src,sub
         set src="   {"_$char(10)_"  "_""""_"a"_""""_"  :  1"_$char(9)_","_$char(10)_"  "_""""_"b"_""""_" : 2  }"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("a")),"1","a=1")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("b")),"2","b=2")
+        kill sub  merge sub=root("a")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"1","a=1")
+        kill sub  merge sub=root("b")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"2","b=2")
         quit
         ;
 tParseClearsCallerArray(pass,fail)      ;@TEST "parse() kills the caller's array before populating"
@@ -410,10 +430,11 @@ tCorpusIIntOverflowAccepted(pass,fail)  ;@TEST "i_number_int_overflow_64: 20-dig
         ;
 tCorpusIDuplicateKeyLastWins(pass,fail) ;@TEST "i_object_duplicate_key: last definition wins"
         ; {"a":1,"a":2}  -> root("a") = 2
-        new root,src
+        new root,src,sub
         set src="{"_""""_"a"_""""_":1,"_""""_"a"_""""_":2}"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse ok")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("a")),"2","last write wins")
+        kill sub  merge sub=root("a")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"2","last write wins")
         quit
         ;
 tCorpusIEmbeddedNullDecoded(pass,fail)  ;@TEST "i_string_embedded_null_escape: \\u0000 decodes to $CHAR(0)"
@@ -669,7 +690,7 @@ tRoundTripNested(pass,fail)     ;@TEST "nested object/array round-trips"
         ; ============================================================
         ;
 tParseFileSmoke(pass,fail)      ;@TEST "parseFile() reads a JSON file from disk"
-        new path,root
+        new path,root,sub
         set path="/tmp/stdjson-parsefile-"_$job_".json"
         open path:(newversion):5  else  do false^STDASSERT(.pass,.fail,1,"open for write failed") quit
         use path
@@ -677,8 +698,10 @@ tParseFileSmoke(pass,fail)      ;@TEST "parseFile() reads a JSON file from disk"
         close path
         do parseFile^STDJSON(path,.root)
         do eq^STDASSERT(.pass,.fail,$ecode,"","parseFile no error")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("name")),"Alice","name=Alice")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.root("age")),"30","age=30")
+        kill sub  merge sub=root("name")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"Alice","name=Alice")
+        kill sub  merge sub=root("age")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"30","age=30")
         open path:(newversion):0  use path  close path:delete
         quit
         ;

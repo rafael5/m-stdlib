@@ -45,11 +45,11 @@ STDLOGTST       ; Test suite for STDLOG (v0.0.4).
         ; ---- json format ----
         ; STDJSON's recursive descent was refactored to copy subtrees via
         ; `merge tmp=node(k)` before recursing (TOOLCHAIN-FINDINGS row
-        ; 2026-05-06 P1, partially resolved 2026-05-07). The four
-        ; `valueOf(.tree("k"))` / `type(.tree("k"))` consumers below were
-        ; refactored 2026-05-07 to merge-then-pass via a non-subscripted
-        ; `sub` local, sidestepping the YDB-harness subscripted-by-ref
-        ; limit. All six STDLOG-JSON-emission tests now run.
+        ; 2026-05-06, resolved 2026-05-07 — `.x(SUBS)` is invalid YDB
+        ; syntax, not a harness bug). The four `valueOf(.tree("k"))` /
+        ; `type(.tree("k"))` consumers below use the same merge-then-pass
+        ; idiom via a non-subscripted `sub` local. All six STDLOG-JSON-
+        ; emission tests now run.
         do tFormatDefaultIsKv(.pass,.fail)
         do tFormatInvalidRaises(.pass,.fail)
         do tFormatJsonEmitsValidJson(.pass,.fail)
@@ -326,8 +326,9 @@ tFormatJsonEmitsValidJson(pass,fail)    ;@TEST "FORMAT('json') emits parseable R
         ;
 tFormatJsonHasTsLevelEvent(pass,fail)   ;@TEST "FORMAT('json') line carries ts/level/event keys"
         ; merge tree(k) into a non-subscripted local before $$valueOf —
-        ; passing `.tree(k)` directly trips a YDB-harness subscripted-by-ref
-        ; crash in this image (TOOLCHAIN-FINDINGS row 2026-05-06 P1).
+        ; `.tree(k)` (subscripted by-ref) is invalid YDB syntax (only
+        ; whole locals can be passed `.byref`). Same idiom STDJSON uses
+        ; internally — see TOOLCHAIN-FINDINGS row 2026-05-06.
         new line,tree,sub,ok
         do reset
         do FORMAT^STDLOG("json")
