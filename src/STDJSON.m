@@ -304,7 +304,7 @@ parseStringValue(ctx)   ; Parse "..." and return the decoded content.
         . . if esc="n" set out=out_$char(10) do advance(.ctx,1) quit
         . . if esc="r" set out=out_$char(13) do advance(.ctx,1) quit
         . . if esc="t" set out=out_$char(9) do advance(.ctx,1) quit
-        . . if esc="u" do
+        . . if esc="u" do  quit
         . . . new sawSurrogate
         . . . do advance(.ctx,1)
         . . . set cp=$$parseHex4(.ctx)

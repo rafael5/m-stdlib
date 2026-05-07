@@ -626,20 +626,18 @@ tEncodeNested(pass,fail)        ;@TEST "encode() walks nested structures"
         quit
         ;
 tEncodeArrayWithGapRaises(pass,fail)    ;@TEST "encode() raises on a gappy array (1,3 with no 2)"
-        new node,etrap,errok
+        new node,out,ecAfter
         set node="a"
         set node(1)="n:1"
         set node(3)="n:3"
-        set errok=0
-        new $etrap
-        set $etrap="set errok=($ecode["",U-STDJSON-ENCODE,"") set $ecode="""" goto pop"
-        do encodeAndDiscard(.node)
-pop     do true^STDASSERT(.pass,.fail,errok,"encode of gappy array sets U-STDJSON-ENCODE")
-        quit
-        ;
-encodeAndDiscard(node)
-        new x
-        set x=$$encode^STDJSON(.node)
+        ; encode returns "" and leaves $ECODE set on a gap; capture
+        ; explicitly rather than via $ETRAP (cross-frame `goto pop`
+        ; from a trap is fragile in YDB).
+        set out=$$encode^STDJSON(.node)
+        set ecAfter=$ecode
+        set $ecode=""
+        do contains^STDASSERT(.pass,.fail,ecAfter,",U-STDJSON-ENCODE,","encode of gappy array sets U-STDJSON-ENCODE")
+        do eq^STDASSERT(.pass,.fail,out,"","encode returns empty string on gap")
         quit
         ;
         ; ============================================================
@@ -656,33 +654,38 @@ tRoundTripScalars(pass,fail)    ;@TEST "parse(encode(x)) preserves every scalar 
         quit
         ;
 tRoundTripObject(pass,fail)     ;@TEST "object round-trips by re-parsing the encoded form"
-        new src,root,back,reback
+        new src,root,back,reback,sub
         set src="{"_""""_"a"_""""_":1,"_""""_"b"_""""_":"_""""_"x"_""""_"}"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse")
         set back=$$encode^STDJSON(.root)
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(back,.reback),"reparse")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.reback("a")),"1","a")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.reback("b")),"x","b")
+        kill sub  merge sub=reback("a")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"1","a")
+        kill sub  merge sub=reback("b")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"x","b")
         quit
         ;
 tRoundTripArray(pass,fail)      ;@TEST "array round-trips"
-        new src,root,back,reback
+        new src,root,back,reback,sub
         set src="[1,2,3]"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse")
         set back=$$encode^STDJSON(.root)
         do eq^STDASSERT(.pass,.fail,back,"[1,2,3]","encoded form matches")
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(back,.reback),"reparse")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.reback(2)),"2","[2]")
+        kill sub  merge sub=reback(2)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"2","[2]")
         quit
         ;
 tRoundTripNested(pass,fail)     ;@TEST "nested object/array round-trips"
-        new src,root,back,reback
+        new src,root,back,reback,sub
         set src="{"_""""_"xs"_""""_":[1,"_""""_"two"_""""_",true,null]}"
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(src,.root),"parse")
         set back=$$encode^STDJSON(.root)
         do true^STDASSERT(.pass,.fail,$$parse^STDJSON(back,.reback),"reparse")
-        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.reback("xs",4)),"null","[xs][4] still null")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.reback("xs",2)),"two","[xs][2] still 'two'")
+        kill sub  merge sub=reback("xs",4)
+        do eq^STDASSERT(.pass,.fail,$$type^STDJSON(.sub),"null","[xs][4] still null")
+        kill sub  merge sub=reback("xs",2)
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"two","[xs][2] still 'two'")
         quit
         ;
         ; ============================================================
@@ -706,15 +709,17 @@ tParseFileSmoke(pass,fail)      ;@TEST "parseFile() reads a JSON file from disk"
         quit
         ;
 tWriteFileSmoke(pass,fail)      ;@TEST "writeFile() emits JSON that parseFile() reads back identically"
-        new path,src,back
+        new path,src,back,sub
         set path="/tmp/stdjson-writefile-"_$job_".json"
         set src="o"
         set src("greeting")="s:hello"
         set src("count")="n:3"
         do writeFile^STDJSON(path,.src)
         do parseFile^STDJSON(path,.back)
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.back("greeting")),"hello","greeting round-trips")
-        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.back("count")),"3","count round-trips")
+        kill sub  merge sub=back("greeting")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"hello","greeting round-trips")
+        kill sub  merge sub=back("count")
+        do eq^STDASSERT(.pass,.fail,$$valueOf^STDJSON(.sub),"3","count round-trips")
         open path:(newversion):0  use path  close path:delete
         quit
         ;

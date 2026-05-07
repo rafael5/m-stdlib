@@ -86,16 +86,17 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.2.x` (on `main`, awaiting tag) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments | none in v1 (STDDATE listed as soft dep but datetime values out of scope; STDSTR listed but inlined for self-containment) | ~1d ✅ | 🔮 m-cli runtime-config from `.m-cli.toml` (TBD) | T18 |
 | P4 | L21 | 23 | [`STDCACHE`](modules/stdcache.md) | `v0.2.x` (on `main`, awaiting tag) | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear / size / capacity | none in v1 (STDCOLL listed as soft dep but inlined for self-containment; STDDATE listed but `$HOROLOG`-direct) | ~1d ✅ | 🔮 STDCOLL OrderedDict rebase (TBD) | T19 |
 | P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | ~1d ✅ | 🔮 m-cli `m test` per-suite timings (TBD) | T20 |
-| P3 | H1 | 25 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H2 | 26 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H3 | 27 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
+| P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | STDFS (save/matches I/O); STDASSERT (asserts integration) | ~1d ✅ | 🔮 STDASSERT-snap auto-update flag (TBD) | T21 |
+| P3 | H1 | 26 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H2 | 27 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H3 | 28 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
 
-**Aggregate:** ~78d shipped across the 24 landed modules
+**Aggregate:** ~79d shipped across the 25 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
-+ STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4);
-~18–26d estimated for the three queued Phase 3 modules. Open ToDo
-work (T1–T20) is incremental on top of the shipped totals — see
-ToDo expansion below for per-task estimates.
++ STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
++ STDSNAP L23 P4); ~18–26d estimated for the three queued Phase 3
+modules. Open ToDo work (T1–T21) is incremental on top of the
+shipped totals — see ToDo expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -128,16 +129,17 @@ out in `docs/parallel-tracks.md` §3.4):
 - **T18** STDTOML out-of-scope features (arrays, inline tables, dotted keys, array-of-tables, multi-line / literal strings, integer underscores + hex/oct/bin, special floats, exponent notation, datetime values via STDDATE).
 - **T19** STDCACHE rebase onto STDCOLL OrderedDict + explicit `prune` operation for batch expired-entry sweeping.
 - **T20** STDPROF streaming-percentile variant via STDCOLL Heap (CKMS sketch) for continuous monitoring; v1 keeps all samples and walks them on demand.
+- **T21** STDSNAP root-scalar serialization + auto-update flag + diff helper (v1 walks `$QUERY` descendants only, no auto-update; humans re-`save` manually after intentional drift).
 
-**Aggregate gate, current head (2026-05-07):** 1565+ assertions
-across 24 suites, per-module label coverage ≥ 91% (most at 100%;
+**Aggregate gate, current head (2026-05-07):** 1590+ assertions
+across 25 suites, per-module label coverage ≥ 91% (most at 100%;
 STDOS at 91.7% — exit() is unreachable from a test process by design),
 0 lint errors, fmt clean. v0.2.0 shipped (commit `c3a0880`); the
-eight P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
+nine P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
 STDOS (L17), STDSEMVER (L18), STDSTR (L19), STDTOML (L20),
-STDCACHE (L21), STDPROF (L22). The joint canonical-index regen
-covers 25 modules total (Phase 1: 9; Phase 1b: 3; Phase 2: 4 + 2
-add-ons; P4 promotions: 8).
+STDCACHE (L21), STDPROF (L22), STDSNAP (L23). The joint canonical-
+index regen covers 26 modules total (Phase 1: 9; Phase 1b: 3;
+Phase 2: 4 + 2 add-ons; P4 promotions: 9).
 
 ---
 
@@ -467,6 +469,34 @@ service) drives the requirement.
 **Reference:** `docs/modules/stdprof.md` "Percentile semantics"
 section (documents the inline sorted-sample walk that T20 replaces).
 
+### T21 — STDSNAP root-scalar + auto-update + diff helper
+**Module:** STDSNAP.
+**Status:** queued. STDSNAP v1 walks `$QUERY` descendants only,
+which means a tree with a scalar at the root (`set data="value"`,
+no subscripts) doesn't serialise. Three follow-ups make sense as
+real consumers exercise the surface:
+1. **Root-scalar serialization.** Add a special-case line at the
+   top of the dump for the root value, e.g. `=value` (no
+   subscripts). Trivial to add but breaks the file format
+   slightly — schedule when a real caller hits the limitation.
+2. **Auto-update flag.** A common pattern in other ecosystems
+   (`pytest --snapshot-update`, Jest `--updateSnapshot`) is to
+   re-`save` automatically when a flag is set. STDSNAP v1
+   intentionally requires explicit `save` — humans must review
+   drift before refreshing. Add an opt-in `STDSNAP_UPDATE`
+   environment-variable check that flips `matches` to "save and
+   pass" mode when set.
+3. **Bundled diff helper.** v1 reports the snapshot path on
+   mismatch; humans run `diff -u baseline current` themselves.
+   A small `$$diff^STDSNAP(path, .data)` returning a unified-
+   diff string would be a nice ergonomic — implementable with a
+   tiny LCS algorithm or shelled out to `/usr/bin/diff` via
+   STDOS once setenv lands (T15).
+**Action:** schedule when a concrete consumer drives the
+requirement. v1 covers the practical 80% case (testing parsed
+JSON / FileMan trees with subscripted leaves).
+**Reference:** `docs/modules/stdsnap.md` "Edge cases" section.
+
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
 **Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
@@ -508,12 +538,11 @@ all forward estimates marked **est.**).
 | Pri | Candidate | Headline | Dependency | Effort | Rationale |
 |---|---|---|---|---|---|
 | 1 | `STDXML` | XML parser + XPath 1.0 subset | none; STDREGEX (soft) | 12–16d est. | **Unlocks VistA HL7v3 / CDA / FHIR XML** — largest practical use-case in the VistA-meta orbit. W3C XML Test Suite as conformance corpus. Bigger lift; biggest impact. |
-| 2 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
-| 3 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
-| 4 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
-| 5 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
-| 6 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
-| 7 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
+| 2 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
+| 3 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
+| 4 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
+| 5 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
+| 6 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
 
 Promoted out of Table 2 (now in Table 1):
 
@@ -585,10 +614,22 @@ Promoted out of Table 2 (now in Table 1):
   soft dep for a future T20 streaming-percentile (CKMS sketch)
   variant; v1 keeps all samples for exactness. Coverage: 12/12
   labels (100%), 25/25 assertions green.
+- **STDSNAP** — promoted 2026-05-07 to Table 1 as **L23 P4**.
+  Snapshot testing: `serialize` / `save` / `matches` / `asserts`.
+  Canonical line-per-leaf text dump via `$QUERY` walk; numeric
+  subscripts unquoted, string subscripts and values M-quoted with
+  `"..."` and embedded `"` doubled. Lines emitted in `$ORDER` —
+  deterministic, diff-friendly. Hard deps: STDFS (file I/O for
+  save/matches), STDASSERT (asserts integration with pass/fail
+  counters). No STDJSON dep — pre-listed as soft but inlined dq()
+  helper. Out of scope for v1 (queued at T21): root-scalar
+  snapshots (`$QUERY` walks descendants only), auto-update flag,
+  bundled diff helper (humans run `diff -u baseline current` for
+  inspection). Coverage: 7/7 labels (100%), 23/23 assertions green.
 
-**Aggregate proposal effort:** ~40–67d est. for the remaining 7
+**Aggregate proposal effort:** ~37–63d est. for the remaining 6
 candidates if every row eventually lands. Practical near-term
-roadmap (priorities 1–3, post-STDPROF) is ~16–22d est. — STDXML
+roadmap (priorities 1–3, post-STDSNAP) is ~14–20d est. — STDXML
 still dominates as the only large lift in the near roadmap.
 
 When promoting a row into Table 1, also:

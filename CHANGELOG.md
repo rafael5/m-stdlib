@@ -10,6 +10,34 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDSNAP`** — snapshot testing (track L23, phase P4 — ninth Table 2
+  promotion). Capture a deterministic text dump of an M tree on the
+  first run; on subsequent runs, compare the live tree against the
+  saved baseline. Mismatches surface as STDASSERT failures with the
+  snapshot path so a human can `diff -u baseline current` for
+  inspection. Cuts the wrist-deep hand-written `eq^STDASSERT` chains
+  for tests that verify large parsed JSON trees, FileMan record
+  exports, etc. Public surface: `$$serialize(.data)` /
+  `do save(path, .data)` / `$$matches(path, .data)` / `do asserts(.pass,
+  .fail, path, .data, desc)`. Canonical format is line-per-leaf
+  `(subscripts)=value` — numeric subscripts unquoted, string
+  subscripts and values M-quoted with `"..."` and embedded `"`
+  doubled per M convention. Walk is `$QUERY`-driven, so lines come
+  out in `$ORDER` (M-collation: numeric sort for numeric subscripts,
+  string sort for the rest); the format is **deterministic by
+  construction** — two calls on the same tree byte-equal each other.
+  Hard deps: STDFS (writeFile / readFile / exists for the file I/O),
+  STDASSERT (`asserts` integrates with the pass/fail counters and
+  recordPass/recordFail output protocol). No STDJSON dep — pre-listed
+  as soft but inlined dq() helper for self-containment. Out of scope
+  for v1, all queued at T21: root-scalar serialization (`$QUERY`
+  walks descendants only), auto-update flag (humans must explicitly
+  re-`save` after intentional drift — forces review), bundled diff
+  helper (callers shell out to `diff` for byte-level inspection).
+  Test suite: 14 labels, 23 assertions green. Coverage: 7/7 labels
+  (100%). `m fmt` clean; `m lint --error-on=error` 0E (3 non-gating
+  warnings on the recursive walk's complexity). Per-module doc:
+  `docs/modules/stdsnap.md`.
 - **`STDPROF`** — wall-clock profiler (track L22, phase P4 — eighth
   Table 2 promotion in two days). Caller-owned profiler tree;
   multiple profilers per process are independent variables. Public
