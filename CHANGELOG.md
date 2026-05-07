@@ -10,6 +10,27 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDSEMVER`** — Semantic Versioning 2.0.0 (track L18, phase P4 —
+  fourth Table 2 promotion; was Pri 2 after the post-STDOS demote).
+  Architectural pretext for an eventual M package manager. Public
+  surface: `valid` / `parse` / `compare` / `matches` plus `major` /
+  `minor` / `patch` / `prerelease` / `build` accessors. Pure-M parser
+  (`$piece` / `$translate`-based; no STDREGEX runtime dep). Range
+  syntax in v1 covers exact / comparator (`>` `<` `>=` `<=` `=`) /
+  caret (`^X.Y.Z` ≡ `>=X.Y.Z <X+1.0.0`) / tilde (`~X.Y.Z` ≡
+  `>=X.Y.Z <X.Y+1.0`) / AND-combination via space. The full SemVer §11
+  ordering example exercises end-to-end:
+  `1.0.0-alpha < alpha.1 < alpha.beta < beta < beta.2 < beta.11 <
+  rc.1 < 1.0.0`. Numeric prerelease IDs always lower than
+  alphanumeric per §11.4.3; longer prerelease wins ties on shared
+  prefix per §11.4.4; build metadata ignored in compare per §10.
+  `||` OR-combination, hyphen ranges, `*` / `x` / `X` placeholders,
+  prerelease-aware comparators, and npm-style `^0.x.y` zero-major
+  narrowing all queued at T16. Test suite: 33 labels, 99 assertions
+  green. Coverage: 22/22 labels (100%). `m fmt` clean; `m lint
+  --error-on=error` clean (4 cyclomatic-complexity warnings on
+  `valid` / `compare` / `matchesOne` — all under the 12-15 thresholds
+  for warnings, none gating). Per-module doc: `docs/modules/stdsemver.md`.
 - **`STDOS`** — process / env / cmdline helpers (track L17, phase P4
   — third Table 2 promotion in two days; was Pri 3, then Pri 1 after
   STDCSPRNG and STDFS demoted ahead of it). Fills the `$ZCMDLINE` /

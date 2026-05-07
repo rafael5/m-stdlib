@@ -81,15 +81,16 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `/dev/urandom`) | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); future-soft `$ZF → getrandom(2)` for batch perf | ~1d ✅ | 🔮 STDUUID `--secure` flag (TBD) | T12 |
 | P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` (on `main`, awaiting tag) | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode) | none (uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`); future-soft `$ZF → libc stat/read/write` for IRIS arm + binary I/O | ~1d ✅ | 🔮 STDCSV rebase onto STDFS (TBD) | T13, T14 |
 | P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.2.x` (on `main`, awaiting tag) | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit | none (uses `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT`); future-soft `$ZF → libc setenv/getcwd/gethostname` for IRIS arm | ~1d ✅ | 🔮 STDARGS quote-aware tokeniser back-port (TBD) | T15 |
-| P3 | H1 | 20 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H2 | 21 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H3 | 22 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
+| P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | none (pure-M; STDREGEX listed as soft dep but not used in v1) | ~1d ✅ | 🔮 m-cli `m install <pkg>@<range>` (TBD) | T16 |
+| P3 | H1 | 21 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H2 | 22 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H3 | 23 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
 
-**Aggregate:** ~73d shipped across the 19 landed modules
-(STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4); ~18–26d estimated
-for the three queued Phase 3 modules. Open ToDo work (T1–T15) is
-incremental on top of the shipped totals — see ToDo expansion below
-for per-task estimates.
+**Aggregate:** ~74d shipped across the 20 landed modules
+(STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4);
+~18–26d estimated for the three queued Phase 3 modules. Open ToDo
+work (T1–T16) is incremental on top of the shipped totals — see
+ToDo expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -117,16 +118,16 @@ out in `docs/parallel-tracks.md` §3.4):
 - **T13** STDFS native append (replace read-then-rewrite with `$ZF → write(2)` once Phase 3 cuts).
 - **T14** STDFS `readBytes` / `writeBytes` for byte-faithful binary I/O (deferred alongside T13).
 - **T15** STDOS `setenv` / quote-aware `splitArgs` / IRIS arm via `$ZF → libc setenv/getcwd/gethostname` callouts.
+- **T16** STDSEMVER range syntax extensions (`||` OR, hyphen ranges, `*`/`x`/`X` placeholders, prerelease-aware comparators, `^0.x.y` zero-major narrowing per npm semantics).
 
-**Aggregate gate, current head (2026-05-07):** 1270+ assertions
-across 19 suites, per-module label coverage ≥ 91% (most at 100%;
+**Aggregate gate, current head (2026-05-07):** 1370+ assertions
+across 20 suites, per-module label coverage ≥ 91% (most at 100%;
 STDOS at 91.7% — exit() is unreachable from a test process by design),
-0 lint errors, fmt clean. The v0.2.0 tag is blocked **only** on
-the joint release sync (T7) — every Phase 2 member track has
-shipped to `main`. STDCSPRNG (L15 P4), STDFS (L16 P4), and STDOS
-(L17 P4) land on top of the v0.2.0 boundary; the joint sync now
-covers 20 modules (Phase 1: 9; Phase 1b: 3; Phase 2: 4 + 2 add-ons;
-P4 promotions: 3).
+0 lint errors, fmt clean. v0.2.0 shipped (commit `c3a0880`); the
+four P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
+STDOS (L17), STDSEMVER (L18). The joint canonical-index regen
+covers 21 modules total (Phase 1: 9; Phase 1b: 3; Phase 2: 4 + 2
+add-ons; P4 promotions: 4).
 
 ---
 
@@ -344,6 +345,29 @@ callout reuses the cs_random.c harness pattern. Quote-aware splitArgs
 can land sooner as a pure-M change without a callout dep.
 **Reference:** `docs/modules/stdos.md` "Argument splitting" section.
 
+### T16 — STDSEMVER range syntax extensions
+**Module:** STDSEMVER.
+**Status:** queued; STDSEMVER ships in v0.2.x with a deliberately
+narrow range subset (exact / `>` `<` `>=` `<=` `=` / `^` / `~` / AND).
+The remaining npm-flavour range constructs are documented as deferred:
+1. **`||` OR-combination.** `^1.2.3 || ^2.0.0`.
+2. **Hyphen ranges.** `1.2.3 - 2.3.4` ≡ `>=1.2.3 <=2.3.4`.
+3. **Wildcard placeholders.** `1.2.x` ≡ `>=1.2.0 <1.3.0`; `*` matches
+   anything; `X.Y.Z`-style uppercase same as lowercase.
+4. **Prerelease-aware comparators.** npm matches `1.2.3-alpha`
+   against `>1.2.3-alpha.1` differently from a pure precedence
+   compare.
+5. **Zero-major narrowing.** npm treats `^0.2.3` as
+   `>=0.2.3 <0.3.0` (caret in 0.x.y is tilde-like). STDSEMVER v1
+   uses the simpler rule `^0.x.y → >=0.x.y <1.0.0`; align with npm
+   under T16.
+**Action:** add a `parseRange(range, .pieces)` helper that lowers any
+of the above into an AND-of-comparators canonical form, then have
+`matches()` consume `pieces`. The simple comparator path stays
+unchanged. Schedule when a concrete consumer (m-cli `m install`,
+or another package-manager-style use case) drives the requirement.
+**Reference:** `docs/modules/stdsemver.md` "Range syntax" section.
+
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
 **Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
@@ -385,17 +409,16 @@ all forward estimates marked **est.**).
 | Pri | Candidate | Headline | Dependency | Effort | Rationale |
 |---|---|---|---|---|---|
 | 1 | `STDXML` | XML parser + XPath 1.0 subset | none; STDREGEX (soft) | 12–16d est. | **Unlocks VistA HL7v3 / CDA / FHIR XML** — largest practical use-case in the VistA-meta orbit. W3C XML Test Suite as conformance corpus. Bigger lift; biggest impact. |
-| 2 | `STDSEMVER` | SemVer parse / compare / range | STDREGEX (soft) | 2d est. | Unblocks an eventual M package manager. Tiny on its own; architecturally load-bearing for dependency resolution. |
-| 3 | `STDSTR` | String helpers (pad / trim / split etc.) | none | 1–2d est. | High call-site count across existing modules; ad-hoc helpers would dissolve into one import. Low-risk, high-frequency. |
-| 4 | `STDTOML` | TOML 1.0 parser | STDDATE; STDSTR (soft) | 4–6d est. | Per-project config (mirrors `pyproject.toml` / `.m-cli.toml`). m-cli's own config format is TOML — STDTOML lets m-cli runtime config be read from M directly. |
-| 5 | `STDCACHE` | LRU + TTL cache | STDCOLL (Map+OrderedDict); STDDATE (soft) | 2–3d est. | Memoisation, RPC-result caching, rate-limit windows. Small surface; generic; useful breadth. |
-| 6 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
-| 7 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
-| 8 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
-| 9 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
-| 10 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
-| 11 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
-| 12 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
+| 2 | `STDSTR` | String helpers (pad / trim / split etc.) | none | 1–2d est. | High call-site count across existing modules; ad-hoc helpers would dissolve into one import. Low-risk, high-frequency. |
+| 3 | `STDTOML` | TOML 1.0 parser | STDDATE; STDSTR (soft) | 4–6d est. | Per-project config (mirrors `pyproject.toml` / `.m-cli.toml`). m-cli's own config format is TOML — STDTOML lets m-cli runtime config be read from M directly. |
+| 4 | `STDCACHE` | LRU + TTL cache | STDCOLL (Map+OrderedDict); STDDATE (soft) | 2–3d est. | Memoisation, RPC-result caching, rate-limit windows. Small surface; generic; useful breadth. |
+| 5 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
+| 6 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
+| 7 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
+| 8 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
+| 9 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
+| 10 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
+| 11 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
 
 Promoted out of Table 2 (now in Table 1):
 
@@ -418,10 +441,20 @@ Promoted out of Table 2 (now in Table 1):
   bug; `$ztrnlnm` is the equivalent VAX/VMS-style intrinsic that
   fmt leaves alone. setenv() and quote-aware splitArgs deferred to
   T15 alongside the IRIS arm via `$ZF → libc setenv/getcwd/gethostname`.
+- **STDSEMVER** — promoted 2026-05-07 to Table 1 as **L18 P4**. SemVer
+  2.0.0 implementation: valid / parse / compare / matches plus
+  major/minor/patch/prerelease/build accessors. Pure-M, no STDREGEX
+  dep (parsed via `$piece` / `$translate`). Range syntax in v1
+  covers comparators (`>` `<` `>=` `<=` `=`), caret (`^`), tilde (`~`),
+  and AND-combination via space; `||` OR, hyphen ranges, `*`/`x`/`X`
+  placeholders, prerelease-aware semantics, and the npm `^0.x.y`
+  zero-major narrowing all queued at T16. Coverage: 22/22 labels
+  (100%), 99/99 assertions green.
 
-**Aggregate proposal effort:** ~52–84d est. for the remaining 12
+**Aggregate proposal effort:** ~50–82d est. for the remaining 11
 candidates if every row eventually lands. Practical near-term
-roadmap (priorities 1–3) is ~5–11d est.
+roadmap (priorities 1–3, post-STDSEMVER) is ~17–24d est. — STDXML
+dominates as the only large lift in the near roadmap.
 
 When promoting a row into Table 1, also:
 
