@@ -108,10 +108,14 @@ since they all share the same value.
 The walk is `O(N)` worst case but typically much less because
 percentile lookups are clustered near the tail. For one-shot
 reports (call `percentile` once per tag at the end of a run), the
-cost is negligible. For continuous monitoring — calling
-`percentile` thousands of times — consider a future T20 streaming-
-percentile variant that maintains a CKMS sketch alongside the
-sample tree.
+cost is negligible. A streaming-percentile variant (CKMS sketch
+backed by `STDCOLL` Heap) was reserved under T20 and closed 2026-
+05-07 as won't-fix-without-consumer-driver — the only caller
+today, m-cli `--timings`, is a one-shot end-of-run report, exactly
+the case the v1 walk is sized for. If a continuous-monitoring
+caller emerges that calls `percentile` inside a hot path, T20 can
+be reopened and implemented behind a `newStreaming^STDPROF(.prof,
+epsilon)` constructor without disturbing the v1 surface.
 
 ## Edge cases
 
@@ -148,8 +152,9 @@ ANSI-standard.
 - [`STDDATE`](stddate.md) — same `$ZHOROLOG` precedent; STDDATE
   has the canonical wall-clock helpers but at second / millisecond
   resolution.
-- [`STDCOLL`](stdcoll.md) — provides Heap; a future T20 streaming-
-  percentile variant could rebase onto STDCOLL's heap structure
-  for `O(log N)` insertion + bounded memory.
+- [`STDCOLL`](stdcoll.md) — provides Heap; was reserved as the
+  backing for a T20 streaming-percentile variant. T20 closed 2026-
+  05-07 as won't-fix-without-consumer-driver; the soft dep is no
+  longer load-bearing for STDPROF v1.
 - [`STDCACHE`](stdcache.md) — same caller-owned array convention;
   multiple profilers in one process are independent variables.
