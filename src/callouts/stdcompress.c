@@ -1,3 +1,4 @@
+// link: -lz -lzstd
 /* m-stdlib STDCOMPRESS — libz + libzstd glue for YDB external calls.
  *
  * One C entry per public M extrinsic. All entries share the same shape:
