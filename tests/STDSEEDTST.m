@@ -37,18 +37,22 @@ STDSEEDTST      ; Test suite for STDSEED (v0.1.3).
         do tValidateDoesNotInvokeFiler(.pass,.fail)
         ;
         ; ---- LOADJSON ----
-        ; STDJSON parse() and encode() were refactored 2026-05-07 to copy
+        ; STDJSON parse() and encode() refactored 2026-05-07 to copy
         ; child subtrees into non-subscripted locals via merge before
-        ; recursing — STDJSON itself is now fully usable from STDSEED's
-        ; loadJson path. The loadJson tests below remain provisionally
-        ; deferred: they pass STDJSON-parse-able input and STDSEED's
-        ; walkJson() reads tree(*) directly without subscripted by-ref,
-        ; but in this vista-meta image the suite still TIMEOUTs once
-        ; STDJSON parse is exercised within loadJson — likely a
-        ; downstream symptom of the leaked-mumps-process P2 in
-        ; TOOLCHAIN-FINDINGS rather than a bug in this code path. Re-
-        ; enable after a vista-meta container reset.
+        ; recursing (TOOLCHAIN-FINDINGS row 2026-05-06 P1, partially
+        ; resolved 2026-05-07) — STDJSON itself is now fully usable
+        ; from STDSEED's loadJson path. The six loadJson tests stay
+        ; provisionally deferred under a separate STDSEEDTST timeout
+        ; that bites starting at tLoadedTrueAfterLoad (test #14)
+        ; regardless of whether the loadJson tests are dispatched —
+        ; orthogonal to T3 and to the loadJson path. Re-enable once
+        ; the suite-level timeout is diagnosed.
         ; do tLoadJsonStubFilerReceivesEntry(.pass,.fail)
+        ; do tLoadJsonMultipleEntriesAllDispatched(.pass,.fail)
+        ; do tLoadJsonNoFieldsKeyIsLegal(.pass,.fail)
+        ; do tLoadJsonInvalidJsonRaises(.pass,.fail)
+        ; do tLoadJsonNonArrayRootRaises(.pass,.fail)
+        ; do tLoadJsonMissingFileKeyRaises(.pass,.fail)
         ;
         ; ---- error paths ----
         do tLoadOfMissingPathRaises(.pass,.fail)
