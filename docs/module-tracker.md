@@ -84,16 +84,17 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | none (pure-M; STDREGEX listed as soft dep but not used in v1) | ~1d ✅ | 🔮 m-cli `m install <pkg>@<range>` (TBD) | T16 |
 | P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.2.x` (on `main`, awaiting tag) | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / toLowerASCII / toUpperASCII / repeat | none (pure-M; `$translate` / `$piece` / `$find` / `$extract`) | ~Xh ✅ | 🔮 STDOS quote-aware splitArgs absorption (TBD); STDFMT pad alignment (TBD) | T17 |
 | P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.2.x` (on `main`, awaiting tag) | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments | none in v1 (STDDATE listed as soft dep but datetime values out of scope; STDSTR listed but inlined for self-containment) | ~1d ✅ | 🔮 m-cli runtime-config from `.m-cli.toml` (TBD) | T18 |
-| P3 | H1 | 23 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H2 | 24 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
-| P3 | H3 | 25 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
+| P4 | L21 | 23 | [`STDCACHE`](modules/stdcache.md) | `v0.2.x` (on `main`, awaiting tag) | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear / size / capacity | none in v1 (STDCOLL listed as soft dep but inlined for self-containment; STDDATE listed but `$HOROLOG`-direct) | ~1d ✅ | 🔮 STDCOLL OrderedDict rebase (TBD) | T19 |
+| P3 | H1 | 24 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H2 | 25 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H3 | 26 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
 
-**Aggregate:** ~76d shipped across the 22 landed modules
+**Aggregate:** ~77d shipped across the 23 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
-+ STDSTR L19 P4 + STDTOML L20 P4); ~18–26d estimated for the three
-queued Phase 3 modules. Open ToDo work (T1–T18) is incremental on
-top of the shipped totals — see ToDo expansion below for per-task
-estimates.
++ STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4); ~18–26d
+estimated for the three queued Phase 3 modules. Open ToDo work
+(T1–T19) is incremental on top of the shipped totals — see ToDo
+expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -124,15 +125,17 @@ out in `docs/parallel-tracks.md` §3.4):
 - **T16** STDSEMVER range syntax extensions (`||` OR, hyphen ranges, `*`/`x`/`X` placeholders, prerelease-aware comparators, `^0.x.y` zero-major narrowing per npm semantics).
 - **T17** STDSTR Unicode whitespace + locale-aware case folding (deferred to a future STDUNICODE; STDSTR v1 is byte-wise ASCII-only by design).
 - **T18** STDTOML out-of-scope features (arrays, inline tables, dotted keys, array-of-tables, multi-line / literal strings, integer underscores + hex/oct/bin, special floats, exponent notation, datetime values via STDDATE).
+- **T19** STDCACHE rebase onto STDCOLL OrderedDict + explicit `prune` operation for batch expired-entry sweeping.
 
-**Aggregate gate, current head (2026-05-07):** 1490+ assertions
-across 22 suites, per-module label coverage ≥ 91% (most at 100%;
+**Aggregate gate, current head (2026-05-07):** 1540+ assertions
+across 23 suites, per-module label coverage ≥ 91% (most at 100%;
 STDOS at 91.7% — exit() is unreachable from a test process by design),
 0 lint errors, fmt clean. v0.2.0 shipped (commit `c3a0880`); the
-six P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
-STDOS (L17), STDSEMVER (L18), STDSTR (L19), STDTOML (L20). The
-joint canonical-index regen covers 23 modules total (Phase 1: 9;
-Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 6).
+seven P4 promotions sit on top: STDCSPRNG (L15), STDFS (L16),
+STDOS (L17), STDSEMVER (L18), STDSTR (L19), STDTOML (L20),
+STDCACHE (L21). The joint canonical-index regen covers 24 modules
+total (Phase 1: 9; Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4
+promotions: 7).
 
 ---
 
@@ -418,6 +421,28 @@ scalars and sections form a single level of nesting.
 **Reference:** `docs/modules/stdtoml.md` "Out of scope (queued at T18)"
 section.
 
+### T19 — STDCACHE STDCOLL rebase + `prune` operation
+**Module:** STDCACHE.
+**Status:** queued. STDCACHE v1 inlines its bookkeeping (caller-array
+`v` / `ts` / `o` / `ex` subtrees with `$ORDER`-driven LRU eviction)
+to keep the dep graph clean and the surface trivially droppable —
+the soft STDCOLL dep listed in Table 2 is not exercised. Two
+follow-ups make sense once a concrete consumer exposes them:
+1. **Rebase onto STDCOLL OrderedDict.** STDCOLL ships an OrderedDict
+   that's the natural backing store for an LRU cache; a rebase
+   shrinks STDCACHE's bookkeeping code and aligns invariants with
+   the rest of the collections layer.
+2. **`prune^STDCACHE(.cache)`.** v1 reaps expired entries lazily on
+   access. A bulk `prune` sweep (walk all keys, drop expired ones,
+   adjust `size`) is sometimes useful for memory-pressure scenarios
+   — schedule when a real caller asks for it.
+**Action:** schedule when (a) STDCACHE has a concrete consumer
+that benefits from STDCOLL alignment, or (b) memory-pressure tests
+expose the lazy-reap latency tail. v1 is correct and bounded;
+neither is urgent.
+**Reference:** `docs/modules/stdcache.md` "Tree shape" section
+(documents the inline bookkeeping that T19 replaces).
+
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
 **Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
@@ -459,14 +484,13 @@ all forward estimates marked **est.**).
 | Pri | Candidate | Headline | Dependency | Effort | Rationale |
 |---|---|---|---|---|---|
 | 1 | `STDXML` | XML parser + XPath 1.0 subset | none; STDREGEX (soft) | 12–16d est. | **Unlocks VistA HL7v3 / CDA / FHIR XML** — largest practical use-case in the VistA-meta orbit. W3C XML Test Suite as conformance corpus. Bigger lift; biggest impact. |
-| 2 | `STDCACHE` | LRU + TTL cache | STDCOLL (Map+OrderedDict); STDDATE (soft) | 2–3d est. | Memoisation, RPC-result caching, rate-limit windows. Small surface; generic; useful breadth. |
-| 3 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
-| 4 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
-| 5 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
-| 6 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
-| 7 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
-| 8 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
-| 9 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
+| 2 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
+| 3 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
+| 4 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
+| 5 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
+| 6 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
+| 7 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
+| 8 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
 
 Promoted out of Table 2 (now in Table 1):
 
@@ -517,11 +541,21 @@ Promoted out of Table 2 (now in Table 1):
   underscores + hex/oct/bin prefixes, special floats, exponent
   notation, datetime values. Coverage: 14/14 labels (100%), 59/59
   assertions green.
+- **STDCACHE** — promoted 2026-05-07 to Table 1 as **L21 P4**. LRU
+  + TTL cache over a caller-owned local-array tree: new / put / get
+  / has / remove / clear / size / capacity. Bounded by capacity (LRU
+  eviction of least-recently-touched key) and / or wall-clock TTL
+  (lazy reap on access; no background sweeper). Time source is
+  `$HOROLOG` collapsed to seconds. Pure-M, no `$Z*`, no STDCOLL or
+  STDDATE runtime dep — STDCOLL listed as soft dep but inlined for
+  v1 self-containment; T19 covers a future rebase onto STDCOLL's
+  OrderedDict + an explicit `prune` operation for batch sweeps.
+  Coverage: 10/10 labels (100%), 48/48 assertions green.
 
-**Aggregate proposal effort:** ~45–74d est. for the remaining 9
+**Aggregate proposal effort:** ~43–71d est. for the remaining 8
 candidates if every row eventually lands. Practical near-term
-roadmap (priorities 1–3, post-STDTOML) is ~17–22d est. — STDXML
-dominates as the only large lift in the near roadmap.
+roadmap (priorities 1–3, post-STDCACHE) is ~18–23d est. — STDXML
+still dominates as the only large lift in the near roadmap.
 
 When promoting a row into Table 1, also:
 

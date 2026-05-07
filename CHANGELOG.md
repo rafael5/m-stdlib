@@ -10,6 +10,29 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDCACHE`** — LRU + TTL cache (track L21, phase P4 — seventh
+  Table 2 promotion in two days). Caller-owned local-array tree;
+  no globals, no per-process singletons; multiple caches in one
+  process are independent. Public surface: `new` (with optional
+  `capacity` and `ttl` args) / `put` / `get` / `has` / `remove` /
+  `clear` / `size` / `capacity`. LRU eviction kicks in when a `put`
+  pushes `size` past `capacity`; the least-recently-touched entry
+  is dropped (touched = accessed by `get` or rewritten by `put`;
+  `has` is a clean predicate that does not touch). TTL reaping is
+  lazy: `get` and `has` check `cache("ex", key)` against `$HOROLOG`
+  and reap expired entries inline. No background sweeper — keeps
+  per-access cost O(log N) and predictable. Time source is M's
+  ANSI-standard `$HOROLOG` collapsed to seconds since 1840-12-31;
+  no `$Z*` extensions. Soft STDCOLL dep listed in Table 2 is not
+  exercised in v1 — STDCACHE inlines its bookkeeping for self-
+  containment; a rebase onto STDCOLL OrderedDict + an explicit
+  `prune` operation for batch sweeps are queued at T19. Test suite:
+  18 labels, 48 assertions green (the TTL tests `HANG 1`/`HANG 2`
+  to cross the boundary, so the suite has a few seconds of real
+  wall-clock cost). Coverage: 10/10 labels (100%). `m fmt` clean;
+  `m lint --error-on=error` 0E (4 non-gating warnings: complexity
+  flags on `put` / `evictWhileOver` and the `$ORDER` recency
+  walk). Per-module doc: `docs/modules/stdcache.md`.
 - **`STDTOML`** — TOML 1.0 parser (track L20, phase P4 — sixth Table 2
   promotion in two days). Deliberately narrow v1 covers the practical
   subset used by `pyproject.toml` / `Cargo.toml` / `.m-cli.toml`-style
