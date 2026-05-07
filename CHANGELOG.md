@@ -8,6 +8,24 @@ Pre-1.0 minor versions may include breaking changes.
 
 ## [Unreleased]
 
+## [v0.3.0] — 2026-05-07
+
+**Phase-2 close + P4 module wave + bug-fix sweep.** Eleven new
+pure-M modules ship out of `docs/module-tracker.md` Table 2 over
+the v0.2.0 → v0.3.0 cycle, plus the toolchain hardening that
+unblocked them: STDCSPRNG (L15), STDFS (L16), STDOS (L17),
+STDSEMVER (L18), STDSTR (L19), STDTOML (L20), STDCACHE (L21),
+STDPROF (L22), STDSNAP (L23), STDENV (L24), STDXML v0 + T23 + T24
++ T25 + T25b (L25). Three m-cli companion tracks landed alongside
+binding the new modules into `m test`: `--timings` (subprocess-
+level wall-clock per suite), `--update-snapshots` (sets the
+STDSNAP update-mode sentinel so `asserts^STDSNAP` rewrites
+baselines), `--env PATH` (loads `.env` via STDENV's `parseFile`).
+A new lint rule (`M-MOD-037`) catches the YDB `.x(SUBS)` syntax
+limit at lint time so future contributors don't relive the same
+misdiagnosis cycle. Aggregate stable-suite gate at v0.3.0:
+**16 suites, 1230+ assertions, 0E lint, fmt clean.**
+
 ### Added
 
 - **`STDXML T25b (attribute-namespace resolution)`** — closes the T25
