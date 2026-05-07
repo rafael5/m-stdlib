@@ -1,4 +1,4 @@
-STDREGEX        ; m-stdlib — regular expressions (track L12, target tag v0.2.0).
+STDREGEX        ; m-stdlib — regular expressions (track L12, v0.2.0).
         ;
         ; Public API. The compiled-pattern handle is a positive integer keyed
         ; under ^STDLIB($job,"stdregex",h,...); state is per-process and

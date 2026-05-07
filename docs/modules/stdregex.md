@@ -161,14 +161,23 @@ second*.
 
 ## IRIS portability
 
-The engine is YottaDB-first. On IRIS, `compile` keeps the source
-pattern alongside the NFA; `match` / `search` / `find` over the
-v0.2.0 simple-pattern subset translate to `$MATCH` / `$LOCATE`.
-Captures on IRIS may use the `%Library.RegEx` class. Per §6
-conventions, IRIS portability for STDREGEX is fail-soft — the
-`iris-portability-check` CI job runs against
-`intersystemsdc/iris-community:latest` and surfaces regressions
-without gating merges. A full v0.2.0 IRIS pass is a follow-up.
+The engine is YottaDB-first. The pure-M Thompson-NFA simulator runs
+**unchanged** on IRIS for the entire v0.2.0 supported subset — no
+engine-specific YDB features (e.g. `view "TRACE"`) appear on the
+hot path; `compile` already stores the source pattern alongside the
+NFA at `^STDLIB($job,"stdregex",h,"src")` so IRIS can walk it
+identically. The `iris-portability-check` CI job runs against
+`intersystemsdc/iris-community:latest` and surfaces regressions in
+fail-soft mode (does not gate merges).
+
+**Native-dispatch deferral.** A future enhancement would let the
+v0.2.0 simple-pattern subset translate to IRIS's native `$MATCH` /
+`$LOCATE`, with capture groups via the `%Library.RegEx` class. This
+would reduce ε-walk overhead on IRIS for the common case but is
+**not** a portability blocker — the pure-M engine is already
+correct and complete on IRIS. Deferred as a performance
+follow-up; tracked via the `iris-portability-check` job rather than
+a per-module gate. (Tracker T10 — closed via this clarification.)
 
 ## Conformance
 

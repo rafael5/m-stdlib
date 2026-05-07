@@ -3,16 +3,10 @@ STDDATETST      ; Test suite for STDDATE (v0.0.5).
         ; Test labels delegate counters by-ref to STDASSERT helpers; m-cli's
         ; by-ref analyzer can't see writes-via-callee.
         ;
-        ; Note on $ECODE coverage: STDDATE sets $ECODE on malformed input
-        ; (bad horolog, bad ISO string, bad duration). Those error paths are
-        ; specified and behave correctly when called from procedure-form
-        ; production code, but they cannot be unit-tested via raises^STDASSERT
-        ; today because STDASSERT.raises uses an arg-less QUIT in its $ETRAP
-        ; handler, which fires M17 NOTEXTRINSIC when the error originates
-        ; inside an extrinsic chain (which STDDATE is). The same limitation
-        ; affects STDFMT — see its test suite. Once STDASSERT.raises is fixed
-        ; (TOOLCHAIN-FINDINGS), the t*Rejects* / t*Raises* labels below
-        ; should be re-enabled in this dispatcher.
+        ; $ECODE coverage: STDDATE sets $ECODE on malformed input (bad
+        ; horolog, bad ISO string, bad duration). Re-enabled here once the
+        ; STDASSERT.raises P1 was fixed via ZGOTO unwind (TOOLCHAIN-FINDINGS
+        ; row 2026-05-06).
         ;
         new pass,fail
         do start^STDASSERT(.pass,.fail)
@@ -27,6 +21,7 @@ STDDATETST      ; Test suite for STDDATE (v0.0.5).
         do tFromhFourPieceUtcSuffix(.pass,.fail)
         do tFromhFourPiecePositiveOffset(.pass,.fail)
         do tFromhFourPieceNegativeOffset(.pass,.fail)
+        do tFromhRejectsEmpty(.pass,.fail)
         ;
         ; ---------- toh: ISO-8601 -> $HOROLOG ----------
         do tTohDateOnly(.pass,.fail)
@@ -37,6 +32,7 @@ STDDATETST      ; Test suite for STDDATE (v0.0.5).
         do tTohSubsecondMillis(.pass,.fail)
         do tTohSubsecondMicros(.pass,.fail)
         do tTohRoundTripWithFromh(.pass,.fail)
+        do tTohInvalidRaisesEcode(.pass,.fail)
         ;
         ; ---------- leap-year arithmetic (validity only via fromh round-trip) ----------
         do tLeap2000IsLeap(.pass,.fail)
@@ -55,6 +51,7 @@ STDDATETST      ; Test suite for STDDATE (v0.0.5).
         ; ---------- strptime ----------
         do tStrptimeDateOnly(.pass,.fail)
         do tStrptimeFullIso(.pass,.fail)
+        do tStrptimeInvalidRaisesEcode(.pass,.fail)
         ;
         ; ---------- add: ISO-8601 duration ----------
         do tAddOneDay(.pass,.fail)

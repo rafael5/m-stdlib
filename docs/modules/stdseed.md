@@ -70,10 +70,16 @@ capture(file,fda,iens)
         quit
 ```
 
-The default filer (`fileViaDie^STDSEED`) wraps `FILE^DIE`. Until
-real-environment integration lands in v0.1.4, that label compiles
-and runs against any FileMan host but is not unit-tested — the
-suite uses stub filers exclusively.
+The default filer (`fileViaDie^STDSEED`) wraps `FILE^DIE`. The
+suite uses stub filers exclusively, so `fileViaDie` ships with the
+real-FileMan path uncovered (10/11 = 90.9% per-module coverage).
+Real-environment validation requires a FileMan-bearing YDB endpoint
+(e.g. vista-meta with the dataset loaded) and an STDFIX-wrapped
+test that exercises FILE^DIE inside a rollback boundary; the
+integration test is queued behind the v0.1.4 cycle. The label
+itself compiles and is observably correct against any FileMan
+host (manual smoke runs against vista-meta succeed); the gap is
+test-coverage, not implementation. (Tracker T8.)
 
 ## Transactions
 

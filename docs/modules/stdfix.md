@@ -96,11 +96,11 @@ scope before re-raising the original `$ECODE` so the caller's trap
 sees it. (One follow-on caveat: re-raising `$ECODE` from a trap that
 also rolled back its own transaction does not always propagate
 through the next outer `$ETRAP` in current YDB — see
-[`TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md) P1. The
-**rollback** itself is unconditionally observable; the **re-raise**
-contract is verified for the happy `with`/`invoke` paths but the
-explicit error-propagation assertion is deferred until the trap
-unwind is fixed in STDASSERT.raises.)
+[`TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md) row
+2026-05-05 P2 against YottaDB. The **rollback** itself is
+unconditionally observable; the **re-raise** contract is
+documented-but-unverified pending an upstream YottaDB fix or a
+parallel-frame workaround.)
 
 ## Storage
 

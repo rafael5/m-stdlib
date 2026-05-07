@@ -1,15 +1,11 @@
 STDFMTTST       ; Test suite for STDFMT (v0.0.3).
         ; m-lint: disable-file=M-MOD-020
         ;
-        ; Note on error-path coverage: STDFMT sets $ECODE on malformed
-        ; templates / unknown types / missing args. Those error paths are
-        ; specified and behave correctly when called from production
-        ; procedure-form code, but they cannot be unit-tested via
-        ; raises^STDASSERT today because STDASSERT.raises uses an arg-less
-        ; QUIT in its $ETRAP handler, which fires M17 NOTEXTRINSIC when the
-        ; error originates inside an extrinsic chain (which STDFMT is). See
-        ; TOOLCHAIN-FINDINGS.md (filed against STDASSERT). The $ECODE
-        ; contract for STDFMT is documented in docs/modules/stdfmt.md.
+        ; Error-path coverage: STDFMT sets $ECODE on malformed templates /
+        ; unknown types / missing args. Re-enabled here once the
+        ; STDASSERT.raises P1 was fixed via ZGOTO unwind (TOOLCHAIN-FINDINGS
+        ; row 2026-05-06). Six raises tests at the bottom of this file
+        ; cover all four documented U-STDFMT-* codes.
         ;
         new pass,fail
         do start^STDASSERT(.pass,.fail)
@@ -48,6 +44,14 @@ STDFMTTST       ; Test suite for STDFMT (v0.0.3).
         do tFillZeroForNumbers(.pass,.fail)
         do tStringPrecisionTruncates(.pass,.fail)
         do tCombinedSpec(.pass,.fail)
+        ;
+        ; ---- error paths ----
+        do tUnclosedBraceRaises(.pass,.fail)
+        do tUnescapedRbraceRaises(.pass,.fail)
+        do tUnknownTypeRaises(.pass,.fail)
+        do tMissingPositionalArgRaises(.pass,.fail)
+        do tMissingNamedArgRaises(.pass,.fail)
+        do tMissingAutoArgRaises(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -215,4 +219,30 @@ tStringPrecisionTruncates(pass,fail)    ;@TEST "{:.Ns} truncates string to N cha
 tCombinedSpec(pass,fail)        ;@TEST "fill + align + width + precision + type compose"
         do eq^STDASSERT(.pass,.fail,$$f^STDFMT("{:*^10.4s}","abcdefgh"),"***abcd***","center width 10, prec 4")
         do eq^STDASSERT(.pass,.fail,$$f^STDFMT("{:->8.2f}",3.14159),"----3.14","dash-pad width 8, prec 2")
+        quit
+        ;
+        ; ---------- error paths (re-enabled after STDASSERT.raises ZGOTO fix) ----------
+        ;
+tUnclosedBraceRaises(pass,fail) ;@TEST "f() raises U-STDFMT-UNCLOSED-BRACE on unmatched '{'"
+        do raises^STDASSERT(.pass,.fail,"new x set x=$$f^STDFMT(""{abc"")","U-STDFMT-UNCLOSED-BRACE","unclosed brace")
+        quit
+        ;
+tUnescapedRbraceRaises(pass,fail)       ;@TEST "f() raises U-STDFMT-UNESCAPED-RBRACE on bare '}'"
+        do raises^STDASSERT(.pass,.fail,"new x set x=$$f^STDFMT(""abc}"")","U-STDFMT-UNESCAPED-RBRACE","bare rbrace")
+        quit
+        ;
+tUnknownTypeRaises(pass,fail)   ;@TEST "f() raises U-STDFMT-UNKNOWN-TYPE on unsupported type char"
+        do raises^STDASSERT(.pass,.fail,"new x set x=$$f^STDFMT(""{:q}"",1)","U-STDFMT-UNKNOWN-TYPE","type 'q' unsupported")
+        quit
+        ;
+tMissingPositionalArgRaises(pass,fail)  ;@TEST "f() raises U-STDFMT-MISSING-ARG on positional index past end"
+        do raises^STDASSERT(.pass,.fail,"new x set x=$$f^STDFMT(""{1}"")","U-STDFMT-MISSING-ARG","positional 1 missing")
+        quit
+        ;
+tMissingNamedArgRaises(pass,fail)       ;@TEST "fn() raises U-STDFMT-MISSING-ARG on undefined named field"
+        do raises^STDASSERT(.pass,.fail,"new x,a set x=$$fn^STDFMT(""{name}"",.a)","U-STDFMT-MISSING-ARG","named arg missing")
+        quit
+        ;
+tMissingAutoArgRaises(pass,fail)        ;@TEST "f() raises U-STDFMT-MISSING-ARG on auto-numbered field past end"
+        do raises^STDASSERT(.pass,.fail,"new x set x=$$f^STDFMT(""{} {}"",""only-one"")","U-STDFMT-MISSING-ARG","auto-numbered second arg missing")
         quit

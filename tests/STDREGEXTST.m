@@ -85,6 +85,13 @@ STDREGEXTST     ; Test suite for STDREGEX (track L12, target tag v0.2.0).
         do tReplaceWithBackref(.pass,.fail)
         do tSplitProducesSegments(.pass,.fail)
         ;
+        ; ---- character-class escape coverage (closes T9 classEscape gap) ----
+        do tClassDigitEscape(.pass,.fail)
+        do tClassWordEscape(.pass,.fail)
+        do tClassSpaceEscape(.pass,.fail)
+        do tClassLiteralEscape(.pass,.fail)
+        do tClassRangeViaEscape(.pass,.fail)
+        ;
         ; ---- error paths ----
         do tCompileRaisesOnBadPattern(.pass,.fail)
         do tCompileRaisesOnUnsupportedBackref(.pass,.fail)
@@ -502,6 +509,50 @@ tGroupsRaisesOnNoMatch(pass,fail)       ;@TEST "groups() raises U-STDREGEX-NO-MA
         new h
         set h=$$compile^STDREGEX("\d+")
         do raises^STDASSERT(.pass,.fail,"new g do groups^STDREGEX("_h_",""no digits here"",.g)","U-STDREGEX-NO-MATCH","groups() with no match")
+        do free^STDREGEX(h)
+        quit
+        ;
+        ; ---------- character-class escapes (classEscape coverage) ----------
+        ;
+tClassDigitEscape(pass,fail)    ;@TEST "[\\d] inside a class matches a digit"
+        new h
+        set h=$$compile^STDREGEX("[\d]")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"7"),"[\\d] matches '7'")
+        do false^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"x"),"[\\d] rejects 'x'")
+        do free^STDREGEX(h)
+        quit
+        ;
+tClassWordEscape(pass,fail)     ;@TEST "[\\w] inside a class matches a word char"
+        new h
+        set h=$$compile^STDREGEX("[\w]")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"a"),"[\\w] matches 'a'")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"_"),"[\\w] matches '_'")
+        do false^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"!"),"[\\w] rejects '!'")
+        do free^STDREGEX(h)
+        quit
+        ;
+tClassSpaceEscape(pass,fail)    ;@TEST "[\\s] inside a class matches whitespace"
+        new h
+        set h=$$compile^STDREGEX("[\s]")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h," "),"[\\s] matches space")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,$char(9)),"[\\s] matches tab")
+        do false^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"a"),"[\\s] rejects 'a'")
+        do free^STDREGEX(h)
+        quit
+        ;
+tClassLiteralEscape(pass,fail)  ;@TEST "[\\.\\-] inside a class matches the literal escape chars"
+        new h
+        set h=$$compile^STDREGEX("[\.\-]+")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,".-.-"),"[\\.\\-]+ matches dot/dash run")
+        do free^STDREGEX(h)
+        quit
+        ;
+tClassRangeViaEscape(pass,fail) ;@TEST "[\\t-\\n] is a range using escaped endpoints"
+        new h
+        set h=$$compile^STDREGEX("[\t-\n]")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,$char(9)),"range incl. tab")
+        do true^STDASSERT(.pass,.fail,$$match^STDREGEX(h,$char(10)),"range incl. LF")
+        do false^STDASSERT(.pass,.fail,$$match^STDREGEX(h,"a"),"range excludes 'a'")
         do free^STDREGEX(h)
         quit
         ;

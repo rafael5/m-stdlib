@@ -215,8 +215,12 @@ parseLiteral(ctx,node,word,sigil)       ; Match word; set node=sigil.
         ;
 parseObject(ctx,node)   ; Parse {...} into `node`.
         ; doc: Internal — handles empty object, comma-separated members,
-        ; doc: empty-string keys (RFC 8259 allows them).
-        new c,key,done
+        ; doc: empty-string keys (RFC 8259 allows them). Recurses into a
+        ; doc: non-subscripted local (`tmp`) and merges back into
+        ; doc: node(key) afterwards; passing subscripted formals by
+        ; doc: reference (`do parseValue(.ctx,.node(key))`) crashes the
+        ; doc: YDB harness in this environment (TOOLCHAIN-FINDINGS).
+        new c,key,done,tmp
         set node="o"
         do advance(.ctx,1)
         do skipWs(.ctx)
@@ -229,7 +233,9 @@ parseObject(ctx,node)   ; Parse {...} into `node`.
         . do skipWs(.ctx)
         . if $$peek(.ctx)'=":" do raise(.ctx,"expected ':' after key") quit
         . do advance(.ctx,1)
-        . do parseValue(.ctx,.node(key))
+        . kill tmp
+        . do parseValue(.ctx,.tmp)
+        . merge node(key)=tmp
         . if $ecode'="" quit
         . do skipWs(.ctx)
         . set c=$$peek(.ctx)
@@ -241,8 +247,9 @@ parseObject(ctx,node)   ; Parse {...} into `node`.
         ;
 parseArray(ctx,node)    ; Parse [...] into `node`.
         ; doc: Internal — handles empty array, comma-separated elements;
-        ; doc: trailing comma is rejected (RFC 8259 §5).
-        new c,i,done
+        ; doc: trailing comma is rejected (RFC 8259 §5). Recurses into a
+        ; doc: non-subscripted local for the same reason as parseObject.
+        new c,i,done,tmp
         set node="a"
         do advance(.ctx,1)
         do skipWs(.ctx)
@@ -250,7 +257,9 @@ parseArray(ctx,node)    ; Parse [...] into `node`.
         set done=0,i=0
         for  quit:done!($ecode'="")  do
         . set i=i+1
-        . do parseValue(.ctx,.node(i))
+        . kill tmp
+        . do parseValue(.ctx,.tmp)
+        . merge node(i)=tmp
         . if $ecode'="" quit
         . do skipWs(.ctx)
         . set c=$$peek(.ctx)
@@ -402,22 +411,29 @@ encodeValue(node)       ; Recursive walker — return JSON text for `node`.
         ;
 encodeObject(node)      ; Emit {k:v,...} for an object node.
         ; doc: Internal — walks node() children in M collation order.
-        new out,k,first
+        ; doc: Uses `merge tmp=node(k)` to copy the child subtree into a
+        ; doc: non-subscripted local before recursing; passing subscripted
+        ; doc: formals by reference (`$$encodeValue(.node(k))`) crashes
+        ; doc: the YDB harness in this environment (TOOLCHAIN-FINDINGS).
+        new out,k,first,tmp
         set out="{"
         set first=1
         set k=$order(node(""))
         for  quit:k=""  do
         . if 'first set out=out_","
         . set first=0
-        . set out=out_$$encodeString(k)_":"_$$encodeValue(.node(k))
+        . kill tmp
+        . merge tmp=node(k)
+        . set out=out_$$encodeString(k)_":"_$$encodeValue(.tmp)
         . set k=$order(node(k))
         set out=out_"}"
         quit out
         ;
 encodeArray(node)       ; Emit [v,v,...] for an array node.
         ; doc: Internal — expects 1..n contiguous indices; sets
-        ; doc: ,U-STDJSON-ENCODE, on a gap.
-        new out,i,n,first
+        ; doc: ,U-STDJSON-ENCODE, on a gap. Uses merge-into-local before
+        ; doc: recursing for the same reason as encodeObject.
+        new out,i,n,first,tmp
         set out="["
         set n=0
         set i=$order(node(""))
@@ -427,7 +443,9 @@ encodeArray(node)       ; Emit [v,v,...] for an array node.
         . if '$data(node(i)) set $ecode=",U-STDJSON-ENCODE," quit
         . if 'first set out=out_","
         . set first=0
-        . set out=out_$$encodeValue(.node(i))
+        . kill tmp
+        . merge tmp=node(i)
+        . set out=out_$$encodeValue(.tmp)
         if $ecode'="" quit ""
         set out=out_"]"
         quit out

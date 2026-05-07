@@ -36,6 +36,16 @@ STDCSVTST       ; Test suite for STDCSV (v0.0.6).
         do tParseFileSmoke(.pass,.fail)
         do tWriteFileSmoke(.pass,.fail)
         ;
+        ; STDCSV's OPEN-fail path uses YDB's `open path:(readonly):timeout
+        ; else  set $ecode=...` pattern. The `else` clause catches OPEN
+        ; *timeout* but not immediate filesystem errors (file-not-found
+        ; raises Z150379354 directly via $ETRAP, bypassing the else). The
+        ; U-STDCSV-OPEN-FAIL contract is therefore exercised by the
+        ; positive-path file-I/O smoke tests (parseFile / writeFile) only;
+        ; an explicit raises-test against a missing path would observe the
+        ; underlying YDB error code, not the U-STDCSV-* mapping. A future
+        ; STDCSV refactor (wrap OPEN in $ETRAP) would close this gap.
+        ;
         do report^STDASSERT(pass,fail)
         quit
         ;

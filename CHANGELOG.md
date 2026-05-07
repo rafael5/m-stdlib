@@ -8,8 +8,58 @@ Pre-1.0 minor versions may include breaking changes.
 
 ## [Unreleased]
 
+## [v0.2.0] — 2026-05-07
+
+**Phase 2 release.** Four pure-M heavy-lift modules complete the
+Phase-2 set: STDJSON, STDREGEX, STDCOLL, STDURL. Two add-ons land
+on the same tag boundary: STDLOG `FORMAT(kv|json)` and STDSEED
+`loadJson`. The Phase 1b TDD primitives (STDFIX, STDMOCK, STDSEED)
+are also rolled into this release as their `v0.1.x` minor tags
+were never cut. Aggregate gate at v0.2.0: 800+ assertions across
+16 suites, 0 lint errors, fmt clean, per-module label coverage ≥
+95% (most at 100%). Re-enabled error-path tests across STDFMT,
+STDDATE, and STDLOG-JSON now that the underlying YDB `$ETRAP` /
+extrinsic-chain bugs are documented (TOOLCHAIN-FINDINGS rows
+2026-05-06 P1, partially-resolved 2026-05-07).
+
 ### Added
 
+- **STDJSON encode/parse refactor** — `encodeArray` / `encodeObject`
+  / `parseObject` / `parseArray` now copy child subtrees into a
+  non-subscripted local via `merge tmp=node(k)` (encode) or
+  `merge node(k)=tmp` after `do parseValue(.ctx,.tmp)` (parse)
+  before recursing. Avoids the `$$f(.node(k))` subscripted-by-ref
+  call pattern that crashes the YDB harness in this vista-meta
+  image (TOOLCHAIN-FINDINGS row 2026-05-06 P1, diagnosis
+  2026-05-07). End-to-end: scalar / object / array / nested-tree
+  encode all now round-trip; parse populates `root("foo")="s:bar"`
+  for `{"foo":"bar"}` correctly.
+- **STDFMT raises tests** — six new error-path tests
+  (`tUnclosedBraceRaises`, `tUnescapedRbraceRaises`,
+  `tUnknownTypeRaises`, `tMissingPositionalArgRaises`,
+  `tMissingNamedArgRaises`, `tMissingAutoArgRaises`) cover all
+  four documented `U-STDFMT-*` codes via `raises^STDASSERT`,
+  unblocked by the v0.1.x ZGOTO unwind. STDFMT 56 → 62 assertions.
+- **STDDATE raises tests** — three previously-defined-but-undispatched
+  raises labels are now wired into the dispatcher
+  (`tFromhRejectsEmpty`, `tTohInvalidRaisesEcode`,
+  `tStrptimeInvalidRaisesEcode`). Stdlib header note refreshed to
+  reflect the closure. STDDATE 60 → 66 assertions.
+- **STDLOG JSON-emission tests (partial)** — two of the six parked
+  JSON-format emission tests
+  (`tFormatJsonEmitsValidJson`, `tFormatKvAfterJsonReverts`) now
+  run because they don't access the parsed tree via subscripted
+  by-ref. The remaining four (`tFormatJsonHasTsLevelEvent`,
+  `tFormatJsonKvPairsBecomeKeys`, `tFormatJsonValuesAreStrings`,
+  `tFormatJsonEscapesQuotesAndBackslash`) stay deferred under the
+  broader vista-meta YDB-harness limit on subscripted-by-ref
+  parameter passing. STDLOG 48 → 54 assertions.
+- **STDREGEX `classEscape` coverage** — five new tests
+  (`tClassDigitEscape`, `tClassWordEscape`, `tClassSpaceEscape`,
+  `tClassLiteralEscape`, `tClassRangeViaEscape`) exercise `\<x>`
+  inside a character class, raising STDREGEX from 90 → 102
+  assertions and per-module label coverage from 98.3% (58/59) to
+  100% (59/59).
 - **`STDFS`** — file-system primitives (track L16, phase P4 — second
   Table 2 promotion; was Pri 2). Centralises the YDB SEQ device
   `OPEN`/`USE`/`READ`/`WRITE`/`CLOSE` dance so consumer modules

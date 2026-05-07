@@ -43,23 +43,21 @@ STDLOGTST       ; Test suite for STDLOG (v0.0.4).
         do tFatalEntryEmitsFatal(.pass,.fail)
         ;
         ; ---- json format ----
-        ; ZGOTO traps in $$encode^STDJSON and $$parse^STDJSON now make
-        ; the underlying crash visible (rc=143/silent → rc=1 with TAP
-        ; assertions). Six emission tests still fail because the trap
-        ; is firing on what *should* be clean input — encodeValue or
-        ; encodeObject is setting $ECODE on a healthy 4-key string-only
-        ; object tree. Tracked as a follow-up; the FORMAT^STDLOG public
-        ; API ships intact, the kv path is fully exercised, and
-        ; tFormatInvalidRaises (raises-driven) now passes thanks to the
-        ; STDASSERT.raises P1 fix in `9ee9724`.
+        ; STDJSON's recursive descent was refactored to copy subtrees via
+        ; `merge tmp=node(k)` before recursing (TOOLCHAIN-FINDINGS row
+        ; 2026-05-06 P1, partially resolved 2026-05-07). The two emission
+        ; tests below that don't probe the result tree with subscripted
+        ; by-ref are now re-enabled; the four that use
+        ; `$$valueOf^STDJSON(.tree("key"))` remain deferred under the
+        ; broader YDB-harness limit on subscripted-by-ref param passing.
         do tFormatDefaultIsKv(.pass,.fail)
         do tFormatInvalidRaises(.pass,.fail)
-        ; do tFormatJsonEmitsValidJson(.pass,.fail)
-        ; do tFormatJsonHasTsLevelEvent(.pass,.fail)
-        ; do tFormatJsonKvPairsBecomeKeys(.pass,.fail)
-        ; do tFormatJsonValuesAreStrings(.pass,.fail)
-        ; do tFormatJsonEscapesQuotesAndBackslash(.pass,.fail)
-        ; do tFormatKvAfterJsonReverts(.pass,.fail)
+        do tFormatJsonEmitsValidJson(.pass,.fail)
+        do tFormatKvAfterJsonReverts(.pass,.fail)
+        ; do tFormatJsonHasTsLevelEvent(.pass,.fail)        ; needs valueOf(.tree(k))
+        ; do tFormatJsonKvPairsBecomeKeys(.pass,.fail)      ; needs valueOf(.tree(k))
+        ; do tFormatJsonValuesAreStrings(.pass,.fail)       ; needs valueOf(.tree(k)) + type(.tree(k))
+        ; do tFormatJsonEscapesQuotesAndBackslash(.pass,.fail) ; needs valueOf(.tree(k))
         ;
         do report^STDASSERT(pass,fail)
         quit
