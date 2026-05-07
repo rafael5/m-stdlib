@@ -1,0 +1,513 @@
+---
+title: m-stdlib — master module development tracker
+status: live (2026-05-07; STDCSPRNG promoted to Table 1)
+audience: anyone landing or proposing a module in m-stdlib.
+authority: this file is the canonical "what's done / in flight / proposed" view. All
+  module-level commits MUST update the relevant row(s) here in the same commit.
+companions: docs/users-guide.md (§4 and §5 narrative), docs/parallel-tracks.md
+  (dispatch view), docs/m-stdlib-implementation-plan.md (per-module specs and §9
+  acceptance gate), docs/modules/index.md (canonical released-module index).
+---
+
+# m-stdlib — master module development tracker
+
+This document is the single-source-of-truth tracker for every m-stdlib
+module — completed, in flight, or proposed. It is intentionally thin
+prose / heavy tables so a glance answers: *what shipped*, *what's
+half-done*, *what's queued*, and *what's only a sketch*.
+
+**Process rule.** Any commit that touches a module's source, tests,
+or per-module doc MUST also update the relevant row(s) in **Table 1**
+(Tracker) below in the same commit. Add the module to **Table 2**
+(Proposals) when you first sketch it; promote it to Table 1 the moment
+TDD-red is staked. Demote nothing — completed modules stay in Table 1
+forever as the historical record.
+
+---
+
+## Table 1 — Module tracker (started or completed work)
+
+Phase tags: **P1** = Phase 1 pure-M quick wins (v0.0.x → v0.1.0,
+shipped 2026-05-05). **P1b** = Phase 1b TDD primitives (v0.1.1 →
+v0.1.3, shipped 2026-05-05). **P2** = Phase 2 pure-M heavy lifting
+(v0.2.0, all member tracks landed on `main`, tag pending). **P3** =
+Phase 3 `$ZF`-bound callouts (queued; build harness A6 already
+shipped). **P4** = post-v0.2.0 pure-M promotions out of Table 2
+(STDCSPRNG was first; security/ergonomics fillers ahead of Phase 3).
+
+m-cli integration status legend: **✅** = companion shipped;
+**n/a** = no m-cli companion needed for this module; **🟡** = pending
+(blocked work); **🔮** = future / Phase 3 dependency.
+
+Dependency column legend: **none** = pure-M, no internal or external
+deps. **module name** = runtime call into that stdlib module.
+**`$ZF → libname`** = host-call to a shared library (Phase 3 callout
+boundary). **runtime-only** = needed at use-site, not at compile-time
+(e.g. `FILE^DIE` for STDSEED's default filer). Soft / folded edges
+are noted in parens.
+
+Headline-function entries are deliberately terse so the table stays
+within one screen width. For full per-module surfaces see
+`docs/users-guide.md` §5 or each module's `docs/modules/<m>.md`.
+
+**Effort unit.** **Days** of one experienced M developer working the
+full TDD discipline: tests-first, implementation, §9 acceptance gate
+(fmt + lint + test + coverage ≥ 85%), per-module doc, CHANGELOG
+fragment. 1d ≈ 6–8 productive hours. Excludes release-tag synchronisation
+and cross-project consumer changes (those land separately under T7 /
+m-cli companion tracks). **✅** = shipped (retrospective
+approximation, calibrated against `parallel-tracks.md` §3.1's
+"1–2 weeks per Phase 1 module" baseline). **est.** = forward estimate
+for queued / proposed work. Sub-day effort shown as **Xh**.
+
+| Phase | Track | # | Module | Tag | Headline | Dependency | Effort | m-cli integration | ToDo |
+|---|---|---|---|---|---|---|---|---|---|
+| P1 | L0 | 1 | [`STDASSERT`](modules/stdassert.md) | `v0.0.1` | Assertion library | none | ~5d ✅ | ✅ C1 + V4 | T1 |
+| P1 | L0 | 2 | [`STDUUID`](modules/stduuid.md) | `v0.0.1` | RFC-4122 v4 + RFC-9562 v7 UUIDs | none (would adopt `STDCSPRNG`) | ~3d ✅ | n/a | none |
+| P1 | L1 | 3 | [`STDB64`](modules/stdb64.md) | `v0.0.2` | RFC-4648 Base64 (std + URL-safe) | none | ~3d ✅ | n/a | none |
+| P1 | L2 | 4 | [`STDHEX`](modules/stdhex.md) | `v0.0.2` | RFC-4648 §8 hex | none | ~1d ✅ | n/a | none |
+| P1 | L3 | 5 | [`STDFMT`](modules/stdfmt.md) | `v0.0.3` | Printf-style (`str.format` subset) | none | ~5d ✅ | n/a | T2 |
+| P1 | L4 | 6 | [`STDLOG`](modules/stdlog.md) | `v0.0.4` (+ L4 add-on at `v0.2.0`) | Structured kv logger; `FORMAT(kv\|json)` | STDDATE (folded); STDJSON (L4 add-on) | ~3d ✅ | n/a | T3 |
+| P1 | L5 | 7 | [`STDDATE`](modules/stddate.md) | `v0.0.5` | ISO-8601 datetime + duration arithmetic | none | ~5d ✅ | n/a | T2 |
+| P1 | L6 | 8 | [`STDCSV`](modules/stdcsv.md) | `v0.0.6` | RFC-4180 CSV parse/write + file I/O | none (would adopt `STDFS`) | ~4d ✅ | n/a | T2 |
+| P1 | L7 | 9 | [`STDARGS`](modules/stdargs.md) | `v0.0.7` | argparse (long/short/group/positional/`--`) | none (uses `$ZCMDLINE`) | ~4d ✅ | n/a | none |
+| P1b | L8 | 10 | [`STDFIX`](modules/stdfix.md) | `v0.1.1` | Per-test transactional isolation | none (uses `tstart`/`trollback`) | ~3d ✅ | ✅ W | T4, T5 |
+| P1b | L9 | 11 | [`STDMOCK`](modules/stdmock.md) | `v0.1.2` | Test-time call interception | none | ~3d ✅ | ✅ X | none |
+| P1b | L10 | 12 | [`STDSEED`](modules/stdseed.md) | `v0.1.3` (+ L10 `loadJson` add-on at `v0.2.0`) | TSV/JSON fixture loader + pluggable filer | STDJSON (loadJson add-on); runtime-only `FILE^DIE` | ~3d ✅ | ✅ Y | T3, T8 |
+| P2 | L11 | 13 | [`STDJSON`](modules/stdjson.md) | `v0.2.0` (on `main`) | RFC 8259 JSON parser + serialiser | none | ~7d ✅ | n/a | T6, T7 |
+| P2 | L12 | 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` (on `main`) | Thompson-NFA regex (no back-refs / lookaround) | none (future `STDREGEX_PCRE` → `$ZF → libpcre2`) | ~10d ✅ | n/a | T9, T10, T7 |
+| P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` (on `main`) | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | none | ~5d ✅ | n/a | T7 |
+| P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` (on `main`) | RFC 3986 URI parse/build/normalise/resolve | none | ~5d ✅ | 🔮 STDHTTP (P3) | T7 |
+| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `/dev/urandom`) | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); future-soft `$ZF → getrandom(2)` for batch perf | ~1d ✅ | 🔮 STDUUID `--secure` flag (TBD) | T12 |
+| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` (on `main`, awaiting tag) | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode) | none (uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`); future-soft `$ZF → libc stat/read/write` for IRIS arm + binary I/O | ~1d ✅ | 🔮 STDCSV rebase onto STDFS (TBD) | T13, T14 |
+| P3 | H1 | 18 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H2 | 19 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
+| P3 | H3 | 20 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
+
+**Aggregate:** ~72d shipped across the 18 landed modules
+(STDCSPRNG L15 P4 + STDFS L16 P4); ~18–26d estimated for the three
+queued Phase 3 modules. Open ToDo work (T1–T14) is incremental on
+top of the shipped totals — see ToDo expansion below for per-task
+estimates.
+
+**m-cli integration status — short codes** (full track names spelled
+out in `docs/parallel-tracks.md` §3.4):
+
+- **C1** = dynamic `^TESTRUN` / `^STDASSERT` protocol detection (m-cli `23241a2`).
+- **V4** = m-tools test-suite migration TESTRUN→STDASSERT (m-tools `3eec0bf`).
+- **W** = runner SETUP/TEARDOWN wrap consuming STDFIX (m-cli `e5818bd`).
+- **X** = `do clear^STDMOCK` between tests (m-cli `e5818bd`).
+- **Y** = `m test --seed PATH` flag consuming STDSEED (m-cli `e5818bd`).
+
+**ToDo — short codes** (expanded in the next section):
+
+- **T1** STDASSERT raises P1 (resolved; downstream re-enables owed).
+- **T2** Re-enable parked `raises`-path tests (STDFMT / STDDATE / STDCSV).
+- **T3** STDLOG-JSON / STDSEED-loadJson tests parked under T6.
+- **T4** STDFIX test-file lint cleanup.
+- **T5** STDFIX explicit re-raise contract (blocked on YDB P2).
+- **T6** STDJSON `$$encode` extrinsic-chain P1 (new 2026-05-06).
+- **T7** v0.2.0 release sync.
+- **T8** STDSEED `fileViaDie` real-FileMan integration.
+- **T9** STDREGEX `classEscape` coverage gap.
+- **T10** STDREGEX IRIS native `$MATCH`/`$LOCATE` dispatch.
+- **T11** Phase 3 entry (STDCRYPTO / STDCOMPRESS / STDHTTP).
+- **T12** STDCSPRNG `$ZF → getrandom(2)` callout backend (perf-only swap).
+- **T13** STDFS native append (replace read-then-rewrite with `$ZF → write(2)` once Phase 3 cuts).
+- **T14** STDFS `readBytes` / `writeBytes` for byte-faithful binary I/O (deferred alongside T13).
+
+**Aggregate gate, current head (2026-05-07):** 1240+ assertions
+across 18 suites, per-module label coverage ≥ 95% (most at 100%),
+0 lint errors, fmt clean. The v0.2.0 tag is blocked **only** on
+the joint release sync (T7) — every Phase 2 member track has
+shipped to `main`. STDCSPRNG (L15 P4) and STDFS (L16 P4) land on
+top of the v0.2.0 boundary; the joint sync now covers 19 modules
+(Phase 1: 9; Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 2).
+
+---
+
+## Table 1 — ToDo expansion
+
+Each `T<n>` referenced above is expanded here. Cross-reference
+authority: `TOOLCHAIN-FINDINGS.md` for P1/P2 details,
+`docs/parallel-tracks.md §3` for track-level state.
+
+### T1 — STDASSERT.raises P1 (resolved 2026-05-06)
+**Status:** ✅ resolved at the library level; downstream re-enables
+still owed (T2, T3 above).
+**What it was:** `$ETRAP` arg-less `quit` was illegal in
+extrinsic-function chains and triggered `%YDB-E-NOTEXTRINSIC` (M17),
+cascading into `Z150374554` and clobbering the captured `$ECODE`.
+Surfaced building STDFMT and re-surfaced under every module that
+drove errors through extrinsic chains: STDFMT (6 tests), STDDATE,
+STDCSV, STDLOG L4 add-on (7 tests), STDSEED L10 add-on (4 tests).
+**What fixed it:** `raises^STDASSERT` now captures
+`raisesLvl=$zlevel` at trap-set time and the trap unwinds via
+`zgoto raisesLvl:raisesUnwound^STDASSERT` instead of arg-less `quit`.
+Verified by `tFormatInvalidRaises` in STDLOGTST. Reference:
+TOOLCHAIN-FINDINGS row 2026-05-05 P1.
+**Remaining work:** see T2 (STDFMT/DATE/CSV) and T3 (LOG add-on /
+SEED add-on — note T3 has a *separate* root cause).
+
+### T2 — Re-enable parked `raises`-path tests in STDFMT / STDDATE / STDCSV
+**Modules affected:** STDFMT (6 tests), STDDATE (TBD count), STDCSV
+(TBD count).
+**Status:** parked; T1 fix unblocks the harness; tests need to be
+moved from "defined-in-suite" to "dispatched by driver" and run.
+Implementations themselves all ship intact.
+**Action:** sweep through each `*TST.m`, drop the parking-lot
+markers, run `m test`, confirm green, update CHANGELOG fragment +
+each module's `docs/modules/<m>.md`.
+**Risk:** the runner may surface incidental issues that didn't fire
+before (e.g. minor expected/actual phrasing drift). Treat each module
+as an independent micro-track.
+
+### T3 — STDLOG-JSON / STDSEED-loadJson `raises`-path tests parked under STDJSON-encode P1
+**Modules affected:** STDLOG L4 add-on (7 tests), STDSEED L10
+add-on (4 tests).
+**Status:** parked under a *new* P1 surfaced 2026-05-06 against
+`$$encode^STDJSON`'s extrinsic-return chain (independent failure
+mode from T1 — different code path, same crash signature).
+**Action:** blocked on T6.
+**Reference:** TOOLCHAIN-FINDINGS row 2026-05-06 P1 (encode P1).
+
+### T4 — STDFIX lint findings cleanup
+**Module:** STDFIX (test file).
+**Status:** 3 pre-existing M-MOD-024 / M-MOD-026 findings in
+`tests/STDFIXTST.m` keep `make check` red on the project as a whole.
+Out of scope at L8 commit; cleanup ticket.
+**Action:** decide whether to silence (file-wide directive, with
+justification comment) or refactor the test bodies. Coordinate with
+m-cli's open M-MOD-024 false-positive on OPEN/CLOSE deviceparams
+(TOOLCHAIN-FINDINGS 2026-05-05 P2).
+
+### T5 — STDFIX explicit re-raise contract not asserted in tests
+**Module:** STDFIX.
+**Status:** rollback + scope-cleanup observables are verified;
+explicit re-raise contract is documented in `docs/modules/stdfix.md`
+but unasserted by automated test. Blocked on YottaDB P2 (an
+`$ETRAP`-driven `trollback` of its own scope does not propagate
+`$ECODE` to the outer trap — TOOLCHAIN-FINDINGS row 2026-05-05 P2,
+"$ETRAP that TROLLBACKs its own scope then re-raises").
+**Action:** file minimal-repro upstream report to YottaDB; until
+resolved, contract stays documented-but-untested.
+
+### T6 — STDJSON `$$encode` extrinsic-chain P1
+**Module:** STDJSON.
+**Status:** open; new 2026-05-06.
+**What it is:** the first call to `$$encode^STDJSON` after a clean
+kv-path test crashes the YDB harness with rc=1 / no-stderr. Code
+path nowhere near `raises^STDASSERT`, so this is a distinct failure
+from T1. Likely fix: same ZGOTO-unwind pattern at `encode`'s entry.
+**Action:** focused debug pass on `$$encode^STDJSON`'s
+extrinsic-return chain. Until fixed, STDLOG-JSON output ships
+intact in `src/` but only kv-default + FORMAT-validator-raise tests
+exercise it.
+**Reference:** TOOLCHAIN-FINDINGS row 2026-05-06 P1.
+
+### T7 — v0.2.0 release sync
+**Modules affected:** STDJSON, STDREGEX, STDCOLL, STDURL, plus
+STDLOG L4 add-on and STDSEED L10 add-on.
+**Status:** all member tracks landed on `main`; tag pending.
+**Action checklist:**
+1. Collapse `## [Unreleased]` in CHANGELOG → `## [v0.2.0]` section.
+2. Bump version banner in each new/changed module's `src/STDxxx.m`.
+3. `git tag v0.2.0`; push tag.
+4. Cut GitHub Release with notes pulling from CHANGELOG.
+5. Regenerate `docs/modules/index.md` to absorb v0.2.0 modules
+   (current index covers Phase 1 only — see header note in that
+   file).
+**Blocker:** none (T6 is *not* a v0.2.0 blocker; the parked test
+bodies are documented as deferred).
+**Reference:** parallel-tracks.md §5.
+
+### T8 — STDSEED `fileViaDie` real-FileMan integration
+**Module:** STDSEED.
+**Status:** label exists and is tested via stub filer; the
+real-FileMan path (calls `FILE^DIE`, surfaces `^TMP("DIERR",$J)`
+as `U-STDSEED-FILER-DIE-ERROR`) is uncovered. 90.9% per-module
+coverage (10/11 labels). Pending v0.1.4 + STDFIX rollback to
+exercise FileMan filing inside an isolatable transaction.
+**Action:** integration test against vista-meta's FileMan, gated by
+STDFIX `with`/`invoke` for rollback safety. Schedule alongside
+v0.2.0 sync or the next minor.
+
+### T9 — STDREGEX `classEscape` coverage gap
+**Module:** STDREGEX.
+**Status:** 98.3% per-module label coverage (58/59); only
+`classEscape` is uncovered, which handles `\<x>` *inside* a `[…]`
+character class. This is a coverage-contract gap, not an engine
+gap.
+**Action:** add a few targeted tests to `STDREGEXTST.m` exercising
+`[\d]`, `[\w]`, `[\s]`, `[\t]`, `[\n]` etc. Confirm green;
+coverage to 100%.
+
+### T10 — STDREGEX IRIS native `$MATCH` / `$LOCATE` dispatch
+**Module:** STDREGEX.
+**Status:** deferred. The pure-M Thompson-NFA engine runs unchanged
+on IRIS for the v0.2.0 subset (verified — `compile` stores source
+pattern alongside the NFA). What's deferred is native dispatch for
+the simple-pattern subset on IRIS (and capture groups via
+`%Library.RegEx`). Fail-soft via `iris-portability-check` CI job.
+**Action:** schedule alongside the next IRIS portability pass; not
+v0.2.0 blocking.
+
+### T12 — STDCSPRNG `$ZF → getrandom(2)` callout backend
+**Module:** STDCSPRNG.
+**Status:** queued; STDCSPRNG ships in v0.2.x with a `/dev/urandom`
+backend (single-byte `READ *b` to avoid record-terminator truncation).
+A `$ZF → getrandom(2)` callout would batch reads and shave the per-byte
+device round-trip — mostly a perf concern, not a security one.
+`/dev/urandom` and `getrandom(0)` share the same kernel ChaCha20
+CSPRNG, so the upgrade is **API-stable**: callers do not change.
+**Action:** schedule alongside T11. Add `src/callouts/cs_random.c`,
+register the call-in table entry, gate the new backend behind a
+`$$useCallout()` probe so degraded environments still work via
+`/dev/urandom`. Coverage gate stays unchanged.
+**Reference:** `docs/modules/stdcsprng.md` "Entropy source" section.
+
+### T13 — STDFS native append + native I/O backend
+**Module:** STDFS.
+**Status:** queued; STDFS ships in v0.2.x with append() implemented
+as **read-then-rewrite** (read existing file, concatenate, writeFile
+back). This sidesteps a YDB SEQ device quirk where the first WRITE
+after `OPEN dev:(append)` lands at byte 0 instead of EOF — observed
+in `tAppendExtendsFile` while landing L16. Cost is `O(file size)`
+per append call.
+**Action:** wire `$ZF → write(2)` once the Phase 3 build harness is
+exercised by a real consumer. Public API does not change. Same patch
+adds the `readBytes` / `writeBytes` pair (T14).
+**Reference:** `docs/modules/stdfs.md` "Append semantics" section.
+
+### T14 — STDFS binary-safe `readBytes` / `writeBytes`
+**Module:** STDFS.
+**Status:** queued. STDFS v0.2.x is text-mode only — `writeFile`
+always emits a trailing LF (POSIX text-file convention; YDB SEQ
+stream-mode close finalisation), and `readFile` strips the trailing
+LF on the way back. Round-trips strings cleanly but does not preserve
+exact byte counts for binary payloads.
+**Action:** add `readBytes(path,n)` and `writeBytes(path,data)` that
+use the `$ZF → read(2)/write(2)` callout backend so byte boundaries
+are preserved. Schedule alongside T13 (same callout entry points).
+**Reference:** `docs/modules/stdfs.md` "Trailing-LF semantics" section.
+
+### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
+**Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
+**Status:** queued. Cannot start until v0.2.0 cuts (T7). Build
+harness `tools/build-callouts.sh` (A6) already shipped.
+**Sequencing:**
+1. v0.2.0 release sync (T7).
+2. IRIS `$ZF` portability spike (validate that callouts compile and
+   run under `intersystemsdc/iris-community:latest`).
+3. Pick one of the three modules as the lead (recommend STDCRYPTO —
+   it's the dependency for the jwt-verify example and unblocks
+   STDHTTP's TLS path indirectly).
+4. The other two are mutually parallel after the lead validates the
+   harness end-to-end.
+**Per-module specs:** `docs/m-stdlib-implementation-plan.md` §12.
+
+---
+
+## Table 2 — Proposed future modules (not yet started)
+
+These appear in `docs/users-guide.md` §6.3 as candidate sketches.
+None has TDD-red staked. Promote a row from this table into Table 1
+the moment you write `tests/STDxxxTST.m` and confirm it fails red —
+at that point assign a track ID (next available L-number for pure-M
+or H-number for `$ZF`-bound), bump the row out of this table, and
+add it to Table 1 with phase **P4** (or whatever phase fits).
+
+Priority is a single integer 1..N (1 = highest). Priority captures
+**when this should be picked up** relative to the other proposals,
+considering: security gap closure, downstream-module unblock,
+adjacent-tooling pressure, breadth of call sites.
+
+Dependency column legend: same as Table 1. **soft** = optional —
+module would work without the dep but ships better integration when
+the dep is present.
+
+Effort = same unit as Table 1 (developer-days, full TDD discipline,
+all forward estimates marked **est.**).
+
+| Pri | Candidate | Headline | Dependency | Effort | Rationale |
+|---|---|---|---|---|---|
+| 1 | `STDOS` | Process / env / signal helpers | none for env/pid/argv/exit; `$ZF → libc` if signals land | 2–3d est. | Fills `$ZCMDLINE` / `$ZJOB` gaps. Useful for STDARGS-driven scripts wanting non-zero exit codes or env access. Small surface; high call-site count. |
+| 2 | `STDXML` | XML parser + XPath 1.0 subset | none; STDREGEX (soft) | 12–16d est. | **Unlocks VistA HL7v3 / CDA / FHIR XML** — largest practical use-case in the VistA-meta orbit. W3C XML Test Suite as conformance corpus. Bigger lift; biggest impact. |
+| 3 | `STDSEMVER` | SemVer parse / compare / range | STDREGEX (soft) | 2d est. | Unblocks an eventual M package manager. Tiny on its own; architecturally load-bearing for dependency resolution. |
+| 4 | `STDSTR` | String helpers (pad / trim / split etc.) | none | 1–2d est. | High call-site count across existing modules; ad-hoc helpers would dissolve into one import. Low-risk, high-frequency. |
+| 5 | `STDTOML` | TOML 1.0 parser | STDDATE; STDSTR (soft) | 4–6d est. | Per-project config (mirrors `pyproject.toml` / `.m-cli.toml`). m-cli's own config format is TOML — STDTOML lets m-cli runtime config be read from M directly. |
+| 6 | `STDCACHE` | LRU + TTL cache | STDCOLL (Map+OrderedDict); STDDATE (soft) | 2–3d est. | Memoisation, RPC-result caching, rate-limit windows. Small surface; generic; useful breadth. |
+| 7 | `STDPROF` | Wall-clock / CPU profiler | STDDATE; STDCOLL (Heap for percentiles) | 3–4d est. | Per-test timings inside `m test`; surfaces slow suites without ad-hoc instrumentation. Pairs with m-cli `--changed` / `--isolation`. |
+| 8 | `STDSNAP` | Snapshot testing | STDJSON; STDFS (soft) | 3–4d est. | Reduces hand-written assertions for large data shapes (parsed JSON trees, FileMan exports). Complements STDASSERT. |
+| 9 | `STDENV` | `.env` loader + type coercion | STDFS (soft); STDSTR (soft) | 1–2d est. | CI/CD ergonomic — easier than wiring container env-vars per test (vista-meta containerised YDB endpoint). |
+| 10 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
+| 11 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
+| 12 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
+| 13 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
+
+Promoted out of Table 2 (now in Table 1):
+
+- **STDCSPRNG** — promoted 2026-05-07 to Table 1 as **L15 P4**.
+  Implemented with `/dev/urandom` (kernel ChaCha20 CSPRNG via single-
+  byte `READ *b` to avoid record-terminator truncation) instead of
+  the originally sketched `$ZF → libc` callout — the API surface is
+  stable for a future callout-backend swap (T12) once the Phase 3
+  build harness is exercised by a real consumer.
+- **STDFS** — promoted 2026-05-07 to Table 1 as **L16 P4**. Shipped
+  as text-mode YDB-only v1: read/write/append/exists/remove/size +
+  basename/dirname/join. Append uses a read-then-rewrite workaround
+  for a YDB SEQ APPEND-mode position quirk; binary-safe I/O and the
+  IRIS arm both wait on the `$ZF → libc` callout backend (T13/T14).
+
+**Aggregate proposal effort:** ~54–87d est. for the remaining 13
+candidates if every row eventually lands. Practical near-term
+roadmap (priorities 1–4) is ~7–13d est.
+
+When promoting a row into Table 1, also:
+
+- Assign a track ID per the §3 convention in
+  `docs/parallel-tracks.md` (next free `L<n>` for pure-M, `H<n>` for
+  `$ZF`-bound).
+- Add the per-module spec stub to
+  `docs/m-stdlib-implementation-plan.md` (current sections 8 / 11 / 12
+  are the spec home for Phase 1 / 2 / 3 — extend with §13 or later as
+  needed).
+- Open the dispatch row in `docs/parallel-tracks.md` §3.x with the
+  block-on edges (if any) marked in §2's dependency map.
+
+---
+
+## Must-know — sequencing, dependencies, conventions
+
+**Read these before starting work on any module or combination of
+modules.** None of the rules below are enforced by tooling — they are
+enforced by review.
+
+### Architectural priority
+
+- **m-stdlib has priority over m-cli.** When both projects need a
+  utility, it lands in m-stdlib first; m-cli imports. This rule lives
+  in `~/projects/m-stdlib/CLAUDE.md` and the project README.
+- **GT.M is permanently out of scope.** Anyone forking m-stdlib for
+  GT.M would need to remove the `view "TRACE"` coverage hooks and
+  the `tstart` rollback levels. Locked decision.
+
+### Dependency map (the only edges that block parallelism)
+
+Per `docs/parallel-tracks.md` §2:
+
+| Consumer | Dependency | Type | Notes |
+|---|---|---|---|
+| STDLOG (`v0.0.4`) | STDDATE (`v0.0.5`) | Soft (folded) | L4b folded into L4 release because L5 landed first; the inline-ts interim was never cut. |
+| m-cli runner SETUP/TEARDOWN wrap | STDFIX (`v0.1.1`) | Hard | shipped — m-cli `e5818bd` |
+| m-cli runner CLEAR^STDMOCK | STDMOCK (`v0.1.2`) | Hard | shipped — m-cli `e5818bd` |
+| m-cli `--seed PATH` | STDSEED (`v0.1.3`) | Hard | shipped — m-cli `e5818bd` |
+| STDLOG JSON-line output | STDJSON (`v0.2.0`) | Hard | landed on `main` — see T3, T6 |
+| STDSEED `loadJson` | STDJSON (`v0.2.0`) | Hard | landed on `main` — see T3, T6 |
+| STDHTTP | STDURL (`v0.2.0`) + `tools/build-callouts.sh` | Hard | both shipped; STDHTTP queued at T11 |
+| STDCRYPTO / STDCOMPRESS | `tools/build-callouts.sh` | Hard | A6 shipped; queued at T11 |
+
+Everything else is independent — tracks for different modules can run
+in parallel without coordination beyond merge ordering.
+
+### Synchronisation points
+
+Tags merge in dependency order, but **development can run in
+parallel**: a track for STDARGS (`v0.0.7`) can produce a green
+branch before STDFMT (`v0.0.3`) merges. The joins are at release-tag
+time, not development time:
+
+| Sync | Status | What joins |
+|---|---|---|
+| `v0.1.0` release | ✅ shipped 2026-05-05 | L1–L7, L4b |
+| `M1` close | ✅ shipped 2026-05-05 | L8+W, L9+X, L10+Y |
+| `v0.2.0` release | 🟡 **pending** (T7) | L11–L14 + STDLOG-JSON + STDSEED-loadJson |
+| Phase 3 entry | 🟡 queued (T11) | A6 already shipped; needs IRIS `$ZF` pass |
+| `v0.3.0` release | 🟡 queued | All Phase 3 tracks + jwt-verify example |
+| `v1.0.0` | 🟡 queued (time-based) | 3 months of API stability after `v0.3.0` |
+
+### Per-module acceptance gate (§9 of the implementation plan)
+
+Every module must pass these before its `vN.N.N` tag:
+
+| Gate | Tool | Pass threshold |
+|---|---|---|
+| Format | `m fmt --check` | clean (no diffs) |
+| Lint | `m lint --error-on=error` | 0 errors |
+| Tests | `m test --format=tap` | 100% assertions pass |
+| Coverage | `m coverage --min-percent=85` | ≥ 85% per-module label coverage (most modules ship at 100%) |
+| IRIS portability | `iris-portability-check` CI job | fail-soft — surfaces regressions but does not gate merges |
+
+### TDD discipline (non-negotiable)
+
+Per `~/.claude/CLAUDE.md` and `docs/users-guide.md` §2:
+
+1. Write `tests/STDxxxTST.m` with realistic fixtures.
+2. Run — confirm a deliberate red.
+3. Implement `src/STDxxx.m`.
+4. Run — confirm green.
+5. `make check` (fmt-check + lint + test) before commit;
+   `make coverage` before tag.
+
+`m fmt` and `m lint --error-on=error` run automatically as a
+PostToolUse hook on every Edit/Write of a `.m` file; lint errors come
+back as a system reminder mid-turn.
+
+### Conventions for parallel work (so multiple tracks don't stomp each other)
+
+Per `docs/parallel-tracks.md` §7:
+
+- **CHANGELOG.md fragments per track.** Each track adds one bullet
+  under `## [Unreleased]`; release sync collapses to the next tag.
+- **§1 status table in implementation-plan.md.** Each track edits its
+  own row only; conflicts are line-level.
+- **TODO.md.** Avoid editing during track work; update at milestone
+  close.
+- **TOOLCHAIN-FINDINGS.md.** Append-only during track work; renumber
+  at milestone close.
+- **`docs/modules/index.md`.** Each track adds its own row;
+  regeneration at v0.1.0 / v0.2.0 / v0.3.0 release time absorbs the
+  table.
+- **`docs/module-tracker.md` (this file).** Updated **in the same
+  commit** as any module-level change. Both tables are line-level
+  mergeable; conflicts at the row level only.
+- **m-cli companion PRs.** Ride alongside their stdlib track but
+  live in `~/projects/m-cli/`. Track owner opens both branches,
+  merges stdlib first, then m-cli.
+
+### Status / state docs (read in this order for a cold start)
+
+1. `~/projects/m-stdlib/CLAUDE.md` — project status banner; the
+   "what shipped, what's next" one-screen view.
+2. `docs/users-guide.md` — TDD-first walkthrough; module narrative
+   in §4 and §5.
+3. `docs/module-tracker.md` — **this file** — canonical tracker.
+4. `docs/parallel-tracks.md` — dispatch view; what to pick up.
+5. `docs/m-stdlib-implementation-plan.md` — per-module specs +
+   §9 acceptance gate.
+6. `TOOLCHAIN-FINDINGS.md` — open P0/P1/P2 findings against m-cli /
+   YDB / m-stdlib.
+7. `CHANGELOG.md` — release history.
+8. `TODO.md` — resume-here pointer; small.
+
+### Cross-references
+
+- [users-guide.md](users-guide.md) — narrative § companion.
+- [parallel-tracks.md](parallel-tracks.md) — dispatch view (track
+  IDs, track-level state).
+- [m-stdlib-implementation-plan.md](m-stdlib-implementation-plan.md)
+  — per-module specs (§8 P1, §11 P2, §12 P3) and §9 acceptance gate.
+- [tdd-orchestration-plan.md](tdd-orchestration-plan.md) — joint
+  m-stdlib ↔ m-cli milestone narrative (M0 – M5).
+- [modules/index.md](modules/index.md) — released-module canonical
+  index (Phase 1 only at present; regenerated each release).
+- [../TOOLCHAIN-FINDINGS.md](../TOOLCHAIN-FINDINGS.md) — open
+  toolchain bugs.
+- [../CHANGELOG.md](../CHANGELOG.md) — release history.
+- [../TODO.md](../TODO.md) — resume-here pointer.
+- [../CLAUDE.md](../CLAUDE.md) — project status banner +
+  architectural rule.
+- [../../m-cli/TODO.md](../../m-cli/TODO.md) — m-cli's own track
+  list.
+- [../../vista-meta/docs/vista-orchestration-plan.md](../../vista-meta/docs/vista-orchestration-plan.md)
+  — parent plan; tracks P1–P3 belong to its scope.

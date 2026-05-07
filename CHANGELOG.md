@@ -10,6 +10,60 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDFS`** — file-system primitives (track L16, phase P4 — second
+  Table 2 promotion; was Pri 2). Centralises the YDB SEQ device
+  `OPEN`/`USE`/`READ`/`WRITE`/`CLOSE` dance so consumer modules
+  don't have to re-derive the deviceparam combinations or work
+  around the `M-MOD-024` lint false-positive. Public surface:
+  text-mode I/O (`readFile` / `writeFile` / `append` / `readLines` /
+  `writeLines`); existence + metadata (`exists` / `remove` / `size`);
+  pure-string path manipulation (`basename` / `dirname` / `join`).
+  `exists()` probes via OPEN-with-`timeout=0` inside an `$ETRAP+ZGOTO
+  $zlevel` (same arg-less-`quit`-avoidance pattern as `raises^STDASSERT`)
+  to catch YDB's `Z150379354` hard-error on missing files — bypasses
+  `$ZSEARCH`'s per-process cache so a path created and removed inside
+  one M process round-trips correctly. `writeFile` always emits a
+  trailing LF (POSIX text-file convention; YDB SEQ stream-mode close
+  finalisation), and `readFile` strips the trailing LF on the way back
+  — strings round-trip cleanly; on-disk byte count is `$LENGTH(data)+1`
+  for non-LF-terminated input. `append()` is implemented as
+  read-then-rewrite to sidestep a YDB SEQ APPEND-mode quirk where the
+  first WRITE lands at byte 0 instead of EOF; the native append + the
+  binary-safe `readBytes` / `writeBytes` pair are queued at T13/T14
+  alongside the `$ZF → libc` callout backend that also unlocks the
+  IRIS arm. Two error codes: `,U-STDFS-OPEN-FAIL,` (path missing or
+  unopenable; raised by all I/O entry points), `,U-STDFS-REMOVE-FAIL,`
+  (open-with-DELETE failed for a reason other than "already absent").
+  Test suite: 29 labels, 39 assertions green. Coverage: 12/12 labels
+  (100%). `m fmt` clean; `m lint --error-on=error` clean (file-wide
+  `M-MOD-022` and `M-MOD-024` disables, both with rationale comments).
+  Per-module doc: `docs/modules/stdfs.md`.
+- **`STDCSPRNG`** — cryptographic random (track L15, phase P4 — first
+  promotion out of `docs/module-tracker.md` Table 2; was Pri 1).
+  Closes the security gap between STDUUID v4 (`$RANDOM`-backed,
+  predictable from a few samples) and security-sensitive identifiers
+  (session tokens, password reset tokens, JWT signing salts, nonces).
+  Public surface: `bytes(n)` / `hex(n)` / `base64(n)` / `token(n)` /
+  `int(min,max)` / `uuid4()` / `available()`. Entropy from
+  `/dev/urandom` (kernel ChaCha20 CSPRNG — same source `getrandom(2)`
+  reads without `GRND_RANDOM`); single-byte `READ *b` loop avoids
+  record-terminator truncation in YDB SEQ-mode device I/O. `int`
+  uses rejection sampling on the smallest power of 256 covering the
+  range, so the distribution is unbiased (no modulo-bias artefact).
+  `uuid4()` shares the canonical 36-char hex form with
+  `$$v4^STDUUID()` and round-trips through `$$valid^STDUUID()` /
+  `$$version^STDUUID()` / `$$variant^STDUUID()` unchanged — use it
+  whenever the UUID is a security boundary. Three error codes:
+  `,U-STDCSPRNG-BAD-COUNT,` (negative `n`), `,U-STDCSPRNG-BAD-RANGE,`
+  (`int(max,min)` reversed), `,U-STDCSPRNG-OPEN-FAIL,`
+  (`/dev/urandom` unopenable — pre-flight via `available()`). Test
+  suite: 27 labels, 405 assertions green. Coverage: 7/7 labels
+  (100%). `m fmt` clean; `m lint --error-on=error` clean (file-wide
+  `M-MOD-024` disable on the OPEN/USE deviceparam false-positive,
+  same pattern as STDCSV). Per-module doc:
+  `docs/modules/stdcsprng.md`. The `tools/build-callouts.sh`-driven
+  `$ZF → getrandom(2)` callout backend is reserved as a future
+  perf-only swap (T12) — public API stable.
 - **`STDSEED` `loadJson`** (track L10 add-on for `v0.2.0`). Replaces
   the v0.1.3 `U-STDSEED-NOT-IMPLEMENTED` stub with a real
   implementation. `loadJson^STDSEED(jsonText,filer)` parses

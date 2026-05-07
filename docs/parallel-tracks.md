@@ -125,6 +125,18 @@ parking-lot test re-enable (raises-path bodies for L4 / L10 / STDFMT /
 STDDATE / STDCSV) waits on the open STDASSERT.raises P1 in
 TOOLCHAIN-FINDINGS and is **not** a release-tag blocker.
 
+### 3.3b m-stdlib Phase 4 — Table 2 promotions (post-`v0.2.0`)
+
+Phase 4 covers modules promoted out of `docs/module-tracker.md`
+Table 2 ahead of (or alongside) the Phase 3 callout work. They
+share the `v0.2.0` boundary: they ship in the same release window
+but are not gating the tag itself.
+
+| Track | Tag | Module | Independent of | Notes |
+|---|---|---|---|---|
+| **L15** | v0.2.x | STDCSPRNG | everything (delegates to STDB64 / STDHEX / STDUUID) | ✅ **Landed on `main` 2026-05-07.** First Table 2 promotion (was Pri 1). Public surface: `bytes` / `hex` / `base64` / `token` / `int` / `uuid4` / `available`. Entropy from `/dev/urandom` (kernel ChaCha20 CSPRNG); single-byte `READ *b` loop avoids record-terminator truncation. `int` rejection-samples on the smallest power of 256 ≥ range (no modulo bias). 405/405 assertions; 7/7 labels (100%); 0 lint errors. Module doc at `docs/modules/stdcsprng.md`. The `$ZF → getrandom(2)` callout backend is reserved as a perf-only swap (T12) once Phase 3 cuts. |
+| **L16** | v0.2.x | STDFS | everything | ✅ **Landed on `main` 2026-05-07.** Second Table 2 promotion (was Pri 2). Public surface: text-mode I/O (`readFile` / `writeFile` / `append` / `readLines` / `writeLines`); existence + metadata (`exists` / `remove` / `size`); pure-string path manipulation (`basename` / `dirname` / `join`). `exists()` uses an `$ETRAP+ZGOTO $zlevel` OPEN-probe to bypass the `$ZSEARCH` per-process cache. `writeFile` always emits a trailing LF (POSIX text-file convention; readFile strips it on the way back). `append()` is read-then-rewrite to sidestep a YDB SEQ APPEND-mode position quirk — native append + binary-safe `readBytes`/`writeBytes` queued at T13/T14 alongside the `$ZF → libc` callout backend. 39/39 assertions; 12/12 labels (100%); 0 lint errors. Module doc at `docs/modules/stdfs.md`. |
+
 ### 3.4 m-cli companion tracks
 
 Three categories:
@@ -213,6 +225,8 @@ Phase 2   L11 STDJSON                        ✅ landed on main (awaits v0.2.0 t
           L14 STDURL                         ✅ landed on main (awaits v0.2.0 tag)
           L4  STDLOG FORMAT(kv|json) add-on  ✅ landed on main (8f7c3ba) — JSON-emission tests parked under STDASSERT.raises P1
           L10 STDSEED loadJson add-on        ✅ landed on main (dad6cd1) — replaces v0.1.3 stub; raises tests parked under same P1
+Phase 4   L15 STDCSPRNG                      ✅ landed on main 2026-05-07 — first Table 2 promotion (was Pri 1); /dev/urandom backend
+          L16 STDFS                          ✅ landed on main 2026-05-07 — second Table 2 promotion (was Pri 2); text-mode YDB-only v1
 m-cli     C1 dynamic ^TESTRUN protocol       ✅ shipped
           C2 --format=junit                  ✅ shipped
           C3 --coverage-min / --min-percent  ✅ shipped

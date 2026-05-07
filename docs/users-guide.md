@@ -501,14 +501,14 @@ candidates if the library expands further. Each is sketched as
 | `STDYAML` | YAML 1.2 parser. | Config file ergonomics; preferred to JSON for human-edited configs. |
 | `STDTOML` | TOML 1.0 parser. | Per-project config (mirrors `pyproject.toml` / `Cargo.toml` conventions). |
 | `STDSEMVER` | SemVer parse / compare / range match (`>=1.2.3, <2`). | Unblocks dependency-resolution tooling for an eventual M package manager. |
-| `STDFS` | File-system primitives — read / write / atomic-replace / `mtime` / `glob`. | The current `OPEN/USE/CLOSE` device-param dance is portable but verbose; `STDFS` would centralise the YDB ↔ IRIS device differences. |
+| ~~`STDFS`~~ | ~~File-system primitives — read / write / atomic-replace / `mtime` / `glob`.~~ | **Promoted out of this list 2026-05-07** — `STDFS` shipped as L16 phase P4 with text-mode YDB-only v1 (read/write/append/exists/remove/size + basename/dirname/join). See [`docs/modules/stdfs.md`](modules/stdfs.md). atomic-replace, glob, and binary-safe `readBytes`/`writeBytes` queued at T13/T14 alongside the future `$ZF → libc` callout backend. |
 | `STDOS` | Process / env / signal helpers — `$$env(name)`, `$$pid()`, `$$argv()`, `$$exit(rc)`. | Fills gaps `$ZCMDLINE` / `$ZJOB` leave. |
 | `STDNET` | TCP / UDP socket primitives. Sits below `STDHTTP` and an eventual `STDDNS`. | Greenfield M services beyond the FileMan-backed VistA tier. |
 | `STDCACHE` | LRU + TTL caches over local arrays or a global. | Memoisation, RPC-result caching, rate-limit windows. |
 | `STDSTR` | String helpers — `pad`, `trim`, `replaceAll`, `split` (non-regex), `startsWith` / `endsWith`, `toLowerASCII` / `toUpperASCII`. | Tiny but surfaced repeatedly across modules; would let several call sites drop ad-hoc helpers. |
 | `STDMATH` | `clamp`, `min` / `max` over arrays, `sum`, `mean`, fixed-point arithmetic. | M's native arithmetic is already strong; this is glue around the gaps. |
 | `STDXFRM` | Functional list combinators — `map` / `filter` / `reduce` over local arrays via XECUTE'd lambdas. | Modernises the "loop with `$ORDER` and accumulate" idiom. |
-| `STDCSPRNG` | Seeded + true cryptographic RNG via `$ZF` to `getrandom(2)`. | STDUUID v4 currently uses `$RANDOM` — fine for non-security paths, weak for tokens. |
+| ~~`STDCSPRNG`~~ | ~~Seeded + true cryptographic RNG via `$ZF` to `getrandom(2)`.~~ | **Promoted out of this list 2026-05-07** — `STDCSPRNG` shipped as L15 phase P4 with a `/dev/urandom` backend (kernel ChaCha20 CSPRNG, same source `getrandom(2)` reads without `GRND_RANDOM`). See [`docs/modules/stdcsprng.md`](modules/stdcsprng.md). The `$ZF → getrandom(2)` callout backend is reserved as a future perf-only swap (T12) — public API unchanged. |
 | `STDENV` | `.env` file loader for fixture / test data, with type coercion. | CI/CD ergonomic — easier than wiring container env-vars per test. |
 | `STDPROF` | Wall-clock / CPU profiler — `start^STDPROF(tag)` / `stop^STDPROF(tag)`, percentile reporting. | Per-test timings inside `m test`; finds slow integration suites without adding instrumentation. |
 | `STDSNAP` | Snapshot testing — capture canonical structure, diff on next run. | Reduces hand-written assertions for large data shapes (e.g. parsed JSON trees, FileMan record exports). |

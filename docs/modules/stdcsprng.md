@@ -1,0 +1,151 @@
+# `STDCSPRNG` — Cryptographic random
+
+Kernel-CSPRNG-backed random for security-sensitive identifiers:
+session tokens, password reset tokens, JWT signing salts, nonces.
+Distinct from [`STDUUID`](stduuid.md), which uses `$RANDOM`
+(Mersenne Twister) and is fine for primary keys but **not** for
+unpredictability boundaries.
+
+## Public API
+
+| Extrinsic | Signature | Returns |
+|---|---|---|
+| `bytes` | `$$bytes^STDCSPRNG(n)` | n random bytes (string of length n; any byte 0..255). |
+| `hex` | `$$hex^STDCSPRNG(n)` | 2n lowercase hex chars representing n random bytes. |
+| `base64` | `$$base64^STDCSPRNG(n)` | URL-safe base64 (RFC-4648 §5) of n bytes; no `=` padding. |
+| `token` | `$$token^STDCSPRNG(n)` | n-char token from `[A-Za-z0-9_-]` (6 bits / char). |
+| `int` | `$$int^STDCSPRNG(min,max)` | Uniform integer in `[min, max]` (inclusive both ends), rejection-sampled. |
+| `uuid4` | `$$uuid4^STDCSPRNG()` | RFC-4122 v4 UUID — 122 bits of CSPRNG entropy in canonical hex form. |
+| `available` | `$$available^STDCSPRNG()` | `1` iff `/dev/urandom` is openable for reading; else `0`. |
+
+## Examples
+
+```m
+; 16 random bytes (binary)
+SET buf=$$bytes^STDCSPRNG(16)
+
+; 32-char hex token (16 bytes of entropy)
+SET tok=$$hex^STDCSPRNG(16)
+
+; URL-safe session token (~43 chars; 32 bytes / 256 bits of entropy)
+SET sid=$$base64^STDCSPRNG(32)
+
+; 22-char URL-safe token (132 bits of entropy — equivalent UUID strength)
+SET tok=$$token^STDCSPRNG(22)
+
+; Fair die roll
+SET d=$$int^STDCSPRNG(1,6)
+
+; Crypto-strong UUID v4 (use this, not $$v4^STDUUID, for security IDs)
+SET id=$$uuid4^STDCSPRNG()
+
+; Pre-flight guard
+IF '$$available^STDCSPRNG() SET $ECODE=",U-MYAPP-NO-CSPRNG,"
+```
+
+## Entropy source
+
+`/dev/urandom` on Linux — backed by the kernel's ChaCha20 CSPRNG.
+This is the **same source** that `getrandom(2)` reads from when
+called without `GRND_RANDOM`. The Linux kernel pre-seeds
+`/dev/urandom` from hardware entropy at boot; subsequent reads are
+indistinguishable from random bytes to any computationally bounded
+adversary.
+
+The implementation reads one byte at a time via `READ *b` so that
+record terminators in the byte stream (LF=`$C(10)`, CR=`$C(13)`)
+do not truncate the read. This is correct but unhurried: a 16-byte
+UUID costs 16 device reads. For the call rates typical of session
+issuance (≤ 10⁴ / s), this is well below the YDB engine's I/O
+ceiling. If batch read speeds become a hot path, the
+`tools/build-callouts.sh`-driven `$ZF → getrandom(2)` callout slot
+is reserved for a drop-in backend swap — **the public API will not
+change.**
+
+## Why not `$RANDOM`?
+
+| Property | `$RANDOM` (STDUUID v4) | `STDCSPRNG` |
+|---|---|---|
+| Predictability of next output given prior outputs | Recoverable from ~624 samples (Mersenne Twister state extraction) | Computationally infeasible (kernel CSPRNG) |
+| Suitable for distributed primary keys / log correlation | ✅ | ✅ |
+| Suitable for session tokens, password reset tokens, JWT salts, nonces | ❌ | ✅ |
+| Cost per byte | Cheap (in-process PRNG) | One device read per byte |
+
+When in doubt, use `STDCSPRNG`. The performance cost is small enough
+that defaulting to "secure" rarely matters in practice — and the
+class of bugs avoided (predictable session tokens, guessable
+password reset links, replayable nonces) is severe.
+
+## `int(min, max)` distribution
+
+Rejection sampling on the smallest power of 256 covering the range,
+so the distribution is **unbiased** (no modulo-bias artefact). For
+a range of size `R`:
+
+1. Compute `nbytes` such that `256^nbytes ≥ R`.
+2. Read `nbytes` random bytes; assemble as integer `r` in
+   `[0, 256^nbytes - 1]`.
+3. If `r ≥ accept = 256^nbytes - (256^nbytes mod R)`, redraw
+   (probability `< R / 256^nbytes`, typically `< 1/256`).
+4. Return `min + (r mod R)`.
+
+Worst-case redraw rate: just under 50% (when `R` is just over a
+power of 256). Expected reads per call: ~2 × `nbytes`.
+
+Range is bounded by M scalar precision — YDB's exact-decimal
+arithmetic carries 18 digits, comfortably accommodating any
+practical range. For exact uniformity at spans larger than 2⁵³,
+prefer composing `bytes()` directly.
+
+## Edge cases
+
+- **`bytes(0)` returns `""`.** Same for `hex(0)`, `base64(0)`,
+  `token(0)`. No device read is performed. This matches the
+  contract used across the v0.1.x string-builder modules.
+- **Negative count → `$ECODE`.** `bytes(-1)`, `hex(-1)`,
+  `base64(-1)`, `token(-1)` all set
+  `$ECODE=",U-STDCSPRNG-BAD-COUNT,"` rather than silently returning
+  `""`. Caller's bug, not data noise.
+- **`int(n, n)` returns `n`.** Singleton ranges short-circuit
+  without consuming entropy.
+- **`int(max, min)` with `max < min`.** Sets
+  `$ECODE=",U-STDCSPRNG-BAD-RANGE,"`. Asymmetric to `int(n, n)`
+  by design — `min == max` is a valid degenerate range, `min > max`
+  is a programmer error.
+- **`uuid4` interop with `STDUUID`.** `$$valid^STDUUID(u)`,
+  `$$version^STDUUID(u)`, and `$$variant^STDUUID(u)` all accept
+  STDCSPRNG `uuid4()` output unchanged — same canonical form, same
+  RFC-4122 variant nibble pattern, same lowercase hex.
+
+## Error codes
+
+| `$ECODE` | Raised by | Meaning |
+|---|---|---|
+| `,U-STDCSPRNG-BAD-COUNT,` | `bytes`, `hex`, `base64`, `token` | Negative `n` argument. |
+| `,U-STDCSPRNG-BAD-RANGE,` | `int` | `max < min`. |
+| `,U-STDCSPRNG-OPEN-FAIL,` | `bytes` (and indirectly `hex`/`base64`/`token`/`uuid4`/`int`) | `/dev/urandom` could not be opened — environment lacks the device, or process lacks read permission. Pre-flight with `$$available^STDCSPRNG()` to avoid mid-run. |
+
+## Engine portability
+
+YDB on Linux is the supported configuration. The `/dev/urandom`
+contract (and CSPRNG semantics) is provided by every modern
+Linux distribution; macOS provides it as well, with the same
+ChaCha20-derived semantics. Windows YDB is not supported.
+
+For IRIS, the public API is preserved by a drop-in replacement
+that delegates to `%SYSTEM.Encryption` at the same labels — slated
+for the IRIS-portability pass.
+
+## See also
+
+- [`STDUUID`](stduuid.md) — `$RANDOM`-backed UUID v4/v7. Use that
+  for non-security IDs; this for security IDs.
+- [`STDB64`](stdb64.md) — `urlencode` is the engine behind
+  `STDCSPRNG.base64()`.
+- [`STDHEX`](stdhex.md) — `encode` is the engine behind
+  `STDCSPRNG.hex()` and `STDCSPRNG.uuid4()`.
+- [`STDASSERT`](stdassert.md) — every test in `STDCSPRNGTST` is one
+  STDASSERT call.
+- RFC-4122 — UUID spec.
+- RFC-4648 §5 — URL-safe base64.
+- `getrandom(2)` Linux man page — kernel CSPRNG semantics.
