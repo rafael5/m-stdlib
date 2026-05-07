@@ -77,6 +77,14 @@ asserts(p,f,path,data,desc)     ; STDASSERT-style snapshot assertion.
         ; doc: noting the snapshot path (full diff is the file vs current text;
         ; doc: caller can shell out to `diff` for the byte-level inspection).
         ; doc: Example: do asserts^STDSNAP(.pass,.fail,"cfg.snap",.cfg,"config matches baseline")
+        ; doc:
+        ; doc: Update mode: when ^STDLIB($job,"stdsnap","update")=1, asserts()
+        ; doc: writes the current snapshot to `path` (overwriting any existing
+        ; doc: file) and records PASS instead of comparing. Used by m-cli's
+        ; doc: `m test --update-snapshots` to regenerate baselines after an
+        ; doc: intentional change in test output. Update mode never fails —
+        ; doc: a write error still fires the underlying STDFS error trap.
+        if $get(^STDLIB($job,"stdsnap","update")) do save(path,.data) do recordPass^STDASSERT(.p,desc_" [snapshot updated]") quit
         if $$matches(path,.data) do recordPass^STDASSERT(.p,desc) quit
         do recordFail^STDASSERT(.f,desc,"snapshot at "_path,"current data differs")
         quit

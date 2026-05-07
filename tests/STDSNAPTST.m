@@ -19,6 +19,8 @@ STDSNAPTST      ; Test suite for STDSNAP (v0.2.x — Phase 4).
         do tMatchesMissingFileIsZero(.pass,.fail)
         do tAssertsRecordsPassOnMatch(.pass,.fail)
         do tAssertsRecordsFailOnMismatch(.pass,.fail)
+        do tAssertsUpdateModeWritesAndPasses(.pass,.fail)
+        do tAssertsUpdateModeOverwritesStaleSnapshot(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -166,5 +168,44 @@ tAssertsRecordsFailOnMismatch(pass,fail)        ;@TEST "asserts() routes a misma
         do asserts^STDSNAP(.p,.f,path,.data,"snapshot mismatch")
         do eq^STDASSERT(.pass,.fail,p,0,"pass=0 after mismatch")
         do eq^STDASSERT(.pass,.fail,f,1,"fail=1 after mismatch")
+        do remove^STDFS(path)
+        quit
+        ;
+tAssertsUpdateModeWritesAndPasses(pass,fail)    ;@TEST "asserts() in update mode writes the snapshot and records PASS"
+        new path,data,p,f
+        set path=$$sandboxPath("aupd1")
+        set data("k")="newvalue"
+        ; No baseline file exists — without update mode, this would record FAIL
+        ; (file-missing). With update mode, the file is created and PASS recorded.
+        kill ^STDLIB($job,"stdsnap","update")
+        set ^STDLIB($job,"stdsnap","update")=1
+        set p=0,f=0
+        do asserts^STDSNAP(.p,.f,path,.data,"new baseline")
+        kill ^STDLIB($job,"stdsnap","update")
+        do eq^STDASSERT(.pass,.fail,p,1,"pass=1 in update mode")
+        do eq^STDASSERT(.pass,.fail,f,0,"fail=0 in update mode")
+        do true^STDASSERT(.pass,.fail,$$exists^STDFS(path),"snapshot file written")
+        ; The newly-written file must round-trip via matches() now.
+        do true^STDASSERT(.pass,.fail,$$matches^STDSNAP(path,.data),"baseline matches data")
+        do remove^STDFS(path)
+        quit
+        ;
+tAssertsUpdateModeOverwritesStaleSnapshot(pass,fail)    ;@TEST "asserts() in update mode overwrites a stale baseline"
+        new path,data,p,f
+        set path=$$sandboxPath("aupd2")
+        set data("k")="original"
+        do save^STDSNAP(path,.data)
+        ; Mutate data, then turn on update mode and expect the baseline to be
+        ; rewritten (mismatch would have FAILed without update mode).
+        set data("k")="updated"
+        kill ^STDLIB($job,"stdsnap","update")
+        set ^STDLIB($job,"stdsnap","update")=1
+        set p=0,f=0
+        do asserts^STDSNAP(.p,.f,path,.data,"baseline drift")
+        kill ^STDLIB($job,"stdsnap","update")
+        do eq^STDASSERT(.pass,.fail,p,1,"pass=1 in update mode despite drift")
+        do eq^STDASSERT(.pass,.fail,f,0,"fail=0 in update mode")
+        ; New baseline now reflects the updated data.
+        do true^STDASSERT(.pass,.fail,$$matches^STDSNAP(path,.data),"new baseline matches updated data")
         do remove^STDFS(path)
         quit
