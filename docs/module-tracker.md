@@ -88,19 +88,20 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.2.x` (on `main`, awaiting tag) | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear | none in v1 (uses `$ZHOROLOG` for microsecond resolution; STDCOLL Heap listed as soft dep for future streaming-percentile variant) | ~1d ✅ | 🔮 m-cli `m test` per-suite timings (TBD) | T20 |
 | P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | STDFS (save/matches I/O); STDASSERT (asserts integration) | ~1d ✅ | 🔮 STDASSERT-snap auto-update flag (TBD) | T21 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | ~1d ✅ | 🔮 m-cli env-loaded test config (TBD) | T22 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.2.x` (v0 on `main`, awaiting tag; v1 incremental) | XML parser v0 — well-formed XML 1.0 subset: parse / valid / rootName / attr / text / childCount / childByName / lastError. ~30% of full envelope; T23-T27 cover the remaining ~70%. | none in v0 (STDREGEX listed as soft dep for future XPath); pure recursive-descent parser | ~3d ✅ (v0; ~9-13d remaining for T23-T27) | 🔮 vista-meta HL7v3 / CDA / FHIR consumer (TBD) | T23, T24, T25, T26, T27 |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.2.x` (v0+T23+T24 on `main`, awaiting tag; v1 incremental) | XML parser v0+T23+T24 — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric character refs (UTF-8 encoded). ~50% of full envelope; T25-T27 cover the remaining ~50%. | none (STDREGEX listed as soft dep for future XPath); pure recursive-descent parser | ~5d ✅ (v0+T23+T24; ~7-11d remaining for T25-T27) | 🔮 vista-meta HL7v3 / CDA / FHIR consumer (TBD) | T25, T26, T27 |
 | P3 | H1 | 28 | `STDCRYPTO` | `v0.3.0` (queued) | SHA-256/384/512 + HMAC | `$ZF → libcrypto`; A6 | 5–7d est. | 🟡 TBD | T11 |
 | P3 | H2 | 29 | `STDCOMPRESS` | `v0.3.0` (queued) | gzip / deflate / zstd | `$ZF → libz`, `$ZF → libzstd`; A6 | 5–7d est. | 🟡 TBD | T11 |
 | P3 | H3 | 30 | `STDHTTP` | `v0.3.0` (queued) | HTTP/1.1 client (request / response / streaming) | STDURL; `$ZF → libcurl`; A6 | 8–12d est. | 🟡 consumer of L14 | T11 |
 
-**Aggregate:** ~83d shipped across the 27 landed modules
+**Aggregate:** ~85d shipped across the 27 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
 + STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
-+ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0 L25 P4); STDXML v0
-covers ~30% of the 12-16d envelope so ~9-13d of T23-T27 remain.
-~18–26d estimated for the three queued Phase 3 modules. Open ToDo
-work (T1–T27) is incremental on top of the shipped totals — see
-ToDo expansion below for per-task estimates.
++ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24 L25 P4);
+STDXML covers ~50% of the 12-16d envelope so ~7-11d of T25-T27
+remain. ~18–26d estimated for the three queued Phase 3 modules.
+Open ToDo work (T1–T27, T23+T24 resolved) is incremental on top
+of the shipped totals — see ToDo expansion below for per-task
+estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -135,23 +136,23 @@ out in `docs/parallel-tracks.md` §3.4):
 - **T20** STDPROF streaming-percentile variant via STDCOLL Heap (CKMS sketch) for continuous monitoring; v1 keeps all samples and walks them on demand.
 - **T21** STDSNAP root-scalar serialization + auto-update flag + diff helper (v1 walks `$QUERY` descendants only, no auto-update; humans re-`save` manually after intentional drift).
 - **T22** STDENV variable substitution + `export` prefix + multi-line values + process-environment integration via STDOS setenv (T15).
-- **T23** STDXML CDATA / processing instructions / comments / `<?xml ?>` declaration (the four XML "noise" constructs not parsed in v0).
-- **T24** STDXML numeric character references (`&#nnnn;` decimal, `&#xHH;` hex).
+- ~~**T23** STDXML CDATA / processing instructions / comments / `<?xml ?>` declaration~~ — **resolved 2026-05-07**: `parseContent` dispatches on `<!--` / `<![CDATA[` / `<?`; new `skipDocLevel` walks PIs+comments before/after the root; CDATA content stored as literal text (no entity decode).
+- ~~**T24** STDXML numeric character references~~ — **resolved 2026-05-07**: `decodeEntities` handles `&#NNN;` (decimal) and `&#xHH;` (hex); `encodeUtf8` produces 1-4 byte UTF-8 sequences for any Unicode code point up to U+10FFFF.
 - **T25** STDXML namespaces — `xmlns="..."` / `xmlns:prefix="..."` declarations and `<prefix:tag>` resolution.
 - **T26** STDXML DTDs / DOCTYPE / custom entity declarations.
 - **T27** STDXML XPath 1.0 query subset — axes, predicates, functions, comparison operators.
 
-**Aggregate gate, current head (2026-05-07):** 1680+ assertions
+**Aggregate gate, current head (2026-05-07):** 1710+ assertions
 across 27 suites, per-module label coverage ≥ 91% (most at 100%;
-STDOS at 91.7%, STDENV at 93.3%, STDXML at 95% — `exit()`,
+STDOS at 91.7%, STDENV at 93.3%, STDXML at 96.3% — `exit()`,
 `parseFile()`, and `lastError()` respectively unreachable /
 un-tested by automated tests), 0 lint errors, fmt clean. v0.2.0
 shipped (commit `c3a0880`); the eleven P4 promotions sit on top:
 STDCSPRNG (L15), STDFS (L16), STDOS (L17), STDSEMVER (L18),
 STDSTR (L19), STDTOML (L20), STDCACHE (L21), STDPROF (L22),
-STDSNAP (L23), STDENV (L24), STDXML v0 (L25). The joint canonical-
-index regen covers 28 modules total (Phase 1: 9; Phase 1b: 3;
-Phase 2: 4 + 2 add-ons; P4 promotions: 11).
+STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24 (L25). The joint
+canonical-index regen covers 28 modules total (Phase 1: 9;
+Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 11).
 
 ---
 
@@ -527,20 +528,31 @@ T22)" section.
 
 ### T23-T27 — STDXML deferred features
 **Module:** STDXML.
-**Status:** queued. STDXML v0 covers ~30% of the full XML 1.0 +
-Namespaces 1.0 + XPath 1.0 envelope (12-16d in the original Table 2
-estimate). The remaining ~9-13d of work is split into focused
-T-tickets so consumers can drive whichever piece they need:
+**Status:** **T23 and T24 resolved 2026-05-07** (this commit);
+T25-T27 still queued. STDXML now covers ~50% of the 12-16d full
+XML 1.0 + Namespaces 1.0 + XPath 1.0 envelope. Remaining ~7-11d
+across three focused T-tickets:
 
-- **T23 — CDATA / PI / comments / xml-decl.** The four "noise"
-  constructs that don't carry data v0 cares about. v0 errors out
-  if it sees them; T23 makes the parser skip them. Smallest of
-  the five — probably 1-2d. Implement first since real-world XML
-  routinely contains comments and `<?xml ... ?>` declarations.
-- **T24 — Numeric character references.** `&#nnnn;` (decimal) and
-  `&#xHH;` (hex) per XML 1.0 §4.1. Decode-side is a small extension
-  to `decodeEntities`. Encode-side is out of scope (STDXML v0 is
-  a parser, not a serialiser). 1d.
+- ✅ **T23 — CDATA / PI / comments / xml-decl.** **Resolved
+  2026-05-07.** `parseContent` dispatches on `<!--` / `<![CDATA[`
+  / `<?` in addition to the previous `<` (start-tag) / `</`
+  (end-tag) cases. New helpers: `skipDocLevel` (walks PIs +
+  comments before / after the root element), `skipComment`
+  (consumes `<!-- ... -->`), `skipPI` (consumes `<? ... ?>` —
+  covers both processing instructions and the `<?xml ... ?>`
+  declaration in the same path), `parseCdata` (reads
+  `<![CDATA[ ... ]]>` and stores the literal content directly
+  into the text accumulator without entity decoding). 8 new
+  tests; STDXML 47/47 → 75/75 assertions.
+- ✅ **T24 — Numeric character references.** **Resolved 2026-05-07.**
+  `decodeEntities` extended to handle `&#NNN;` (decimal) and
+  `&#xHH;` (hex). New helpers: `decodeNumericRef` (parses the
+  digit sequence and returns the code point), `hexDigit` (lookup),
+  `encodeUtf8` (1-4 byte UTF-8 encoding for any code point up to
+  U+10FFFF). Out-of-range / malformed refs fall through as
+  literal text per the lenient `decodeEntities` convention.
+  Verified against U+00A9 (©, 2-byte) and U+4E2D (中, 3-byte)
+  round-trips.
 - **T25 — Namespaces.** XML Namespaces 1.0 — `xmlns="..."` /
   `xmlns:prefix="..."` declarations and `<prefix:tag>` resolution.
   Adds `node("ns")` and `node("nsAttr", attrName)` to the tree
@@ -558,16 +570,14 @@ T-tickets so consumers can drive whichever piece they need:
   T-ticket — 4-6d. Could lean on STDREGEX for the text-pattern
   pieces.
 
-**Action:** schedule by demand. The priority ordering above is a
-rough recommendation — VistA HL7v2 / CDA / FHIR consumers typically
-need T23 + T25 (comments and namespaces) first, then T24 (numeric
-char refs in attribute values), then T27 (XPath for navigation).
-T26 (DTDs) is the lowest-priority for modern XML.
+**Action:** T25 is the next natural extension — VistA HL7v3 / CDA /
+FHIR is namespaced. T27 is the largest remaining lift. T26 stays
+lowest-priority for modern XML.
 
 **Reference:** `docs/modules/stdxml.md` "Out of scope (queued)"
 section. The W3C XML Test Suite is the conformance corpus for
-T23-T27 acceptance; vendor it under `tests/conformance/xml/`
-when T23 lands.
+T25-T27 acceptance; vendor it under `tests/conformance/xml/`
+when a real consumer drives the requirement.
 
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.

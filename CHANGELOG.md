@@ -10,6 +10,31 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDXML T23 + T24`** — comments, processing instructions, the
+  `<?xml ... ?>` declaration, `<![CDATA[ ... ]]>` sections, and
+  numeric character references (`&#NNN;` decimal, `&#xHH;` hex).
+  STDXML coverage moves from ~30% of the full XML 1.0 envelope
+  to ~50%; T25 (namespaces), T26 (DTDs / custom entities), and
+  T27 (XPath 1.0) remain queued. New parser helpers:
+  `skipDocLevel` (walks PIs and comments before / after the root
+  element), `skipComment` (consumes `<!-- ... -->` with a
+  diagnostic on unclosed comments), `skipPI` (consumes `<? ... ?>`
+  — covers both processing instructions and the `<?xml ... ?>`
+  declaration in the same code path), `parseCdata` (reads
+  `<![CDATA[ ... ]]>` and stores the literal content directly into
+  the text accumulator without entity decoding — preserves `&`
+  and `<` verbatim, which is exactly what HL7v3 / CDA narrative
+  blocks expect). `decodeEntities` extended to recognise `&#NNN;`
+  and `&#xHH;`; new `decodeNumericRef` and `hexDigit` helpers
+  parse the digit run, and `encodeUtf8` produces 1-4-byte UTF-8
+  sequences for any Unicode code point up to `U+10FFFF`. Verified
+  end-to-end against U+00A9 (©, 2-byte) and U+4E2D (中, 3-byte)
+  round-trips. Out-of-range / malformed references fall through
+  as literal text per the lenient `decodeEntities` convention.
+  STDXML test suite: 22 → 37 labels, 47 → 75 assertions green.
+  Coverage: 26/27 labels (96.3%). `m fmt` clean; `m lint
+  --error-on=error` 0E. Per-module doc updated to reflect the
+  T23+T24 closures.
 - **`STDXML v0`** — XML 1.0 well-formed parser (track L25, phase P4 —
   eleventh Table 2 promotion; the long-deferred Pri 1 finally
   starts). v0 covers ~30% of the 12-16d full XML 1.0 +

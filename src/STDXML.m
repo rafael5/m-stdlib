@@ -59,11 +59,11 @@ parse(text,root)        ; Parse text into root tree; return 1/0.
         new ctx,ok
         if text="" do err("empty input") quit 0
         do initCtx(.ctx,text)
-        do skipWs(.ctx)
+        if '$$skipDocLevel(.ctx) quit 0
         if $$peek(.ctx)'="<" do err("expected '<' at root") quit 0
         set ok=$$parseElement(.ctx,.root)
         if 'ok quit 0
-        do skipWs(.ctx)
+        if '$$skipDocLevel(.ctx) quit 0
         if ctx("pos")'>ctx("len") do err("trailing data after root") quit 0
         quit 1
         ;
@@ -194,12 +194,26 @@ parseAttrValue(ctx,quote)       ; Read characters until the matching quote (no e
         ;
 parseContent(ctx,parentName,node)       ; Parse element content until </parentName>.
         ; doc: Internal — populates node("text") and node("child", n, ...).
-        new buf,end2,name,childCount,done,bad,tmpChild
+        ; doc: Dispatches on `<!--` (comment), `<![CDATA[` (literal text),
+        ; doc: `<?` (PI, skip), `</` (end of content), and `<name` (child).
+        new buf,end2,end4,end9,name,childCount,done,bad,tmpChild,cdataText
         set buf="",childCount=$get(node("childCount"),0),done=0,bad=0,tmpChild=""
         for  quit:done  do
         . if ctx("pos")>ctx("len") do err("unexpected EOF in content") set done=1,bad=1 quit
         . set end2=$$peekN(.ctx,2)
         . if end2="</" set done=1 quit
+        . if end2="<!" do  quit
+        . . set end4=$$peekN(.ctx,4)
+        . . set end9=$$peekN(.ctx,9)
+        . . if end4="<!--" if '$$skipComment(.ctx) set bad=1,done=1
+        . . if end9="<![CDATA[" do
+        . . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf),buf=""
+        . . . set cdataText=""
+        . . . if '$$parseCdata(.ctx,.cdataText) set bad=1,done=1 quit
+        . . . set node("text")=$get(node("text"),"")_cdataText
+        . . if (end4'="<!--")&(end9'="<![CDATA[") do err("expected <!-- or <![CDATA[ after <!") set bad=1,done=1
+        . if end2="<?" do  quit
+        . . if '$$skipPI(.ctx) set bad=1,done=1
         . if $$peek(.ctx)="<" do  quit
         . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf),buf=""
         . . set childCount=childCount+1
@@ -232,13 +246,72 @@ parseName(ctx)  ; Read an XML name [A-Za-z_:] [A-Za-z0-9_:.-]*; return "" on fai
         for  set c=$$peek(.ctx) quit:c=""  quit:rest'[c  set out=out_c do advance(.ctx,1)
         quit out
         ;
+        ; ---------- internal: doc-level skipping (T23) ----------
+        ;
+skipDocLevel(ctx)       ; Skip whitespace, comments, and PIs at the document level.
+        ; doc: Internal — used before and after the root element. Returns 0
+        ; doc: only if a comment / PI is malformed (unclosed); whitespace and
+        ; doc: a missing comment / PI are normal.
+        new end2,end4,done,bad
+        set done=0,bad=0
+        for  quit:done  do
+        . do skipWs(.ctx)
+        . set end2=$$peekN(.ctx,2)
+        . set end4=$$peekN(.ctx,4)
+        . if end4="<!--" do  quit
+        . . if '$$skipComment(.ctx) set done=1,bad=1
+        . if end2="<?" do  quit
+        . . if '$$skipPI(.ctx) set done=1,bad=1
+        . set done=1
+        if bad quit 0
+        quit 1
+        ;
+skipComment(ctx)        ; Consume `<!-- ... -->`. Return 1/0 on closure.
+        ; doc: Internal — XML 1.0 §2.5. Comments may not contain `--` per the
+        ; doc: spec, but v0 doesn't enforce that (just searches for `-->`).
+        new pos,closeAt
+        if $$peekN(.ctx,4)'="<!--" do err("expected <!--") quit 0
+        do advance(.ctx,4)
+        set pos=ctx("pos")
+        set closeAt=$find(ctx("text"),"-->",pos)
+        if closeAt=0 do err("unclosed comment") quit 0
+        ; $find returns position after the match — set pos to that.
+        set ctx("pos")=closeAt
+        quit 1
+        ;
+skipPI(ctx)     ; Consume `<? ... ?>`. Return 1/0 on closure.
+        ; doc: Internal — XML 1.0 §2.6. Also handles the `<?xml ... ?>`
+        ; doc: declaration in the same path (not specially distinguished in v0).
+        new closeAt
+        if $$peekN(.ctx,2)'="<?" do err("expected <?") quit 0
+        do advance(.ctx,2)
+        set closeAt=$find(ctx("text"),"?>",ctx("pos"))
+        if closeAt=0 do err("unclosed processing instruction") quit 0
+        set ctx("pos")=closeAt
+        quit 1
+        ;
+parseCdata(ctx,text)    ; Consume `<![CDATA[ ... ]]>`. Append literal content to text.
+        ; doc: Internal — XML 1.0 §2.7. CDATA content is not entity-decoded;
+        ; doc: `&` and `<` are preserved verbatim. Caller appends `text` to
+        ; doc: the element's accumulator.
+        new closeAt,startAt
+        if $$peekN(.ctx,9)'="<![CDATA[" do err("expected <![CDATA[") quit 0
+        do advance(.ctx,9)
+        set startAt=ctx("pos")
+        set closeAt=$find(ctx("text"),"]]>",startAt)
+        if closeAt=0 do err("unclosed CDATA section") quit 0
+        ; $find returns position after the match end; the content runs from
+        ; startAt to closeAt-4 (3 chars of `]]>` + 1 for $find's offset).
+        set text=$extract(ctx("text"),startAt,closeAt-4)
+        set ctx("pos")=closeAt
+        quit 1
+        ;
         ; ---------- internal: entity decoding ----------
         ;
-decodeEntities(s)       ; Decode the 5 standard entities in s.
+decodeEntities(s)       ; Decode the 5 standard entities + numeric character refs in s.
         ; doc: Internal — &amp; &lt; &gt; &quot; &apos; → & < > " '.
-        ; doc: Numeric character references and custom entities are out of
-        ; doc: scope for v0 (queued at T24/T26).
-        new out,n,i,c,end,name
+        ; doc: T24: also &#NNN; (decimal) and &#xHH; (hex), UTF-8-encoded.
+        new out,n,i,c,end,name,cp,first
         set n=$length(s),out="",i=1
         for  quit:i>n  do
         . set c=$extract(s,i)
@@ -251,8 +324,51 @@ decodeEntities(s)       ; Decode the 5 standard entities in s.
         . if name="gt" set out=out_">",i=end quit
         . if name="quot" set out=out_"""",i=end quit
         . if name="apos" set out=out_"'",i=end quit
+        . set first=$extract(name,1)
+        . if first="#" do  quit
+        . . set cp=$$decodeNumericRef(name)
+        . . if cp<0 set out=out_c,i=i+1 quit
+        . . set out=out_$$encodeUtf8(cp),i=end
         . set out=out_c,i=i+1
         quit out
+        ;
+decodeNumericRef(name)  ; Parse `#NNN` (decimal) or `#xHH` (hex). Return code point or -1.
+        ; doc: Internal — driven by decodeEntities. `name` excludes the
+        ; doc: leading `&` and trailing `;`.
+        new digits,n,i,c,cp,base,allowed
+        if $extract(name,1)'="#" quit -1
+        if $extract(name,2)="x" do
+        . set base=16,digits=$extract(name,3,$length(name))
+        . set allowed="0123456789abcdefABCDEF"
+        else  do
+        . set base=10,digits=$extract(name,2,$length(name))
+        . set allowed="0123456789"
+        if digits="" quit -1
+        set n=$length(digits),cp=0
+        for i=1:1:n do  if cp<0 quit
+        . set c=$extract(digits,i)
+        . if allowed'[c set cp=-1 quit
+        . if base=10 set cp=cp*10+(c-0)
+        . else  set cp=cp*16+$$hexDigit(c)
+        if cp<0 quit -1
+        if cp>1114111 quit -1   ; > U+10FFFF — invalid
+        quit cp
+        ;
+hexDigit(c)     ; Return numeric value of a hex digit; -1 if invalid.
+        ; doc: Internal — driven by decodeNumericRef.
+        if (c?1N) quit c
+        if "abcdef"[c quit $find("abcdef",c)+8
+        if "ABCDEF"[c quit $find("ABCDEF",c)+8
+        quit -1
+        ;
+encodeUtf8(cp)  ; Encode a code point as a 1-4-byte UTF-8 string.
+        ; doc: Internal — used after numeric character reference decode.
+        ; doc: U+0000-007F = 1 byte; U+0080-07FF = 2 bytes;
+        ; doc: U+0800-FFFF = 3 bytes; U+10000-10FFFF = 4 bytes.
+        if cp<128 quit $char(cp)
+        if cp<2048 quit $char(192+(cp\64))_$char(128+(cp#64))
+        if cp<65536 quit $char(224+(cp\4096))_$char(128+((cp\64)#64))_$char(128+(cp#64))
+        quit $char(240+(cp\262144))_$char(128+((cp\4096)#64))_$char(128+((cp\64)#64))_$char(128+(cp#64))
         ;
         ; ---------- internal: error reporting ----------
         ;

@@ -27,6 +27,22 @@ STDXMLTST       ; Test suite for STDXML (v0.2.x — Phase 4, in-progress).
         do tParseRejectsMismatchedClose(.pass,.fail)
         do tParseRejectsMissingGreaterThan(.pass,.fail)
         do tParseRejectsEmpty(.pass,.fail)
+        ; ---- T23 / T24 ----
+        do tCommentBeforeRoot(.pass,.fail)
+        do tCommentAfterRoot(.pass,.fail)
+        do tCommentInsideContent(.pass,.fail)
+        do tXmlDeclSkipped(.pass,.fail)
+        do tProcessingInstructionSkipped(.pass,.fail)
+        do tCdataSectionAsText(.pass,.fail)
+        do tCdataPreservesEntitiesAsLiterals(.pass,.fail)
+        do tCdataAfterText(.pass,.fail)
+        do tNumericCharRefDecimalAscii(.pass,.fail)
+        do tNumericCharRefHexAscii(.pass,.fail)
+        do tNumericCharRefHigh2Byte(.pass,.fail)
+        do tNumericCharRefHigh3Byte(.pass,.fail)
+        do tCharRefInAttrValue(.pass,.fail)
+        do tParseRejectsUnclosedComment(.pass,.fail)
+        do tParseRejectsUnclosedCdata(.pass,.fail)
         ;
         do report^STDASSERT(pass,fail)
         quit
@@ -189,4 +205,114 @@ tParseRejectsEmpty(pass,fail)   ;@TEST "parse('') returns 0"
         new root,rc
         set rc=$$parse^STDXML("",.root)
         do eq^STDASSERT(.pass,.fail,rc,0,"empty rejected")
+        quit
+        ;
+        ; ---- T23: comments / xml-decl / PI / CDATA ----
+tCommentBeforeRoot(pass,fail)   ;@TEST "comment before root element is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!-- header --><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past leading comment")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tCommentAfterRoot(pass,fail)    ;@TEST "comment after root element is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<foo/><!-- footer -->",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses with trailing comment")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tCommentInsideContent(pass,fail)        ;@TEST "comment inside element content is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<foo>before<!-- mid -->after</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses with mid-content comment")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"beforeafter","comment removed from text")
+        quit
+        ;
+tXmlDeclSkipped(pass,fail)      ;@TEST "<?xml ?> declaration before root is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<?xml version=""1.0"" encoding=""UTF-8""?><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past xml decl")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tProcessingInstructionSkipped(pass,fail)        ;@TEST "<?target instruction?> is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<?xml-stylesheet href=""s.css""?><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past PI")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tCdataSectionAsText(pass,fail)  ;@TEST "<![CDATA[content]]> is captured as literal text"
+        new root,rc
+        set rc=$$parse^STDXML("<x><![CDATA[hello world]]></x>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses cdata")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"hello world","cdata content")
+        quit
+        ;
+tCdataPreservesEntitiesAsLiterals(pass,fail)    ;@TEST "CDATA preserves & and < without decoding"
+        new root,rc
+        set rc=$$parse^STDXML("<x><![CDATA[a&b<c]]></x>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses cdata with literals")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"a&b<c","literal & and < preserved")
+        quit
+        ;
+tCdataAfterText(pass,fail)      ;@TEST "text + CDATA + text concatenates"
+        new root,rc
+        set rc=$$parse^STDXML("<x>before <![CDATA[mid&dle]]> after</x>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses mixed")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"before mid&dle after","mixed text+cdata")
+        quit
+        ;
+        ; ---- T24: numeric character references ----
+tNumericCharRefDecimalAscii(pass,fail)  ;@TEST "&#65; decodes to 'A'"
+        new root,rc
+        set rc=$$parse^STDXML("<x>&#65;&#66;&#67;</x>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"ABC","decimal ASCII decoded")
+        quit
+        ;
+tNumericCharRefHexAscii(pass,fail)      ;@TEST "&#x41; decodes to 'A'"
+        new root,rc
+        set rc=$$parse^STDXML("<x>&#x41;&#x42;&#x43;</x>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"ABC","hex ASCII decoded")
+        quit
+        ;
+tNumericCharRefHigh2Byte(pass,fail)     ;@TEST "&#xA9; (©, U+00A9) decodes to UTF-8 2 bytes"
+        new root,rc,want
+        set rc=$$parse^STDXML("<x>&#xA9;</x>",.root)
+        ; UTF-8 encoding of U+00A9: 0xC2 0xA9
+        set want=$char(194,169)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),want,"U+00A9 → 0xC2 0xA9")
+        quit
+        ;
+tNumericCharRefHigh3Byte(pass,fail)     ;@TEST "&#x4E2D; (中, U+4E2D) decodes to UTF-8 3 bytes"
+        new root,rc,want
+        set rc=$$parse^STDXML("<x>&#x4E2D;</x>",.root)
+        ; UTF-8 encoding of U+4E2D: 0xE4 0xB8 0xAD
+        set want=$char(228,184,173)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),want,"U+4E2D → 0xE4 0xB8 0xAD")
+        quit
+        ;
+tCharRefInAttrValue(pass,fail)  ;@TEST "numeric char refs decode in attribute values"
+        new root,rc
+        set rc=$$parse^STDXML("<x v=""&#65;&#x42;C""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"v"),"ABC","attr char refs decoded")
+        quit
+        ;
+        ; ---- T23 error paths ----
+tParseRejectsUnclosedComment(pass,fail) ;@TEST "parse with unclosed comment returns 0"
+        new root,rc
+        set rc=$$parse^STDXML("<!-- never closed <foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,0,"unclosed comment rejected")
+        quit
+        ;
+tParseRejectsUnclosedCdata(pass,fail)   ;@TEST "parse with unclosed CDATA returns 0"
+        new root,rc
+        set rc=$$parse^STDXML("<x><![CDATA[never closed</x>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,0,"unclosed cdata rejected")
         quit
