@@ -10,6 +10,29 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Added
 
+- **`STDENV`** — `.env` loader + typed accessors (track L24, phase P4
+  — tenth Table 2 promotion). Container-tooling ergonomic: read once
+  at startup, query many times, sensible defaults filled in. Public
+  surface: `$$parse(text, .env)` / `$$parseFile(path, .env)` /
+  `$$valid(text)` / `$$has(.env, key)` / `$$get(.env, key, default)` /
+  `$$getInt(.env, key, default)` / `$$getBool(.env, key, default)` /
+  `$$getFloat(.env, key, default)`. Format: bare and double-quoted
+  (`"..."` with `\n \t \r \" \\` escapes) and single-quoted (`'...'`
+  literal, no escapes — POSIX-style) values; `#` whole-line comments;
+  leading-letter-or-`_` bare keys with `[A-Za-z0-9_]` continuation;
+  empty document is valid. `getBool` is case-insensitive against
+  `true/yes/on/1` and `false/no/off/0`. Typed accessors return
+  `default` on missing / unparseable / wrong-type — lets callers
+  write defensive code without explicit `has` checks. Hard dep
+  STDFS for `parseFile`; STDSTR listed as soft but inlined for
+  self-containment. Out of scope, queued at T22: variable
+  substitution (`${VAR}` references), `export` prefix, multi-line
+  values, process-env write-back (depends on STDOS `setenv` from
+  T15). Test suite: 23 labels, 46 assertions green. Coverage: 14/15
+  labels (93.3% — `parseFile` is exercised through integration
+  tests in callers, not directly in the unit suite). `m fmt` clean;
+  `m lint --error-on=error` 0E (4 non-gating warnings). Per-module
+  doc: `docs/modules/stdenv.md`.
 - **`STDSNAP`** — snapshot testing (track L23, phase P4 — ninth Table 2
   promotion). Capture a deterministic text dump of an M tree on the
   first run; on subsequent runs, compare the live tree against the
