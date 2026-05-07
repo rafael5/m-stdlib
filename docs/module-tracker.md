@@ -89,16 +89,19 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T21 | STDFS (save/matches I/O); STDASSERT (asserts integration) | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk | ✅ C7 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T22 | STDFS (parseFile); STDSTR listed as soft dep but inlined for self-containment | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat | ✅ C8 |
 | P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.3.x` (v0+T23+T24+T25+T27v0 on `main`; v1 incremental) | ~9d ✅ (v0+T23+T24+T25+T27v0; ~3-5d remaining for T26/T27a/T27b) | T26, T27a, T27b | none (STDREGEX listed as soft dep for future T27b); pure recursive-descent parser + indirection-based path walker | XML parser v0+T23+T24+T25+T27v0 — well-formed XML 1.0 + comments / PI / xml-decl / CDATA + numeric char refs + full namespaces + XPath subset (paths / `[N]` predicates / descendant axis `//`). ~75% of full envelope; T27a (wildcards / `@attr`), T27b (functions / comparison predicates), T26 (DTDs) cover the remaining ~25%. | n/a — m-cli has no XML in `m fmt` / `m lint` / `m test` / `m coverage` / `m lsp` flows; consumer is vista-meta HL7v3 / CDA / FHIR |
-| P3 | H1 | 28 | `STDCRYPTO` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libcrypto`; A6 | SHA-256/384/512 + HMAC | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
-| P3 | H2 | 29 | `STDCOMPRESS` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libz`, `$ZF → libzstd`; A6 | gzip / deflate / zstd | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
-| P3 | H3 | 30 | `STDHTTP` | `v0.3.0` (queued) | 8–12d est. | T11 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client (request / response / streaming) | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T11 |
+| P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `+` coercion, `$ORDER` walk) | Numeric helpers — clamp / min / max / sum / count / mean over caller-owned arrays | n/a — Python `min` / `max` / `sum` / `statistics.mean`; not inner-loop |
+| P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `@expr` indirection in own stack frame) | Higher-order array transforms — `map` / `filter` / `reduce` via `@expr`-evaluated lambdas (`value` / `key` / `acc` locals) | n/a — Python list-comprehensions / `map` / `filter` / `functools.reduce`; not inner-loop |
+| P3 | H1 | 30 | `STDCRYPTO` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libcrypto`; A6 | SHA-256/384/512 + HMAC | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
+| P3 | H2 | 31 | `STDCOMPRESS` | `v0.3.0` (queued) | 5–7d est. | T11 | `$ZF → libz`, `$ZF → libzstd`; A6 | gzip / deflate / zstd | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
+| P3 | H3 | 32 | `STDHTTP` | `v0.3.0` (queued) | 8–12d est. | T11 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client (request / response / streaming) | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T11 |
 
-**Aggregate:** ~89d shipped across the 27 landed modules
+**Aggregate:** ~90d shipped across the 29 landed modules
 (STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
 + STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
 + STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0
-L25 P4); STDXML covers ~75% of the 12-16d envelope so ~3-5d of
-T26/T27a/T27b remain. ~18–26d estimated for the three queued
+L25 P4 + STDMATH L26 P4 + STDXFRM L27 P4); STDXML covers ~75% of
+the 12-16d envelope so ~3-5d of T26/T27a/T27b remain. ~18–26d
+estimated for the three queued
 Phase 3 modules. Open ToDo work (T1-T27 with T23/T24/T25/T25b/T27v0
 resolved; T27a and T27b new) is incremental on top of the shipped
 totals — see ToDo expansion below for per-task estimates.
@@ -735,9 +738,7 @@ all forward estimates marked **est.**).
 | Pri | Candidate | Headline | Dependency | Effort | Rationale |
 |---|---|---|---|---|---|
 | 1 | `STDYAML` | YAML 1.2 parser | STDDATE; STDSTR (soft) | 12–18d est. | Config ergonomics; preferred to JSON for human-edited configs. **Big spec.** Defer until a concrete consumer asks. |
-| 2 | `STDMATH` | `clamp` / `min`/`max` arrays / `sum` / `mean` | none | 1–2d est. | M's native arithmetic is strong; this is glue. Low urgency. |
-| 3 | `STDXFRM` | `map` / `filter` / `reduce` via XECUTE'd lambdas | none | 2d est. | Modernises the `$ORDER`-loop idiom. Stylistic; not unblocking anything concrete. |
-| 4 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
+| 2 | `STDNET` | TCP / UDP socket primitives | `$ZF → libc` POSIX sockets (or YDB native), TBD; A6 | 8–14d est. | Sits below `STDHTTP` and a future `STDDNS`. **Largest lift** of any row; defer until a concrete greenfield service drives it. |
 
 Promoted out of Table 2 (now in Table 1):
 
@@ -851,12 +852,34 @@ Promoted out of Table 2 (now in Table 1):
   labels (95%, `lastError` only triggers in error paths and
   isn't directly tested), 47/47 assertions green.
 
-**Aggregate proposal effort:** ~24–45d est. for the remaining 4
-candidates if every row eventually lands (STDXML promoted out as
-L25 P4). Two small (STDMATH 1-2d, STDXFRM 2d), two large (STDYAML
-12-18d, STDNET 8-14d). The large ones stay deferred without a
-concrete consumer; the small ones are completable in single
-sessions when picked up.
+- **STDMATH** — promoted 2026-05-08 to Table 1 as **L26 P4**. Numeric
+  helpers: `clamp` / `min` / `max` / `sum` / `count` / `mean` over a
+  caller-owned array. Pure-M (`+` coercion, `$ORDER` walk at depth 1);
+  no `$Z*`, no STDREGEX dep. Empty-array convention: `min` / `max` /
+  `mean` return `""` (no value), `sum` / `count` return `0` (additive
+  identity). Multi-dim arrays read only their first level — descend
+  yourself for deeper walks. Aligned with M's standard unary-`+`
+  coercion rule so non-numeric values fold to 0 the same way native
+  arithmetic does, no surprise. 28 tests / 26 labels staked.
+- **STDXFRM** — promoted 2026-05-08 to Table 1 as **L27 P4**. Higher-
+  order array transforms via `@expr` indirection: `do map^STDXFRM`,
+  `do filter^STDXFRM`, `$$reduce^STDXFRM`. The lambda string is
+  evaluated in STDXFRM's own stack frame so it sees `value` (current
+  element), `key` (current subscript), and `acc` (reduce only) as
+  plain locals. `map` / `filter` `kill out` before walking — stale
+  prior state cannot leak through. `reduce` returns `init` unchanged
+  on empty input (standard fold identity). Errors in the expression
+  propagate to the caller's `$ETRAP` — STDXFRM does not catch.
+  Same `@`-indirection idiom as STDMOCK's `do @resolved@(.args)`;
+  M-MOD-036 disabled file-wide for the same reason. 19 tests /
+  19 labels staked.
+
+**Aggregate proposal effort:** ~20–32d est. for the remaining 2
+candidates if every row eventually lands (STDXML, STDMATH, STDXFRM
+all promoted out). One large (STDYAML 12-18d, deferred without a
+concrete consumer), one largest (STDNET 8-14d, deferred until a
+real greenfield service drives it). Both are multi-session
+commitments — the small-and-completable shelf is now empty.
 
 When promoting a row into Table 1, also:
 

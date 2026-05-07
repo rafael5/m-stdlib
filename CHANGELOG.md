@@ -8,6 +8,33 @@ Pre-1.0 minor versions may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **`STDMATH` (L26, P4)** — promoted from Table 2 (was Pri 2). Small
+  set of numeric helpers: `$$clamp^STDMATH(x, lo, hi)` (scalar) plus
+  the four reductions over a caller-owned array — `$$min` / `$$max` /
+  `$$sum` / `$$count` / `$$mean`. `$ORDER` walk at depth 1; subscript
+  shape doesn't matter (int / string / sparse). Empty-array
+  convention: `min` / `max` / `mean` return `""` (no value to
+  report; `mean` avoids /0), `sum` / `count` return `0` (additive
+  identity). Non-numeric values coerce via M's standard unary-`+`
+  rule (`+"abc"=0`, `+"3.14"=3.14`) so STDMATH does not surprise
+  callers with a different rule from native arithmetic. Pure-M, no
+  `$Z*`, no STDREGEX dep. 28 assertions across 26 labels. Per-module
+  doc at `docs/modules/stdmath.md`.
+- **`STDXFRM` (L27, P4)** — promoted from Table 2 (was Pri 3). Three
+  higher-order array transforms via `@expr` indirection:
+  `do map^STDXFRM(.in, expr, .out)`, `do filter^STDXFRM(.in, expr,
+  .out)`, `$$reduce^STDXFRM(.in, expr, init)`. The lambda string is
+  evaluated via `@expr` in STDXFRM's stack frame, so it sees `value`,
+  `key`, and (for `reduce`) `acc` as plain locals. `map` / `filter`
+  `kill out` before walking. `reduce` returns `init` unchanged on
+  empty input. Errors in the expression propagate to the caller's
+  `$ETRAP` unmodified — STDXFRM does not catch. Same `@`-indirection
+  idiom as STDMOCK's `do @resolved@(.args)`; `M-MOD-036` disabled
+  file-wide for the same reason. 19 assertions across 19 labels.
+  Per-module doc at `docs/modules/stdxfrm.md`.
+
 ## [v0.3.0] — 2026-05-07
 
 **Phase-2 close + P4 module wave + bug-fix sweep.** Eleven new
