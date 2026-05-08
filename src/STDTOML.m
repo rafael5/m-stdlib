@@ -37,9 +37,15 @@ STDTOML ; m-stdlib — TOML 1.0 parser (deliberately narrow v1 subset).
         ; ---------- public API ----------
         ;
 parse(text,root)        ; Parse TOML text into root tree; return 1 on success, 0 on parse error.
-        ; doc: root is by-reference; on failure, root is left in whatever
-        ; doc: partial state the parse achieved (caller may want to KILL it).
-        ; doc: Example: do  set rc=$$parse^STDTOML(text,.cfg)
+        ; doc: @param text    string  TOML 1.0 document (subset documented in routine header)
+        ; doc: @param root    array   by-ref local; killed before population
+        ; doc: @returns       bool    1 on success; 0 on parse error
+        ; doc: @example       do  set rc=$$parse^STDTOML(text,.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$valid^STDTOML, $$get^STDTOML, $$type^STDTOML
+        ; doc: On failure, root is left in whatever partial state the parse
+        ; doc: achieved (caller may want to KILL it).
         kill root
         new n,i,line,section,trimmed,key,rc
         set section="",rc=1
@@ -59,28 +65,43 @@ parse(text,root)        ; Parse TOML text into root tree; return 1 on success, 0
         quit rc
         ;
 valid(text)     ; Return 1 iff text parses as valid TOML; else 0.
+        ; doc: @param text    string  TOML document
+        ; doc: @returns       bool    1 iff text parses; 0 otherwise
+        ; doc: @example       write $$valid^STDTOML("k = 1")  ; 1
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$parse^STDTOML
         ; doc: Same as parse() but discards the resulting tree.
-        ; doc: Example: write $$valid^STDTOML("k = 1")  ; 1
         new tmp
         quit $$parse(text,.tmp)
         ;
 get(root,key)   ; Return the value at key (dotted path); "" if absent.
-        ; doc: For a top-level key just pass the key; for a sectioned value
-        ; doc: pass "section.key".
-        ; doc: Example: write $$get^STDTOML(.cfg,"server.port")
+        ; doc: @param root    array   by-ref tree from $$parse^STDTOML
+        ; doc: @param key     string  dotted path: "k" for top-level; "section.k" for sectioned
+        ; doc: @returns       string  the scalar value; "" if key is absent
+        ; doc: @example       write $$get^STDTOML(.cfg,"server.port")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$type^STDTOML, $$parse^STDTOML
         if '$data(root("v",key)) quit ""
         quit root("v",key)
         ;
 type(root,key)  ; Return the type tag at key, or "" if absent.
-        ; doc: Tags are "string" / "integer" / "float" / "bool".
-        ; doc: Example: write $$type^STDTOML(.cfg,"server.port")  ; "integer"
+        ; doc: @param root    array   by-ref tree from $$parse^STDTOML
+        ; doc: @param key     string  dotted path
+        ; doc: @returns       string  one of "string", "integer", "float", "bool"; "" if absent
+        ; doc: @example       write $$type^STDTOML(.cfg,"server.port")  ; "integer"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$get^STDTOML
         if '$data(root("t",key)) quit ""
         quit root("t",key)
         ;
         ; ---------- internal: line-level dispatch ----------
         ;
 parseTable(line)        ; Return the bare-key inside [...] or "" on malformed input.
-        ; doc: Internal — called when the trimmed line begins with "[".
+        ; doc: @internal
+        ; doc: Called when the trimmed line begins with "[".
         new inner,key
         if $extract(line,$length(line))'="]" quit ""
         set inner=$$trimWs($extract(line,2,$length(line)-1))
@@ -89,7 +110,8 @@ parseTable(line)        ; Return the bare-key inside [...] or "" on malformed in
         quit inner
         ;
 parsePair(line,section,root,rc) ; Parse a key=value line; populate root or set rc=0.
-        ; doc: Internal — called for non-blank, non-comment, non-table lines.
+        ; doc: @internal
+        ; doc: Called for non-blank, non-comment, non-table lines.
         new eq,key,raw,value,vtype,path
         set value="",vtype=""
         set eq=$find(line,"=")
@@ -109,7 +131,8 @@ parsePair(line,section,root,rc) ; Parse a key=value line; populate root or set r
         ; ---------- internal: value decoding ----------
         ;
 decodeValue(raw,value,vtype)    ; Coerce raw value text into (value, vtype); return 1/0.
-        ; doc: Internal — driven by parsePair. raw is whitespace-trimmed.
+        ; doc: @internal
+        ; doc: Driven by parsePair. raw is whitespace-trimmed.
         if raw="" quit 0
         if $extract(raw,1)="""" quit $$decodeString(raw,.value,.vtype)
         if raw="true" set value=1,vtype="bool" quit 1
@@ -118,7 +141,8 @@ decodeValue(raw,value,vtype)    ; Coerce raw value text into (value, vtype); ret
         quit $$decodeInteger(raw,.value,.vtype)
         ;
 decodeString(raw,value,vtype)   ; Decode a TOML basic string literal.
-        ; doc: Internal — accepts \n \t \r \" \\ escapes; bare " ends the string.
+        ; doc: @internal
+        ; doc: Accepts \n \t \r \" \\ escapes; bare " ends the string.
         new n,i,c,out,prev,ok
         if $extract(raw,1)'="""" quit 0
         if $extract(raw,$length(raw))'="""" quit 0
@@ -143,7 +167,8 @@ decodeString(raw,value,vtype)   ; Decode a TOML basic string literal.
         quit 1
         ;
 decodeInteger(raw,value,vtype)  ; Decode a signed decimal integer literal.
-        ; doc: Internal — accepts optional leading "-" and one or more digits.
+        ; doc: @internal
+        ; doc: Accepts optional leading "-" and one or more digits.
         new s,digits
         set s=raw
         if $extract(s,1)="-" set s=$extract(s,2,$length(s))
@@ -153,7 +178,8 @@ decodeInteger(raw,value,vtype)  ; Decode a signed decimal integer literal.
         quit 1
         ;
 decodeFloat(raw,value,vtype)    ; Decode a signed decimal float literal (no exponent).
-        ; doc: Internal — accepts optional "-", one or more digits, ".", one or more digits.
+        ; doc: @internal
+        ; doc: Accepts optional "-", one or more digits, ".", one or more digits.
         new s,intPart,fracPart
         set s=raw
         if $extract(s,1)="-" set s=$extract(s,2,$length(s))
@@ -170,7 +196,8 @@ decodeFloat(raw,value,vtype)    ; Decode a signed decimal float literal (no expo
         ; ---------- internal: helpers ----------
         ;
 trimWs(s)       ; Strip leading and trailing space / tab.
-        ; doc: Internal — TOML leaves LF/CR as line terminators.
+        ; doc: @internal
+        ; doc: TOML leaves LF/CR as line terminators.
         new t
         set t=s
         for  quit:t=""  quit:'($extract(t,1)?1(1" ",1C))  set t=$extract(t,2,$length(t))
@@ -178,7 +205,8 @@ trimWs(s)       ; Strip leading and trailing space / tab.
         quit t
         ;
 stripTrailingComment(s) ; Remove a trailing # comment unless inside a basic string.
-        ; doc: Internal — scans s; tracks whether we're inside "..." quotes.
+        ; doc: @internal
+        ; doc: Scans s; tracks whether we're inside "..." quotes.
         new i,n,c,inStr,esc,found,foundAt
         set n=$length(s),inStr=0,esc=0,found=0,foundAt=0
         for i=1:1:n quit:found  do
@@ -191,7 +219,8 @@ stripTrailingComment(s) ; Remove a trailing # comment unless inside a basic stri
         quit $extract(s,1,foundAt-1)
         ;
 validBareKey(s) ; True iff s is a non-empty TOML bare key (A-Za-z0-9_-).
-        ; doc: Internal — TOML §3 bare keys.
+        ; doc: @internal
+        ; doc: TOML §3 bare keys.
         new alpha
         if s="" quit 0
         set alpha="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-"

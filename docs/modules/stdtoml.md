@@ -5,7 +5,7 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'TOML 1.0 parser (deliberately narrow v1 subset)'
-labels: ['decodeFloat', 'decodeInteger', 'decodeString', 'decodeValue', 'get', 'parse', 'parsePair', 'parseTable', 'stripTrailingComment', 'trimWs', 'type', 'valid', 'validBareKey']
+labels: ['get', 'parse', 'type', 'valid']
 errors: []
 conformance: []
 see_also: []

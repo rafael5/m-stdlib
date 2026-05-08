@@ -7341,16 +7341,30 @@
           "form": "extrinsic",
           "signature": "$$valid^STDSEMVER(s)",
           "synopsis": "Return 1 iff s is a valid SemVer 2.0.0 string; else 0.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff well-formed per SemVer 2.0.0; 0 otherwise"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$valid^STDSEMVER(\"1.0.0-rc.1+exp\")  ; 1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$parse^STDSEMVER",
+            "$$compare^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "Empty input is invalid. Leading 'v' is NOT accepted (callers\nmust strip it). A '+' or '-' delimiter present but followed by\nan empty tail is invalid.\nExample: write $$valid^STDSEMVER(\"1.0.0-rc.1+exp\")  ; 1",
+          "description": "Empty input is invalid. Leading 'v' is NOT accepted (callers\nmust strip it). A '+' or '-' delimiter present but followed by\nan empty tail is invalid.",
           "source": {
             "file": "src/STDSEMVER.m",
             "line": 32
@@ -7360,304 +7374,278 @@
           "form": "extrinsic",
           "signature": "$$parse^STDSEMVER(s, v)",
           "synopsis": "Populate v(1..5)=major,minor,patch,prerelease,build; return 1/0.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            },
+            {
+              "name": "v",
+              "type": "array",
+              "doc": "by-ref local; killed then populated as v(1..5)"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 on success; 0 (and v left empty) on invalid input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do  set rc=$$parse^STDSEMVER(\"1.2.3-rc.1+meta\",.v)"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$valid^STDSEMVER",
+            "$$major^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "Returns 0 (and leaves v unset) if s is invalid. Numeric parts\nare stored as integers (no leading zeros surface in v).\nExample: do  set rc=$$parse^STDSEMVER(\"1.2.3-rc.1+meta\",.v)",
+          "description": "Numeric parts are stored as integers (no leading zeros surface in v).",
           "source": {
             "file": "src/STDSEMVER.m",
-            "line": 62
+            "line": 67
           }
         },
         "major": {
           "form": "extrinsic",
           "signature": "$$major^STDSEMVER(s)",
           "synopsis": "Return the major component; \"\" if s is invalid.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "major component; \"\" if s is invalid"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$major^STDSEMVER(\"1.2.3\")  ; 1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$minor^STDSEMVER",
+            "$$patch^STDSEMVER",
+            "$$parse^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "Example: write $$major^STDSEMVER(\"1.2.3\")  ; 1",
+          "description": "",
           "source": {
             "file": "src/STDSEMVER.m",
-            "line": 82
+            "line": 92
+          }
+        },
+        "minor": {
+          "form": "extrinsic",
+          "signature": "$$minor^STDSEMVER(s)",
+          "synopsis": "Return the minor component; \"\" if s is invalid.",
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "minor component; \"\" if s is invalid"
+          },
+          "raises": [],
+          "raised_in_body": [],
+          "examples": [
+            "write $$minor^STDSEMVER(\"1.2.3\")  ; 2"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$major^STDSEMVER",
+            "$$patch^STDSEMVER"
+          ],
+          "deprecated": "",
+          "description": "",
+          "source": {
+            "file": "src/STDSEMVER.m",
+            "line": 104
+          }
+        },
+        "patch": {
+          "form": "extrinsic",
+          "signature": "$$patch^STDSEMVER(s)",
+          "synopsis": "Return the patch component; \"\" if s is invalid.",
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "patch component; \"\" if s is invalid"
+          },
+          "raises": [],
+          "raised_in_body": [],
+          "examples": [
+            "write $$patch^STDSEMVER(\"1.2.3\")  ; 3"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$major^STDSEMVER",
+            "$$minor^STDSEMVER"
+          ],
+          "deprecated": "",
+          "description": "",
+          "source": {
+            "file": "src/STDSEMVER.m",
+            "line": 116
           }
         },
         "prerelease": {
           "form": "extrinsic",
           "signature": "$$prerelease^STDSEMVER(s)",
           "synopsis": "Return the prerelease tail (no leading '-'); \"\" if absent or invalid.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "prerelease tail (no leading '-'); \"\" if absent or invalid"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$prerelease^STDSEMVER(\"1.0.0-rc.1+meta\")  ; \"rc.1\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$build^STDSEMVER",
+            "$$compare^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "Example: write $$prerelease^STDSEMVER(\"1.0.0-rc.1+meta\")  ; \"rc.1\"",
+          "description": "",
           "source": {
             "file": "src/STDSEMVER.m",
-            "line": 101
+            "line": 128
           }
         },
         "build": {
           "form": "extrinsic",
           "signature": "$$build^STDSEMVER(s)",
           "synopsis": "Return the build tail (no leading '+'); \"\" if absent or invalid.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "candidate SemVer text"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "build tail (no leading '+'); \"\" if absent or invalid"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$build^STDSEMVER(\"1.0.0-rc.1+meta\")  ; \"meta\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$prerelease^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "Example: write $$build^STDSEMVER(\"1.0.0-rc.1+meta\")  ; \"meta\"",
+          "description": "",
           "source": {
             "file": "src/STDSEMVER.m",
-            "line": 108
+            "line": 140
           }
         },
         "compare": {
           "form": "extrinsic",
           "signature": "$$compare^STDSEMVER(a, b)",
           "synopsis": "Return -1/0/1 per SemVer §11 precedence (build ignored).",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "a",
+              "type": "string",
+              "doc": "first SemVer"
+            },
+            {
+              "name": "b",
+              "type": "string",
+              "doc": "second SemVer"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "-1 if a<b, 0 if a=b, 1 if a>b; \"\" if either operand is invalid"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$compare^STDSEMVER(\"1.0.0-rc.1\",\"1.0.0\")  ; -1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$matches^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "Returns \"\" if either operand is invalid.\nExample: write $$compare^STDSEMVER(\"1.0.0-rc.1\",\"1.0.0\")  ; -1",
+          "description": "Build metadata is ignored per SemVer §10. Prerelease precedence\nfollows §11.4 (release > prerelease; numeric < alphanumeric).",
           "source": {
             "file": "src/STDSEMVER.m",
-            "line": 115
+            "line": 152
           }
         },
         "matches": {
           "form": "extrinsic",
           "signature": "$$matches^STDSEMVER(v, range)",
           "synopsis": "Return 1 iff v satisfies the range expression.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "v",
+              "type": "string",
+              "doc": "SemVer to test"
+            },
+            {
+              "name": "range",
+              "type": "string",
+              "doc": "range expression (exact, comparator, caret, tilde, AND)"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff v satisfies range; 0 otherwise"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$matches^STDSEMVER(\"1.5.0\",\"^1.2.3\")  ; 1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$compare^STDSEMVER",
+            "$$valid^STDSEMVER"
+          ],
           "deprecated": "",
-          "description": "range may be a bare SemVer (exact match), a single comparator\n('>'/'<'/'>='/'<='/'='-prefixed), a caret/tilde expansion, or\na space-separated AND of comparators.\nExample: write $$matches^STDSEMVER(\"1.5.0\",\"^1.2.3\")  ; 1",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 137
-          }
-        },
-        "validTriple": {
-          "form": "extrinsic",
-          "signature": "$$validTriple^STDSEMVER(s)",
-          "synopsis": "True iff s = N.N.N with each N a non-leading-zero non-negative integer.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — driven by valid().",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 159
-          }
-        },
-        "validPrerelease": {
-          "form": "extrinsic",
-          "signature": "$$validPrerelease^STDSEMVER(s)",
-          "synopsis": "True iff s is a valid dot-separated prerelease ID list.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — each ID non-empty; numeric IDs no leading zeros;\nalphanumeric IDs match [0-9A-Za-z-]+.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 169
-          }
-        },
-        "validBuild": {
-          "form": "extrinsic",
-          "signature": "$$validBuild^STDSEMVER(s)",
-          "synopsis": "True iff s is a valid dot-separated build ID list.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — same charset as prerelease; numeric leading zeros OK.",
+          "description": "range may be a bare SemVer (exact match), a single comparator\n('>'/'<'/'>='/'<='/'='-prefixed), a caret/tilde expansion, or\na space-separated AND of comparators.",
           "source": {
             "file": "src/STDSEMVER.m",
             "line": 181
-          }
-        },
-        "validNumericId": {
-          "form": "extrinsic",
-          "signature": "$$validNumericId^STDSEMVER(s)",
-          "synopsis": "True iff s is \"0\" or a digit string with no leading zero.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — covers triple components and numeric prerelease IDs.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 193
-          }
-        },
-        "validPreId": {
-          "form": "extrinsic",
-          "signature": "$$validPreId^STDSEMVER(s)",
-          "synopsis": "True iff s is a valid prerelease identifier.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — numeric IDs use validNumericId; otherwise must be\n[0-9A-Za-z-]+ with at least one non-digit character.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 200
-          }
-        },
-        "validBuildId": {
-          "form": "extrinsic",
-          "signature": "$$validBuildId^STDSEMVER(s)",
-          "synopsis": "True iff s is a valid build identifier (same charset; leading zeros OK).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 207
-          }
-        },
-        "comparePrerelease": {
-          "form": "extrinsic",
-          "signature": "$$comparePrerelease^STDSEMVER(a, b)",
-          "synopsis": "Compare two prerelease tails per SemVer §11.4.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — driven by compare(). a,b non-empty by precondition.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 224
-          }
-        },
-        "comparePreId": {
-          "form": "extrinsic",
-          "signature": "$$comparePreId^STDSEMVER(a, b)",
-          "synopsis": "Compare two prerelease identifiers per §11.4.{1,2,3}.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — numeric < alphanumeric; numeric IDs compare\nnumerically; alphanumeric IDs compare lexically.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 240
-          }
-        },
-        "matchesOne": {
-          "form": "extrinsic",
-          "signature": "$$matchesOne^STDSEMVER(v, piece)",
-          "synopsis": "Apply one comparator piece to v; return 0/1.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — piece may be a bare SemVer (exact) or comparator-prefixed.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 257
-          }
-        },
-        "matchesCaret": {
-          "form": "extrinsic",
-          "signature": "$$matchesCaret^STDSEMVER(v, base)",
-          "synopsis": "Apply ^X.Y.Z := >=X.Y.Z <(X+1).0.0 to v.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal. SemVer 0.x.y is treated specially in npm; v1 keeps it\nsimple — ^0.2.3 expands to >=0.2.3 <1.0.0.",
-          "source": {
-            "file": "src/STDSEMVER.m",
-            "line": 278
           }
         }
       },
@@ -7819,16 +7807,40 @@
           "form": "extrinsic",
           "signature": "$$pad^STDSTR(s, n, c)",
           "synopsis": "Alias for padLeft — common numeric-formatting shorthand.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to pad"
+            },
+            {
+              "name": "n",
+              "type": "int",
+              "doc": "target width (no-op if $LENGTH(s) >= n)"
+            },
+            {
+              "name": "c",
+              "type": "string",
+              "doc": "fill character (default \" \"; first char only used)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s left-padded with c to width n"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$pad^STDSTR(\"5\",3,\"0\")  ; \"005\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$padLeft^STDSTR",
+            "$$padRight^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Example: write $$pad^STDSTR(\"5\",3,\"0\")  ; \"005\"",
+          "description": "",
           "source": {
             "file": "src/STDSTR.m",
             "line": 31
@@ -7838,228 +7850,445 @@
           "form": "extrinsic",
           "signature": "$$padLeft^STDSTR(s, n, c)",
           "synopsis": "Left-pad s to width n with c (default \" \"). Returns s unchanged",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to pad"
+            },
+            {
+              "name": "n",
+              "type": "int",
+              "doc": "target width"
+            },
+            {
+              "name": "c",
+              "type": "string",
+              "doc": "fill character (default \" \"; first char only used)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s left-padded; s unchanged if $LENGTH(s) >= n"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$padLeft^STDSTR(\"ab\",6,\"-\")  ; \"----ab\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$pad^STDSTR",
+            "$$padRight^STDSTR"
+          ],
           "deprecated": "",
-          "description": "if $LENGTH(s) ≥ n. c may be multi-char; pad is built by char-wise\nreplication of $EXTRACT(c,1).\nExample: write $$padLeft^STDSTR(\"ab\",6,\"-\")  ; \"----ab\"",
+          "description": "if $LENGTH(s) ≥ n. c may be multi-char; pad is built by char-wise\nreplication of $EXTRACT(c,1).",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 35
+            "line": 42
           }
         },
         "padRight": {
           "form": "extrinsic",
           "signature": "$$padRight^STDSTR(s, n, c)",
           "synopsis": "Right-pad s to width n with c (default \" \"). Returns s unchanged",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to pad"
+            },
+            {
+              "name": "n",
+              "type": "int",
+              "doc": "target width"
+            },
+            {
+              "name": "c",
+              "type": "string",
+              "doc": "fill character (default \" \"; first char only used)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s right-padded; s unchanged if $LENGTH(s) >= n"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$padRight^STDSTR(\"ab\",6,\"-\")  ; \"ab----\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$pad^STDSTR",
+            "$$padLeft^STDSTR"
+          ],
           "deprecated": "",
-          "description": "if $LENGTH(s) ≥ n.\nExample: write $$padRight^STDSTR(\"ab\",6,\"-\")  ; \"ab----\"",
+          "description": "if $LENGTH(s) ≥ n.",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 46
+            "line": 60
           }
         },
         "trim": {
           "form": "extrinsic",
           "signature": "$$trim^STDSTR(s)",
           "synopsis": "Strip leading and trailing whitespace (space / tab / LF / CR).",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to trim"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s with outer whitespace stripped"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$trim^STDSTR(\"  hello  \")  ; \"hello\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$trimLeft^STDSTR",
+            "$$trimRight^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Internal whitespace is preserved verbatim. Empty input returns \"\".\nExample: write $$trim^STDSTR(\"  hello  \")  ; \"hello\"",
+          "description": "Internal whitespace is preserved verbatim. Empty input returns \"\".",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 58
+            "line": 79
           }
         },
         "trimLeft": {
           "form": "extrinsic",
           "signature": "$$trimLeft^STDSTR(s)",
           "synopsis": "Strip leading whitespace only.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to trim"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s with leading whitespace stripped"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$trimLeft^STDSTR(\"  x  \")  ; \"x  \""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$trim^STDSTR",
+            "$$trimRight^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Example: write $$trimLeft^STDSTR(\"  x  \")  ; \"x  \"",
+          "description": "",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 63
+            "line": 89
           }
         },
         "trimRight": {
           "form": "extrinsic",
           "signature": "$$trimRight^STDSTR(s)",
           "synopsis": "Strip trailing whitespace only.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to trim"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s with trailing whitespace stripped"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$trimRight^STDSTR(\"  x  \")  ; \"  x\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$trim^STDSTR",
+            "$$trimLeft^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Example: write $$trimRight^STDSTR(\"  x  \")  ; \"  x\"",
+          "description": "",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 71
+            "line": 102
           }
         },
         "replaceAll": {
           "form": "extrinsic",
           "signature": "$$replaceAll^STDSTR(s, find, repl)",
           "synopsis": "Replace every non-overlapping left-to-right occurrence.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to scan"
+            },
+            {
+              "name": "find",
+              "type": "string",
+              "doc": "the substring to match (multi-char allowed)"
+            },
+            {
+              "name": "repl",
+              "type": "string",
+              "doc": "the replacement"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s with every non-overlapping match replaced"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$replaceAll^STDSTR(\"a-b-c\",\"-\",\"+\")  ; \"a+b+c\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$split^STDSTR"
+          ],
           "deprecated": "",
-          "description": "An empty `find` returns s unchanged (no infinite loop).\nReplacement is non-recursive — the new bytes inserted by `repl`\nare not rescanned for further matches.\nImplementation: $piece-based join — split s on find, rejoin with repl.\nExample: write $$replaceAll^STDSTR(\"a-b-c\",\"-\",\"+\")  ; \"a+b+c\"",
+          "description": "An empty `find` returns s unchanged (no infinite loop). Replacement\nis non-recursive — the new bytes inserted by `repl` are not rescanned.\nImplementation: $piece-based join — split s on find, rejoin with repl.",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 80
+            "line": 116
           }
         },
         "split": {
           "form": "extrinsic",
           "signature": "$$split^STDSTR(s, sep, out)",
           "synopsis": "Split s on sep; populate out(1..N); return N.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to split"
+            },
+            {
+              "name": "sep",
+              "type": "string",
+              "doc": "the separator (multi-char allowed)"
+            },
+            {
+              "name": "out",
+              "type": "array",
+              "doc": "by-ref local; killed then populated as out(1..N)"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "number of pieces (0 if s=\"\" or sep=\"\")"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set n=$$split^STDSTR(\"a,b,c\",\",\",.out)  ; n=3"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$replaceAll^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Empty input returns 0 with out untouched (post-kill).\nMulti-char `sep` is supported — splits on the literal sequence.\nTrailing separator yields a trailing empty element; \"a,b,\" → 3 pieces.\nExample: set n=$$split^STDSTR(\"a,b,c\",\",\",.out)  ; n=3",
+          "description": "Trailing separator yields a trailing empty element; \"a,b,\" → 3 pieces.",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 96
+            "line": 138
           }
         },
         "startsWith": {
           "form": "extrinsic",
           "signature": "$$startsWith^STDSTR(s, prefix)",
           "synopsis": "Return 1 iff s begins with prefix; else 0. Empty prefix → 1.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to test"
+            },
+            {
+              "name": "prefix",
+              "type": "string",
+              "doc": "the prefix to look for"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff s begins with prefix; empty prefix returns 1"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$startsWith^STDSTR(\"hello world\",\"hello\")  ; 1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$endsWith^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Example: write $$startsWith^STDSTR(\"hello world\",\"hello\")  ; 1",
+          "description": "",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 111
+            "line": 158
           }
         },
         "endsWith": {
           "form": "extrinsic",
           "signature": "$$endsWith^STDSTR(s, suffix)",
           "synopsis": "Return 1 iff s ends with suffix; else 0. Empty suffix → 1.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to test"
+            },
+            {
+              "name": "suffix",
+              "type": "string",
+              "doc": "the suffix to look for"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff s ends with suffix; empty suffix returns 1"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$endsWith^STDSTR(\"hello world\",\"world\")  ; 1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$startsWith^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Example: write $$endsWith^STDSTR(\"hello world\",\"world\")  ; 1",
+          "description": "",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 117
+            "line": 170
           }
         },
         "toLowerASCII": {
           "form": "extrinsic",
           "signature": "$$toLowerASCII^STDSTR(s)",
           "synopsis": "A-Z → a-z; preserves all other characters.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to lowercase"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s with A-Z mapped to a-z (other chars unchanged)"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$toLowerASCII^STDSTR(\"Hello-World\")  ; \"hello-world\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$toUpperASCII^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Operates byte-wise — no locale awareness, no Unicode handling.\nFor full Unicode case folding wait on a future STDUNICODE.\nExample: write $$toLowerASCII^STDSTR(\"Hello-World\")  ; \"hello-world\"",
+          "description": "Operates byte-wise — no locale awareness, no Unicode handling.\nFor full Unicode case folding wait on a future STDUNICODE.",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 127
+            "line": 186
           }
         },
         "toUpperASCII": {
           "form": "extrinsic",
           "signature": "$$toUpperASCII^STDSTR(s)",
           "synopsis": "a-z → A-Z; preserves all other characters.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to uppercase"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s with a-z mapped to A-Z (other chars unchanged)"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$toUpperASCII^STDSTR(\"Hello-World\")  ; \"HELLO-WORLD\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$toLowerASCII^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Operates byte-wise — no locale awareness, no Unicode handling.\nExample: write $$toUpperASCII^STDSTR(\"Hello-World\")  ; \"HELLO-WORLD\"",
+          "description": "Operates byte-wise — no locale awareness, no Unicode handling.",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 133
+            "line": 197
           }
         },
         "repeat": {
           "form": "extrinsic",
           "signature": "$$repeat^STDSTR(s, n)",
           "synopsis": "Concatenate s with itself n times. Returns \"\" for n ≤ 0 or s=\"\".",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "the string to repeat"
+            },
+            {
+              "name": "n",
+              "type": "int",
+              "doc": "repetition count (n <= 0 yields \"\")"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "s concatenated with itself n times"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$repeat^STDSTR(\"ab\",3)  ; \"ababab\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$padLeft^STDSTR",
+            "$$padRight^STDSTR"
+          ],
           "deprecated": "",
-          "description": "Example: write $$repeat^STDSTR(\"ab\",3)  ; \"ababab\"",
+          "description": "",
           "source": {
             "file": "src/STDSTR.m",
-            "line": 140
+            "line": 209
           }
         }
       },
@@ -8077,16 +8306,36 @@
           "form": "extrinsic",
           "signature": "$$parse^STDTOML(text, root)",
           "synopsis": "Parse TOML text into root tree; return 1 on success, 0 on parse error.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "TOML 1.0 document (subset documented in routine header)"
+            },
+            {
+              "name": "root",
+              "type": "array",
+              "doc": "by-ref local; killed before population"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 on success; 0 on parse error"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do  set rc=$$parse^STDTOML(text,.cfg)"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$valid^STDTOML",
+            "$$get^STDTOML",
+            "$$type^STDTOML"
+          ],
           "deprecated": "",
-          "description": "root is by-reference; on failure, root is left in whatever\npartial state the parse achieved (caller may want to KILL it).\nExample: do  set rc=$$parse^STDTOML(text,.cfg)",
+          "description": "On failure, root is left in whatever partial state the parse\nachieved (caller may want to KILL it).",
           "source": {
             "file": "src/STDTOML.m",
             "line": 39
@@ -8096,228 +8345,107 @@
           "form": "extrinsic",
           "signature": "$$valid^STDTOML(text)",
           "synopsis": "Return 1 iff text parses as valid TOML; else 0.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "TOML document"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff text parses; 0 otherwise"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$valid^STDTOML(\"k = 1\")  ; 1"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$parse^STDTOML"
+          ],
           "deprecated": "",
-          "description": "Same as parse() but discards the resulting tree.\nExample: write $$valid^STDTOML(\"k = 1\")  ; 1",
+          "description": "Same as parse() but discards the resulting tree.",
           "source": {
             "file": "src/STDTOML.m",
-            "line": 61
+            "line": 67
           }
         },
         "get": {
           "form": "extrinsic",
           "signature": "$$get^STDTOML(root, key)",
           "synopsis": "Return the value at key (dotted path); \"\" if absent.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "root",
+              "type": "array",
+              "doc": "by-ref tree from $$parse^STDTOML"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "doc": "dotted path: \"k\" for top-level; \"section.k\" for sectioned"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "the scalar value; \"\" if key is absent"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$get^STDTOML(.cfg,\"server.port\")"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$type^STDTOML",
+            "$$parse^STDTOML"
+          ],
           "deprecated": "",
-          "description": "For a top-level key just pass the key; for a sectioned value\npass \"section.key\".\nExample: write $$get^STDTOML(.cfg,\"server.port\")",
+          "description": "",
           "source": {
             "file": "src/STDTOML.m",
-            "line": 67
+            "line": 78
           }
         },
         "type": {
           "form": "extrinsic",
           "signature": "$$type^STDTOML(root, key)",
           "synopsis": "Return the type tag at key, or \"\" if absent.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "root",
+              "type": "array",
+              "doc": "by-ref tree from $$parse^STDTOML"
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "doc": "dotted path"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "one of \"string\", \"integer\", \"float\", \"bool\"; \"\" if absent"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$type^STDTOML(.cfg,\"server.port\")  ; \"integer\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$get^STDTOML"
+          ],
           "deprecated": "",
-          "description": "Tags are \"string\" / \"integer\" / \"float\" / \"bool\".\nExample: write $$type^STDTOML(.cfg,\"server.port\")  ; \"integer\"",
+          "description": "",
           "source": {
             "file": "src/STDTOML.m",
-            "line": 74
-          }
-        },
-        "parseTable": {
-          "form": "extrinsic",
-          "signature": "$$parseTable^STDTOML(line)",
-          "synopsis": "Return the bare-key inside [...] or \"\" on malformed input.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — called when the trimmed line begins with \"[\".",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 82
-          }
-        },
-        "parsePair": {
-          "form": "procedure",
-          "signature": "do parsePair^STDTOML(line, section, root, rc)",
-          "synopsis": "Parse a key=value line; populate root or set rc=0.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — called for non-blank, non-comment, non-table lines.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 91
-          }
-        },
-        "decodeValue": {
-          "form": "extrinsic",
-          "signature": "$$decodeValue^STDTOML(raw, value, vtype)",
-          "synopsis": "Coerce raw value text into (value, vtype); return 1/0.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — driven by parsePair. raw is whitespace-trimmed.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 111
-          }
-        },
-        "decodeString": {
-          "form": "extrinsic",
-          "signature": "$$decodeString^STDTOML(raw, value, vtype)",
-          "synopsis": "Decode a TOML basic string literal.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — accepts \\n \\t \\r \\\" \\\\ escapes; bare \" ends the string.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 120
-          }
-        },
-        "decodeInteger": {
-          "form": "extrinsic",
-          "signature": "$$decodeInteger^STDTOML(raw, value, vtype)",
-          "synopsis": "Decode a signed decimal integer literal.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — accepts optional leading \"-\" and one or more digits.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 145
-          }
-        },
-        "decodeFloat": {
-          "form": "extrinsic",
-          "signature": "$$decodeFloat^STDTOML(raw, value, vtype)",
-          "synopsis": "Decode a signed decimal float literal (no exponent).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — accepts optional \"-\", one or more digits, \".\", one or more digits.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 155
-          }
-        },
-        "trimWs": {
-          "form": "extrinsic",
-          "signature": "$$trimWs^STDTOML(s)",
-          "synopsis": "Strip leading and trailing space / tab.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — TOML leaves LF/CR as line terminators.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 172
-          }
-        },
-        "stripTrailingComment": {
-          "form": "extrinsic",
-          "signature": "$$stripTrailingComment^STDTOML(s)",
-          "synopsis": "Remove a trailing # comment unless inside a basic string.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — scans s; tracks whether we're inside \"...\" quotes.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 180
-          }
-        },
-        "validBareKey": {
-          "form": "extrinsic",
-          "signature": "$$validBareKey^STDTOML(s)",
-          "synopsis": "True iff s is a non-empty TOML bare key (A-Za-z0-9_-).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — TOML §3 bare keys.",
-          "source": {
-            "file": "src/STDTOML.m",
-            "line": 193
+            "line": 89
           }
         }
       },

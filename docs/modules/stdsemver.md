@@ -5,7 +5,7 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: ""
-labels: ['build', 'compare', 'comparePreId', 'comparePrerelease', 'major', 'matches', 'matchesCaret', 'matchesOne', 'parse', 'prerelease', 'valid', 'validBuild', 'validBuildId', 'validNumericId', 'validPreId', 'validPrerelease', 'validTriple']
+labels: ['build', 'compare', 'major', 'matches', 'minor', 'parse', 'patch', 'prerelease', 'valid']
 errors: []
 conformance: []
 see_also: []

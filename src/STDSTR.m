@@ -29,13 +29,27 @@ STDSTR  ; m-stdlib — String helpers (pad / trim / split / replaceAll / case / 
         ; ---------- public API: padding ----------
         ;
 pad(s,n,c)      ; Alias for padLeft — common numeric-formatting shorthand.
-        ; doc: Example: write $$pad^STDSTR("5",3,"0")  ; "005"
+        ; doc: @param s       string  the string to pad
+        ; doc: @param n       int     target width (no-op if $LENGTH(s) >= n)
+        ; doc: @param c       string  fill character (default " "; first char only used)
+        ; doc: @returns       string  s left-padded with c to width n
+        ; doc: @example       write $$pad^STDSTR("5",3,"0")  ; "005"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$padLeft^STDSTR, $$padRight^STDSTR
         quit $$padLeft(s,n,$get(c," "))
         ;
 padLeft(s,n,c)  ; Left-pad s to width n with c (default " "). Returns s unchanged
+        ; doc: @param s       string  the string to pad
+        ; doc: @param n       int     target width
+        ; doc: @param c       string  fill character (default " "; first char only used)
+        ; doc: @returns       string  s left-padded; s unchanged if $LENGTH(s) >= n
+        ; doc: @example       write $$padLeft^STDSTR("ab",6,"-")  ; "----ab"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$pad^STDSTR, $$padRight^STDSTR
         ; doc: if $LENGTH(s) ≥ n. c may be multi-char; pad is built by char-wise
         ; doc: replication of $EXTRACT(c,1).
-        ; doc: Example: write $$padLeft^STDSTR("ab",6,"-")  ; "----ab"
         new ch,need
         set ch=$select($data(c)#10:c,1:" ")
         if ch="" set ch=" "
@@ -44,8 +58,15 @@ padLeft(s,n,c)  ; Left-pad s to width n with c (default " "). Returns s unchange
         quit $$repeat($extract(ch,1),need)_s
         ;
 padRight(s,n,c) ; Right-pad s to width n with c (default " "). Returns s unchanged
+        ; doc: @param s       string  the string to pad
+        ; doc: @param n       int     target width
+        ; doc: @param c       string  fill character (default " "; first char only used)
+        ; doc: @returns       string  s right-padded; s unchanged if $LENGTH(s) >= n
+        ; doc: @example       write $$padRight^STDSTR("ab",6,"-")  ; "ab----"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$pad^STDSTR, $$padLeft^STDSTR
         ; doc: if $LENGTH(s) ≥ n.
-        ; doc: Example: write $$padRight^STDSTR("ab",6,"-")  ; "ab----"
         new ch,need
         set ch=$select($data(c)#10:c,1:" ")
         if ch="" set ch=" "
@@ -56,12 +77,22 @@ padRight(s,n,c) ; Right-pad s to width n with c (default " "). Returns s unchang
         ; ---------- public API: trimming ----------
         ;
 trim(s) ; Strip leading and trailing whitespace (space / tab / LF / CR).
+        ; doc: @param s       string  the string to trim
+        ; doc: @returns       string  s with outer whitespace stripped
+        ; doc: @example       write $$trim^STDSTR("  hello  ")  ; "hello"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$trimLeft^STDSTR, $$trimRight^STDSTR
         ; doc: Internal whitespace is preserved verbatim. Empty input returns "".
-        ; doc: Example: write $$trim^STDSTR("  hello  ")  ; "hello"
         quit $$trimRight($$trimLeft(s))
         ;
 trimLeft(s)     ; Strip leading whitespace only.
-        ; doc: Example: write $$trimLeft^STDSTR("  x  ")  ; "x  "
+        ; doc: @param s       string  the string to trim
+        ; doc: @returns       string  s with leading whitespace stripped
+        ; doc: @example       write $$trimLeft^STDSTR("  x  ")  ; "x  "
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$trim^STDSTR, $$trimRight^STDSTR
         new t,ws
         set ws=" "_$char(9,10,13)
         set t=s
@@ -69,7 +100,12 @@ trimLeft(s)     ; Strip leading whitespace only.
         quit t
         ;
 trimRight(s)    ; Strip trailing whitespace only.
-        ; doc: Example: write $$trimRight^STDSTR("  x  ")  ; "  x"
+        ; doc: @param s       string  the string to trim
+        ; doc: @returns       string  s with trailing whitespace stripped
+        ; doc: @example       write $$trimRight^STDSTR("  x  ")  ; "  x"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$trim^STDSTR, $$trimLeft^STDSTR
         new t
         set t=s
         for  quit:t=""  quit:'($extract(t,$length(t))?1(1" ",1C))  set t=$extract(t,1,$length(t)-1)
@@ -78,11 +114,17 @@ trimRight(s)    ; Strip trailing whitespace only.
         ; ---------- public API: replacement ----------
         ;
 replaceAll(s,find,repl) ; Replace every non-overlapping left-to-right occurrence.
-        ; doc: An empty `find` returns s unchanged (no infinite loop).
-        ; doc: Replacement is non-recursive — the new bytes inserted by `repl`
-        ; doc: are not rescanned for further matches.
+        ; doc: @param s       string  the string to scan
+        ; doc: @param find    string  the substring to match (multi-char allowed)
+        ; doc: @param repl    string  the replacement
+        ; doc: @returns       string  s with every non-overlapping match replaced
+        ; doc: @example       write $$replaceAll^STDSTR("a-b-c","-","+")  ; "a+b+c"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$split^STDSTR
+        ; doc: An empty `find` returns s unchanged (no infinite loop). Replacement
+        ; doc: is non-recursive — the new bytes inserted by `repl` are not rescanned.
         ; doc: Implementation: $piece-based join — split s on find, rejoin with repl.
-        ; doc: Example: write $$replaceAll^STDSTR("a-b-c","-","+")  ; "a+b+c"
         if find="" quit s
         new n,i,out
         set n=$length(s,find)
@@ -94,10 +136,15 @@ replaceAll(s,find,repl) ; Replace every non-overlapping left-to-right occurrence
         ; ---------- public API: splitting ----------
         ;
 split(s,sep,out)        ; Split s on sep; populate out(1..N); return N.
-        ; doc: Empty input returns 0 with out untouched (post-kill).
-        ; doc: Multi-char `sep` is supported — splits on the literal sequence.
+        ; doc: @param s       string  the string to split
+        ; doc: @param sep     string  the separator (multi-char allowed)
+        ; doc: @param out     array   by-ref local; killed then populated as out(1..N)
+        ; doc: @returns       int     number of pieces (0 if s="" or sep="")
+        ; doc: @example       set n=$$split^STDSTR("a,b,c",",",.out)  ; n=3
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$replaceAll^STDSTR
         ; doc: Trailing separator yields a trailing empty element; "a,b," → 3 pieces.
-        ; doc: Example: set n=$$split^STDSTR("a,b,c",",",.out)  ; n=3
         kill out
         if s="" quit 0
         if sep="" quit 0
@@ -109,13 +156,25 @@ split(s,sep,out)        ; Split s on sep; populate out(1..N); return N.
         ; ---------- public API: predicates ----------
         ;
 startsWith(s,prefix)    ; Return 1 iff s begins with prefix; else 0. Empty prefix → 1.
-        ; doc: Example: write $$startsWith^STDSTR("hello world","hello")  ; 1
+        ; doc: @param s       string  the string to test
+        ; doc: @param prefix  string  the prefix to look for
+        ; doc: @returns       bool    1 iff s begins with prefix; empty prefix returns 1
+        ; doc: @example       write $$startsWith^STDSTR("hello world","hello")  ; 1
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$endsWith^STDSTR
         if prefix="" quit 1
         if $length(prefix)>$length(s) quit 0
         quit $select($extract(s,1,$length(prefix))=prefix:1,1:0)
         ;
 endsWith(s,suffix)      ; Return 1 iff s ends with suffix; else 0. Empty suffix → 1.
-        ; doc: Example: write $$endsWith^STDSTR("hello world","world")  ; 1
+        ; doc: @param s       string  the string to test
+        ; doc: @param suffix  string  the suffix to look for
+        ; doc: @returns       bool    1 iff s ends with suffix; empty suffix returns 1
+        ; doc: @example       write $$endsWith^STDSTR("hello world","world")  ; 1
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$startsWith^STDSTR
         new sl,fl
         if suffix="" quit 1
         set sl=$length(s),fl=$length(suffix)
@@ -125,20 +184,36 @@ endsWith(s,suffix)      ; Return 1 iff s ends with suffix; else 0. Empty suffix 
         ; ---------- public API: case conversion ----------
         ;
 toLowerASCII(s) ; A-Z → a-z; preserves all other characters.
+        ; doc: @param s       string  the string to lowercase
+        ; doc: @returns       string  s with A-Z mapped to a-z (other chars unchanged)
+        ; doc: @example       write $$toLowerASCII^STDSTR("Hello-World")  ; "hello-world"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$toUpperASCII^STDSTR
         ; doc: Operates byte-wise — no locale awareness, no Unicode handling.
         ; doc: For full Unicode case folding wait on a future STDUNICODE.
-        ; doc: Example: write $$toLowerASCII^STDSTR("Hello-World")  ; "hello-world"
         quit $translate(s,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")
         ;
 toUpperASCII(s) ; a-z → A-Z; preserves all other characters.
+        ; doc: @param s       string  the string to uppercase
+        ; doc: @returns       string  s with a-z mapped to A-Z (other chars unchanged)
+        ; doc: @example       write $$toUpperASCII^STDSTR("Hello-World")  ; "HELLO-WORLD"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$toLowerASCII^STDSTR
         ; doc: Operates byte-wise — no locale awareness, no Unicode handling.
-        ; doc: Example: write $$toUpperASCII^STDSTR("Hello-World")  ; "HELLO-WORLD"
         quit $translate(s,"abcdefghijklmnopqrstuvwxyz","ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         ;
         ; ---------- public API: repetition ----------
         ;
 repeat(s,n)     ; Concatenate s with itself n times. Returns "" for n ≤ 0 or s="".
-        ; doc: Example: write $$repeat^STDSTR("ab",3)  ; "ababab"
+        ; doc: @param s       string  the string to repeat
+        ; doc: @param n       int     repetition count (n <= 0 yields "")
+        ; doc: @returns       string  s concatenated with itself n times
+        ; doc: @example       write $$repeat^STDSTR("ab",3)  ; "ababab"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$padLeft^STDSTR, $$padRight^STDSTR
         if n'>0 quit ""
         if s="" quit ""
         new out,i
