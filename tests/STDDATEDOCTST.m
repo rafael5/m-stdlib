@@ -9,6 +9,7 @@ STDDATEDOCTST ; Doctest suite for STDDATE — generated from @example tags.
         do tDoctestAdd(.pass,.fail)
         do tDoctestDiff(.pass,.fail)
         do tDoctestFromh(.pass,.fail)
+        do tDoctestNow(.pass,.fail)
         do tDoctestStrftime(.pass,.fail)
         do tDoctestStrptime(.pass,.fail)
         do tDoctestToh(.pass,.fail)
@@ -26,6 +27,10 @@ tDoctestDiff(pass,fail)         ;@TEST "doctest: STDDATE.diff"
         ;
 tDoctestFromh(pass,fail)        ;@TEST "doctest: STDDATE.fromh"
         do eq^STDASSERT(.pass,.fail,$$fromh^STDDATE("47117,0"),"1970-01-01T00:00:00","doctest: STDDATE.fromh")
+        quit
+        ;
+tDoctestNow(pass,fail)          ;@TEST "doctest: STDDATE.now"
+        do eq^STDASSERT(.pass,.fail,$length($$now^STDDATE()),24,"doctest: STDDATE.now")
         quit
         ;
 tDoctestStrftime(pass,fail)     ;@TEST "doctest: STDDATE.strftime"

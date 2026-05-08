@@ -4187,7 +4187,8 @@
           "raises": [],
           "raised_in_body": [],
           "examples": [
-            "write $$now^STDDATE()  ; \"2026-05-05T17:42:31.123Z\""
+            "write $$now^STDDATE()           ; ISO-8601 UTC, e.g. 2026-05-05T17:42:31.123Z",
+            "write $length($$now^STDDATE())  ; 24"
           ],
           "since": "v0.0.5",
           "stable": "stable",
@@ -4239,7 +4240,7 @@
           "description": "2-piece D,S        -> \"YYYY-MM-DDTHH:MM:SS\"\n3-piece D,S,U      -> \"...HH:MM:SS.uuuuuu\" when U>0\n4-piece D,S,U,T    -> \"...\" + \"Z\" or \"+HH:MM\" / \"-HH:MM\"",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 52
+            "line": 53
           }
         },
         "toh": {
@@ -4279,7 +4280,7 @@
           "description": "2-piece D,S for date or date+time without subsec/tz;\n3-piece D,S,U if subseconds present; 4-piece D,S,U,T if tz.\n\"Z\" -> tzoff=0. \"+HH:MM\"/\"-HH:MM\" -> tzoff in seconds.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 73
+            "line": 74
           }
         },
         "strftime": {
@@ -4324,7 +4325,7 @@
           "description": "Unknown directives pass through as \"%X\". %z emits +HHMM/-HHMM\n(no colon) or \"\" if h has no tz piece.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 130
+            "line": 131
           }
         },
         "strptime": {
@@ -4369,7 +4370,7 @@
           "description": "Literal characters in fmt must match `text` exactly; only the\ndocumented directives are honoured.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 164
+            "line": 165
           }
         },
         "add": {
@@ -4418,7 +4419,7 @@
           "description": "Calendar arithmetic for Y/M (with day-clamp on shorter months);\nraw day arithmetic for W/D; second-arithmetic for H/M/S.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 200
+            "line": 201
           }
         },
         "diff": {
@@ -4455,7 +4456,7 @@
           "description": "Days carry into hours/minutes/seconds; never emits Y or M\n(variable-length).",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 252
+            "line": 253
           }
         }
       },
@@ -7395,7 +7396,8 @@
           "raises": [],
           "raised_in_body": [],
           "examples": [
-            "write $$resolve^STDMOCK(\"EN^DIE\")  ; \"stub^DIETST\""
+            "write $$resolve^STDMOCK(\"EN^DIE\")              ; e.g. \"stub^DIETST\" after `do register^STDMOCK`",
+            "write $$resolve^STDMOCK(\"noSuchTarget^XYZ\")    ; \"noSuchTarget^XYZ\""
           ],
           "since": "v0.1.2",
           "stable": "stable",
@@ -7443,7 +7445,7 @@
           "description": "Records the call (count + arg copy) before calling.",
           "source": {
             "file": "src/STDMOCK.m",
-            "line": 80
+            "line": 81
           }
         },
         "called": {
@@ -7464,7 +7466,8 @@
           "raises": [],
           "raised_in_body": [],
           "examples": [
-            "write $$called^STDMOCK(\"EN^DIE\")  ; 3"
+            "write $$called^STDMOCK(\"EN^DIE\")              ; e.g. 3, after `do invoke^STDMOCK` calls",
+            "write $$called^STDMOCK(\"noSuchTarget^XYZ\")    ; 0"
           ],
           "since": "v0.1.2",
           "stable": "stable",
@@ -7476,7 +7479,7 @@
           "description": "",
           "source": {
             "file": "src/STDMOCK.m",
-            "line": 98
+            "line": 99
           }
         },
         "args": {
@@ -7519,7 +7522,7 @@
           "description": "",
           "source": {
             "file": "src/STDMOCK.m",
-            "line": 107
+            "line": 109
           }
         }
       },
@@ -7761,7 +7764,7 @@
           "raises": [],
           "raised_in_body": [],
           "examples": [
-            "write $$cwd^STDOS()  ; \"/home/user/project\""
+            "write $$cwd^STDOS()       ; e.g. /home/user/project (host-specific)"
           ],
           "since": "v0.3.0",
           "stable": "stable",
@@ -7787,7 +7790,7 @@
           "raises": [],
           "raised_in_body": [],
           "examples": [
-            "write $$user^STDOS()  ; \"alice\""
+            "write $$user^STDOS()      ; e.g. alice (host-specific)"
           ],
           "since": "v0.3.0",
           "stable": "stable",
@@ -7814,7 +7817,7 @@
           "raises": [],
           "raised_in_body": [],
           "examples": [
-            "write $$hostname^STDOS()  ; \"vista-meta-1\""
+            "write $$hostname^STDOS()  ; e.g. vista-meta-1 (host-specific)"
           ],
           "since": "v0.3.0",
           "stable": "stable",

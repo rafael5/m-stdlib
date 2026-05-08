@@ -30,7 +30,8 @@ STDDATE ; m-stdlib — ISO-8601 datetime + arithmetic (v0.0.5).
         ;
 now()   ; Return current time as ISO-8601 UTC with millisecond precision.
         ; doc: @returns       string  ISO-8601 UTC: "YYYY-MM-DDTHH:MM:SS.sssZ"
-        ; doc: @example       write $$now^STDDATE()  ; "2026-05-05T17:42:31.123Z"
+        ; doc: @example       write $$now^STDDATE()           ; ISO-8601 UTC, e.g. 2026-05-05T17:42:31.123Z
+        ; doc: @example       write $length($$now^STDDATE())  ; 24
         ; doc: @since         v0.0.5
         ; doc: @stable        stable
         ; doc: @see           $$fromh^STDDATE, $$strftime^STDDATE

@@ -49,19 +49,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = REPO_ROOT / "dist" / "stdlib-manifest.json"
 TESTS_DIR = REPO_ROOT / "tests"
 
-# Labels whose @example tags are illustrative-only (documented shape, not a
-# literal expected value). The shape-classifier can't distinguish these from
-# real doctests because the example is structurally valid `write expr ; "..."`
-# — only domain knowledge does. Each entry must carry a reason so a future
-# reader can re-evaluate.
-ILLUSTRATIVE_LABELS: dict[str, str] = {
-    "STDDATE.now":       "current wall-clock time — value changes on every call",
-    "STDMOCK.called":    "depends on prior do start^STDMOCK + do call^STDMOCK setup",
-    "STDMOCK.resolve":   "depends on prior do swap^STDMOCK setup",
-    "STDOS.cwd":         "process working directory — host-specific",
-    "STDOS.hostname":    "system hostname — host-specific",
-    "STDOS.user":        "process owner — host-specific",
-}
+# Source-side reformulation of the original 6 illustrative labels (commit
+# `<follow-on>`) replaced their `; "<placeholder>"` `@example` lines with a
+# pair: a host/state-dependent prose example (no quoted value, so the
+# Pattern-A regex skips it silently) plus a self-contained Pattern-A
+# example that doctests cleanly. As a result this skiplist is now empty
+# — kept as a hook in case future modules need the same escape valve.
+ILLUSTRATIVE_LABELS: dict[str, str] = {}
 
 # Pattern A (string): write <expr>  ; "<expected>"
 PAT_WRITE_EXPECT_STR = re.compile(r'^\s*(?:write|w)\s+(.+?)\s+;\s*"((?:[^"\\]|\\.)*)"\s*$')

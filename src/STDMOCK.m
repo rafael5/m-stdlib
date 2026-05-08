@@ -70,7 +70,8 @@ clear   ; Remove every redirect, counter, and recorded args list.
 resolve(target) ; Return the replacement if registered, else target itself.
         ; doc: @param target  string  M call-site
         ; doc: @returns       string  registered replacement; target itself if no registration
-        ; doc: @example       write $$resolve^STDMOCK("EN^DIE")  ; "stub^DIETST"
+        ; doc: @example       write $$resolve^STDMOCK("EN^DIE")              ; e.g. "stub^DIETST" after `do register^STDMOCK`
+        ; doc: @example       write $$resolve^STDMOCK("noSuchTarget^XYZ")    ; "noSuchTarget^XYZ"
         ; doc: @since         v0.1.2
         ; doc: @stable        stable
         ; doc: @see           do register^STDMOCK, do invoke^STDMOCK
@@ -98,7 +99,8 @@ invoke(target,args)     ; Record this call + invoke resolve(target).
 called(target)  ; Number of invocations for target since clear / unregister.
         ; doc: @param target  string  M call-site
         ; doc: @returns       int     invocation count; 0 if never invoked
-        ; doc: @example       write $$called^STDMOCK("EN^DIE")  ; 3
+        ; doc: @example       write $$called^STDMOCK("EN^DIE")              ; e.g. 3, after `do invoke^STDMOCK` calls
+        ; doc: @example       write $$called^STDMOCK("noSuchTarget^XYZ")    ; 0
         ; doc: @since         v0.1.2
         ; doc: @stable        stable
         ; doc: @see           do invoke^STDMOCK, $$args^STDMOCK

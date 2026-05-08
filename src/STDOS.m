@@ -121,7 +121,7 @@ argv(args)      ; Populate args(1..N) from $ZCMDLINE; N is the implicit return.
         ;
 cwd()   ; Return the current working directory (from $PWD).
         ; doc: @returns       path    value of $PWD; "" if unset
-        ; doc: @example       write $$cwd^STDOS()  ; "/home/user/project"
+        ; doc: @example       write $$cwd^STDOS()       ; e.g. /home/user/project (host-specific)
         ; doc: @since         v0.3.0
         ; doc: @stable        stable
         ; doc: @see           $$env^STDOS
@@ -132,7 +132,7 @@ cwd()   ; Return the current working directory (from $PWD).
         ;
 user()  ; Return the current username (from $USER).
         ; doc: @returns       string  $USER if set; otherwise $LOGNAME; "" if neither
-        ; doc: @example       write $$user^STDOS()  ; "alice"
+        ; doc: @example       write $$user^STDOS()      ; e.g. alice (host-specific)
         ; doc: @since         v0.3.0
         ; doc: @stable        stable
         ; doc: @see           $$env^STDOS, $$hostname^STDOS
@@ -144,7 +144,7 @@ user()  ; Return the current username (from $USER).
         ;
 hostname()      ; Return the host name (from $HOSTNAME) or "" if unset.
         ; doc: @returns       string  value of $HOSTNAME; "" if unset
-        ; doc: @example       write $$hostname^STDOS()  ; "vista-meta-1"
+        ; doc: @example       write $$hostname^STDOS()  ; e.g. vista-meta-1 (host-specific)
         ; doc: @since         v0.3.0
         ; doc: @stable        stable
         ; doc: @see           $$env^STDOS, $$user^STDOS

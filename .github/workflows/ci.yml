@@ -56,6 +56,24 @@ jobs:
         # and git, both already installed above.
         run: make manifest-check
 
+      - name: AI skill drift check
+        # Regenerates dist/skill/{SKILL.md,manifest-index.md,patterns.md,
+        # error-codes.md} from the manifest + tools/skill-patterns.md
+        # (WD1). Same drift model as manifest-check: any `; doc:` change
+        # that flows into the skill artefacts forces a regenerate-and-
+        # commit. Engine-free.
+        run: make skill-check
+
+      - name: Doctest drift check
+        # Regenerates tests/STD*DOCTST.m from the manifest's @example
+        # tags (WD2). Drift means someone added or changed a Pattern-A
+        # @example without running `make doctest`. Engine-free —
+        # actually executing the generated doctests is folded into the
+        # regular `make test` step below, which globs `tests/` and so
+        # picks up the committed STD*DOCTST.m suites alongside the
+        # hand-written STD*TST.m ones.
+        run: make doctest-check
+
       - name: Initialise YDB workspace
         run: |
           . /opt/yottadb/current/ydb_env_set
