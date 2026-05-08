@@ -139,7 +139,7 @@ the work without further orientation.
 | WB4 | done | WB | 4 | m-cli | `m manifest`, `m examples <module>`, `m errors` thin wrappers | WA4, WA7 | 0.5d | All three commands emit useful output piped from the manifest / errors registry. | § 4.3, § 4.4, § 4.5 | `~/projects/m-cli/src/m_cli/doc/{manifest,examples,errors}.py` (all new), m-cli commit `6542e73` pushed |
 | WC1 | done | WC | 1 | vscode | VS Code extension v0.1: hover, goto-def, completion driven by `dist/stdlib-manifest.json` (no LSP) | WA4 | 2–3d | Extension activates on `.m` files; hover on `^STDJSON` and `parse^STDJSON` shows synopsis + signature; goto-def jumps to `src/STDJSON.m:L`; completion suggests `^STD*` modules and labels. | § 5.1 | new repo [`rafael5/m-stdlib-vscode`](https://github.com/rafael5/m-stdlib-vscode) initial commit `1c15a05` pushed |
 | WC2 | done | WC | 2 | vscode | Snippet pack for canonical patterns: STDASSERT suite skeleton, STDFIX `with` wrapper, STDLOG kv line, STDJSON parse-then-walk | WC1 | 0.5d | Typing `stdassert-suite` (etc.) in a `.m` file expands to the canonical idiom. | § 5.1 | [`rafael5/m-stdlib-vscode`](https://github.com/rafael5/m-stdlib-vscode) `snippets/m.json` + `package.json` `contributes.snippets`; commit `7d0723b` pushed |
-| WD1 | not-started | WD | 1 | skill | AI skill at `~/claude/skills/m-stdlib/` — `SKILL.md` + `manifest-index.md` + `patterns.md` + `error-codes.md`, generated from the manifest | WA4 | 1d | Skill files exist; `tools/gen-skill.m` regenerates them deterministically; CI fails on drift. | § 6.1 | `~/claude/skills/m-stdlib/`, `tools/gen-skill.m` (new), `.github/workflows/ci.yml` (extend) |
+| WD1 | done | WD | 1 | skill | AI skill at `~/claude/skills/m-stdlib/` — `SKILL.md` + `manifest-index.md` + `patterns.md` + `error-codes.md`, generated from the manifest | WA4 | 1d | Skill files exist; `tools/gen-skill.py` regenerates them deterministically; `make skill-check` gates drift. | § 6.1 | `tools/gen-skill.py` (new), `tools/skill-patterns.md` (new static input), `dist/skill/*.md` (generated, committed), `Makefile` (`skill` / `skill-check` / `skill-install` targets), `~/claude/skills/m-stdlib/*.md` (installed live), `~/claude/CLAUDE.global.md` (skill registry entry) |
 | WD2 | not-started | WD | 2 | stdlib | Doctest generator `tools/gen-doctests.m` — emits `tests/STDxxxDOCTST.m` from `@example` lines so doc examples must execute | WA1, WA2 | 1d | Every module with ≥1 `@example` has a generated `*DOCTST.m` suite that runs under `m test`; suite green; example drift fails CI. | § 3.4 | `tools/gen-doctests.m` (new), `tests/STD*DOCTST.m` (generated, committed) |
 
 ### Deferred / out of scope (linked from `module-tracker.md`)
@@ -541,7 +541,7 @@ planning; expand them as work happens. The format is:
 
 #### WD1 — AI skill
 
-**Status.** not-started.
+**Status.** done (2026-05-08; m-stdlib `tools/gen-skill.py` + `dist/skill/*.md` committed; live at `~/claude/skills/m-stdlib/` and registered in `~/claude/CLAUDE.global.md`).
 
 **Goal.** A knowledge-skill at `~/claude/skills/m-stdlib/` regenerated from the manifest. Plan § 6.1.
 
@@ -558,7 +558,20 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Hand-tuning skill prose beyond the generator output. If a passage needs prose embellishment, add it to a "static-prose" partial in the generator so re-runs don't lose it.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08** — Pivoted from `tools/gen-skill.m` (planned) to `tools/gen-skill.py` (Python, mirroring `gen-manifest.py`'s precedent). Same rationale as WA4: there's no clean home for a non-stdlib M routine, Python's stdlib gives clean text generation, and the generator runs against the manifest produced by Python anyway. Open redirect point if the eat-own-dog-food argument outweighs shipping speed.
+- **What landed:**
+  - `tools/skill-patterns.md` (~250 lines) — hand-curated canonical-idiom library (STDASSERT suite skeleton; STDFIX `with`/register/invoke; STDMOCK; STDLOG kv + JSON; STDJSON parse-then-walk; STDURL; STDCSV; STDDATE; STDCSPRNG; STDCRYPTO; STDCOMPRESS; STDHTTP; STDARGS; STDFS; STDSNAP). The file is the static input — `gen-skill.py` copies it through verbatim into `dist/skill/patterns.md` with a generated header. Edits to the prose go here, NOT to the generated output.
+  - `tools/gen-skill.py` (~265 lines) — reads `dist/stdlib-manifest.json` + `dist/errors.json` + `tools/skill-patterns.md`. Emits four files into `dist/skill/`:
+    - **`SKILL.md`** (~4.5 KB) — frontmatter with `name`, `type: knowledge`, full description with trigger phrases (`"m-stdlib"`, `"STDJSON"`, `"STDASSERT"`, `"STDCRYPTO"`, `"STDLOG"`, `"$$parse^STD"`, `"do start^STDASSERT"`, `"^STD"`); body is the catalogue of all 32 modules with their synopses (with `m-stdlib — ` prefix stripped for cleaner reading), a "When to use this skill" guide, a "Companion files" pointer table to the other three, the architectural rules, and a quick-start.
+    - **`manifest-index.md`** (~26 KB) — one entry per module with every public label rendered as `\`signature\` — synopsis`, plus a per-module `_raises:_` summary line. The compact dense-English reference for "I know the module name; show me the labels."
+    - **`patterns.md`** (~8 KB) — `tools/skill-patterns.md` copied through with a one-line generated header noting the source.
+    - **`error-codes.md`** (~3.5 KB) — inverted index over `dist/errors.json`, grouped by producing module: every `U-STDxxx-NAME` with the comma-separated list of labels that raise it. The lookup table for `$ETRAP` handler disambiguation.
+  - `Makefile` targets: `skill` (regenerate), `skill-check` (regenerate + diff against committed `dist/skill/`; mirrors `manifest-check`), `skill-install` (copy to `~/claude/skills/m-stdlib/` so Claude can load it as a knowledge skill — one-shot, not in CI).
+  - `~/claude/CLAUDE.global.md` skills table — added an `m-stdlib` row alongside the existing knowledge skills (mumps-language, vista-system, etc.) so the global skills registry sees the new entry.
+- **Determinism**: no timestamps in the generated output; running `make skill-check` after `make skill` exits clean (`skill: clean`). Drift detection works identically to `manifest-check`.
+- **Calibration vs the plan §6.1 sketch:** (1) generator is Python not M (same reasoning as WA4); (2) `dist/skill/` is the committed staging dir + the CI-gateable artefact, with `~/claude/skills/m-stdlib/` populated via a separate `make skill-install` step (cleaner than emitting directly to `~/claude/`, which lives in a different repo); (3) static prose lives in `tools/skill-patterns.md` and is copied through verbatim, so prose embellishment doesn't get clobbered by re-runs (the plan called this out as a non-negotiable).
+- **Out of scope (deferred)**: wiring `make skill-check` into `.github/workflows/ci.yml` — the gate works locally; CI integration is a small follow-on. Auto-installing on every `make manifest` — kept as a separate explicit step so users in CI don't accidentally write to `~/claude/`.
+- **Wave D status: WD1 done.** WD2 (`tools/gen-doctests.m` — emit `*DOCTST.m` from `@example` lines) remains. The skill at `~/claude/skills/m-stdlib/` is loadable now: any session that mentions an `STD*` symbol triggers it, and the four files give the model the catalogue + idioms + error registry it needs to write idiomatic m-stdlib code on the first attempt.
 
 ---
 

@@ -9,7 +9,7 @@ SHELL := /bin/bash
 # m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter skill skill-check skill-install
 
 # vista-meta connection contract — published by `vista-meta: make run`.
 VISTA_CONN := $(HOME)/data/vista-meta/conn.env
@@ -93,6 +93,35 @@ manifest-check: manifest
 # adds @raises tags and the errors / labels lists need refreshing).
 frontmatter:
 	python3 tools/write-module-frontmatter.py
+
+# ── AI skill generation (WD1: discoverability + tooling plan §6.1) ────
+#
+# `make skill`         regenerates dist/skill/*.md from the manifest +
+#                      tools/skill-patterns.md (the hand-curated idiom
+#                      input copied through verbatim into patterns.md).
+# `make skill-check`   --check mode: drift between freshly-generated
+#                      output and the committed dist/skill/ files
+#                      exits non-zero. Mirrors `make manifest-check`.
+# `make skill-install` copies dist/skill/*.md to ~/claude/skills/m-stdlib/
+#                      so Claude can load it as a knowledge skill.
+#                      One-shot — not part of CI; the developer runs
+#                      this when they want the local skill refreshed.
+
+skill:
+	python3 tools/gen-skill.py
+
+skill-check:
+	@python3 tools/gen-skill.py --check \
+		|| { echo "ERROR: dist/skill/ is out of date — run 'make skill' and commit."; exit 1; }
+	@echo "skill: clean"
+
+skill-install: skill
+	@mkdir -p $(HOME)/claude/skills/m-stdlib
+	cp -f dist/skill/SKILL.md $(HOME)/claude/skills/m-stdlib/SKILL.md
+	cp -f dist/skill/manifest-index.md $(HOME)/claude/skills/m-stdlib/manifest-index.md
+	cp -f dist/skill/patterns.md $(HOME)/claude/skills/m-stdlib/patterns.md
+	cp -f dist/skill/error-codes.md $(HOME)/claude/skills/m-stdlib/error-codes.md
+	@echo "skill installed at $(HOME)/claude/skills/m-stdlib/"
 
 clean:
 	rm -rf coverage.lcov test-results.tap coverage.json
