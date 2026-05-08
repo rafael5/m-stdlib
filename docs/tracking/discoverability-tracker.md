@@ -138,7 +138,7 @@ the work without further orientation.
 | WB3 | done | WB | 3 | m-cli | `m search <query>` — full-text fuzzy search over manifest synopsis + description + example | WA4 | 0.5–1d | `m search "json parse"` returns ranked `module.label — synopsis` lines; matches against case-insensitive substrings in synopsis, description, examples. | § 4.2 | `~/projects/m-cli/src/m_cli/doc/search.py` (new), m-cli commit `6542e73` pushed |
 | WB4 | done | WB | 4 | m-cli | `m manifest`, `m examples <module>`, `m errors` thin wrappers | WA4, WA7 | 0.5d | All three commands emit useful output piped from the manifest / errors registry. | § 4.3, § 4.4, § 4.5 | `~/projects/m-cli/src/m_cli/doc/{manifest,examples,errors}.py` (all new), m-cli commit `6542e73` pushed |
 | WC1 | done | WC | 1 | vscode | VS Code extension v0.1: hover, goto-def, completion driven by `dist/stdlib-manifest.json` (no LSP) | WA4 | 2–3d | Extension activates on `.m` files; hover on `^STDJSON` and `parse^STDJSON` shows synopsis + signature; goto-def jumps to `src/STDJSON.m:L`; completion suggests `^STD*` modules and labels. | § 5.1 | new repo [`rafael5/m-stdlib-vscode`](https://github.com/rafael5/m-stdlib-vscode) initial commit `1c15a05` pushed |
-| WC2 | not-started | WC | 2 | vscode | Snippet pack for canonical patterns: STDASSERT suite skeleton, STDFIX `with` wrapper, STDLOG kv line, STDJSON parse-then-walk | WC1 | 0.5d | Typing `stdassert-suite` (etc.) in a `.m` file expands to the canonical idiom. | § 5.1 | extension repo |
+| WC2 | done | WC | 2 | vscode | Snippet pack for canonical patterns: STDASSERT suite skeleton, STDFIX `with` wrapper, STDLOG kv line, STDJSON parse-then-walk | WC1 | 0.5d | Typing `stdassert-suite` (etc.) in a `.m` file expands to the canonical idiom. | § 5.1 | [`rafael5/m-stdlib-vscode`](https://github.com/rafael5/m-stdlib-vscode) `snippets/m.json` + `package.json` `contributes.snippets`; commit `7d0723b` pushed |
 | WD1 | not-started | WD | 1 | skill | AI skill at `~/claude/skills/m-stdlib/` — `SKILL.md` + `manifest-index.md` + `patterns.md` + `error-codes.md`, generated from the manifest | WA4 | 1d | Skill files exist; `tools/gen-skill.m` regenerates them deterministically; CI fails on drift. | § 6.1 | `~/claude/skills/m-stdlib/`, `tools/gen-skill.m` (new), `.github/workflows/ci.yml` (extend) |
 | WD2 | not-started | WD | 2 | stdlib | Doctest generator `tools/gen-doctests.m` — emits `tests/STDxxxDOCTST.m` from `@example` lines so doc examples must execute | WA1, WA2 | 1d | Every module with ≥1 `@example` has a generated `*DOCTST.m` suite that runs under `m test`; suite green; example drift fails CI. | § 3.4 | `tools/gen-doctests.m` (new), `tests/STD*DOCTST.m` (generated, committed) |
 
@@ -517,7 +517,7 @@ planning; expand them as work happens. The format is:
 
 #### WC2 — Snippet pack
 
-**Status.** not-started.
+**Status.** done (2026-05-08; m-stdlib-vscode commit `7d0723b` pushed; v0.2.0 release).
 
 **Goal.** Canonical idiom snippets. Plan § 5.1.
 
@@ -530,7 +530,10 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Snippets for every module; cover only the high-frequency idioms.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08 (m-stdlib-vscode `7d0723b`)** — Four-snippet pack landed at `snippets/m.json`, wired via `package.json` `contributes.snippets` for `language: m`. Triggers match the WC2 row exactly: `stdassert-suite` (full suite skeleton with `start`/`@TEST`/`eq^STDASSERT`/`report` plus runner-discoverable `;@TEST` annotation), `stdfix-with` (one-liner XECUTE inside a TSTART/TROLLBACK scope), `stdlog-kv` (level-chooser dropdown — INFO/DEBUG/WARN/ERROR/FATAL — followed by event + key + value), `stdjson-parse` (parse with error-guard + `$$type^STDJSON` array check + `$order` walk skeleton). VS Code tabstop syntax with sane defaults; multi-tabstop sync where the same identifier appears in multiple places (e.g. `${3:tCase1}` referenced by both the `do tCase1` line and the label header).
+- **5 new tests** in `tests/snippets.test.ts` pin: (1) the four prefixes are present; (2) every snippet is scoped to `language: m`; (3) every body is a non-empty array of strings; (4) prefix↔module correctness (catches "wrong body in wrong slot" mistakes via substring assertion that each snippet body references the named module); (5) `package.json` `contributes.snippets` linkage. **27/27 tests now green** (22 prior from WC1 + 5 new).
+- **Implementation calibrations**: (a) `$$call` in M source has to be JSON-escaped as `\\$\\$` so VS Code doesn't mistake the `$` for tabstop syntax — backslashes flow through to the snippet engine which emits literal `$$`; (b) the `.` dot-block prefix doesn't need escaping (VS Code only treats `$`, `}`, `\` as snippet-special); (c) bumped `package.json` version 0.1.0 → 0.2.0 since this is a user-visible feature add (no breaking change).
+- **Wave C now COMPLETE: WC1 + WC2 = 2/2 rows.** The VS Code surface for m-stdlib is shipped — hover, goto-def, completion, snippets all wired to `dist/stdlib-manifest.json`. **Cross-repo follow-on remaining: only Wave D (AI skill).**
 
 ---
 
