@@ -47,6 +47,15 @@ jobs:
           /tmp/venv/bin/pip install /tmp/tree-sitter-m
           /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
 
+      - name: Manifest drift check
+        # Regenerates dist/stdlib-manifest.json + dist/errors.json from
+        # src/STD*.m via tools/gen-manifest.py and fails on diff against
+        # the committed artefacts. Mirrors `make fmt-check` — drift means
+        # somebody touched a `; doc:` block (or src/ structure) without
+        # re-running `make manifest`. Engine-free — only needs python3
+        # and git, both already installed above.
+        run: make manifest-check
+
       - name: Initialise YDB workspace
         run: |
           . /opt/yottadb/current/ydb_env_set

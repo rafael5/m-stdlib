@@ -23,7 +23,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import datetime as _dt
 import json
 import re
 import sys
@@ -437,9 +436,12 @@ def build_manifest() -> tuple[dict, dict]:
                 if label_name not in bucket["labels"]:
                     bucket["labels"].append(label_name)
 
+    # No `generated_at` field by design — it would change every run and
+    # would force the WA5 manifest-check gate to fail spuriously. The
+    # version of the source the manifest was generated from is captured
+    # by `stdlib_version`; the file's git history captures the rest.
     manifest = {
         "stdlib_version": read_stdlib_version(),
-        "generated_at": _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "modules": modules,
         "errors": errors_index,
     }

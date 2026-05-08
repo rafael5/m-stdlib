@@ -1,6 +1,5 @@
 {
   "stdlib_version": "v0.4.0",
-  "generated_at": "2026-05-08T13:32:58Z",
   "modules": {
     "STDARGS": {
       "synopsis": "m-stdlib — argparse (v0.0.7).",

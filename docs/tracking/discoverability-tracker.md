@@ -129,9 +129,9 @@ the work without further orientation.
 | WA2 | not-started | WA | 2 | stdlib | Backfill structured doc tags across all public labels in `src/STD*.m` (incl. `@stable` tier annotation per § 3.6) | WA1 | 3–4d | Every public label in src/ has `@param`s matching the formal-list, `@returns` for extrinsics, `@raises` for any `$ECODE` it sets, ≥1 `@example`, `@since`, `@stable`. Manifest generator (WA4) parses src/ without diagnostics. | § 3.1, § 3.6 | `src/STD*.m` (all 30+ routines) |
 | WA3 | not-started | WA | 3 | m-cli | Add lint rule `M-DOC-001` warning on public labels missing required tags (warn-only at first) | WA1 | 0.5–1d | `m lint` raises `M-DOC-001` (severity warn) on a public label whose `; doc:` block is missing `@returns` (extrinsic) or has a `@param` not in the formal-list. No errors emitted yet. | § 3.1 (acceptance gate) | m-cli lint rules dir |
 | WA4 | done | WA | 4 | stdlib | Implement `tools/gen-manifest.py` — hand-rolled parser — that walks `src/STD*.m` and emits `dist/stdlib-manifest.json` + `dist/errors.json` per the § 3.2 schema | WA1 | 1–2d | Running `make manifest` produces `dist/stdlib-manifest.json`; all public labels present with signature, source.file/line, plus tag-derived fields (params, returns, raises, examples, since, stable, see_also) populated when WA2 backfill provides tags. | § 3.2, § 11.4 | `tools/gen-manifest.py` (new, ~370 LoC), `dist/stdlib-manifest.json` (new, generated), `dist/errors.json` (new, generated), `Makefile` (`manifest` + `manifest-check` targets) |
-| WA5 | not-started | WA | 5 | stdlib | CI gate: regenerate manifest in CI, fail on diff against committed `dist/stdlib-manifest.json` | WA4 | 0.5d | CI workflow runs `make manifest && git diff --exit-code dist/stdlib-manifest.json`; passes today, fails if a label changes without manifest re-gen. | § 3.2 (acceptance gate) | `.github/workflows/ci.yml`, `Makefile` |
+| WA5 | done | WA | 5 | stdlib | CI gate: regenerate manifest in CI, fail on diff against committed `dist/stdlib-manifest.json` | WA4 | 0.5d | CI workflow runs `make manifest-check`; passes today, fails if a label changes without manifest re-gen. | § 3.2 (acceptance gate) | `.github/workflows/ci.yml` (step add), `Makefile` (already had `manifest-check`) |
 | WA6 | not-started | WA | 6 | stdlib | Add YAML frontmatter (module / tag / phase / stable / since / synopsis / errors / labels / conformance / see_also) to every `docs/modules/stdXXX.md` | — | 0.5d | Every per-module markdown has frontmatter parsing cleanly as YAML. Field values agree with the manifest where overlapping (verified by a small check script, not gated yet). | § 3.3 | `docs/modules/std*.md` |
-| WA7 | not-started | WA | 7 | stdlib | Generate `dist/errors.json` (inverted index of `U-STD*` codes → producing module + labels) as a derivative of the manifest | WA4 | 0.25d | `make manifest` also writes `dist/errors.json` containing every `U-STD*` code with its origin module + labels. | § 3.5 | `tools/gen-manifest.m` (extend), `dist/errors.json` (new) |
+| WA7 | done | WA | 7 | stdlib | Generate `dist/errors.json` (inverted index of `U-STD*` codes → producing module + labels) as a derivative of the manifest | WA4 | 0.25d | `make manifest` also writes `dist/errors.json` containing every `U-STD*` code with its origin module + labels. | § 3.5 | `tools/gen-manifest.py` (covers WA7 too), `dist/errors.json` (generated) |
 | WA8 | not-started | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA2, WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md`, `docs/modules/index.md`, git tag |
 | WB1 | not-started | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` (new) |
 | WB2 | not-started | WB | 2 | m-cli | `m doc --json` and `m doc --short` flags | WB1 | 0.5d | `--json` emits the raw manifest entry; `--short` emits one-line synopsis. Both stable for scripting. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` |
@@ -268,7 +268,7 @@ planning; expand them as work happens. The format is:
 
 #### WA5 — Manifest CI gate
 
-**Status.** not-started.
+**Status.** done (2026-05-08).
 
 **Goal.** CI fails when `dist/stdlib-manifest.json` drifts from what `tools/gen-manifest.m` would produce.
 
@@ -282,7 +282,9 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Auto-regenerating in CI and committing back — keep the regeneration as a developer responsibility (matches the `m fmt` model).
 
 **Progress log.**
-- (none yet)
+- **2026-05-08** — CI gate landed in `.github/workflows/ci.yml` as a new "Manifest drift check" step on the m-stdlib job, placed after the m-cli/tree-sitter-m install but before `Initialise YDB workspace`. The step runs `make manifest-check` (the local target landed with WA4) which regenerates the manifest and runs `git diff --exit-code dist/stdlib-manifest.json dist/errors.json`. Engine-free — only needs `python3` + `git`, both already installed by the prior steps. Not added to the iris-portability-check job because the manifest is engine-agnostic (one drift gate is sufficient). Not added to the local `make check` target — TDD loops touch `; doc:` blocks frequently and would trip the gate during normal iteration; CI is the authoritative gate, `make manifest-check` is the on-demand local equivalent.
+- **Pre-flight fixes to `tools/gen-manifest.py` to make the gate viable.** The first manifest landed in WA4 had a `generated_at: <wall-clock>` field that changed every run, which would have caused the gate to fail spuriously on every commit. Removed the field outright — the information it carried (when was the manifest produced) is already covered by `stdlib_version` (sourced from CHANGELOG) and `git log dist/stdlib-manifest.json` (commit history). Also dropped `import datetime` and the `_dt.UTC` reference (Python 3.11+ only) for cross-version portability. Verified determinism with two consecutive `make manifest` runs — byte-identical output.
+- **Unblocks.** Wave A close: WA6 (frontmatter on docs/modules/*.md, no deps) + WA8 (release tag) are the remaining stdlib-side rows. WA7 (errors.json) was already covered by WA4's generator. WA2 (backfill) and WA3 (lint rule in m-cli) remain.
 
 ---
 
@@ -308,7 +310,7 @@ planning; expand them as work happens. The format is:
 
 #### WA7 — Errors registry
 
-**Status.** not-started.
+**Status.** done (2026-05-08; structurally rolled into WA4).
 
 **Goal.** `dist/errors.json` is the inverted index: `U-STD*` code → producing module + labels.
 
@@ -321,7 +323,7 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Per-error long-form descriptions — those live in the routine headers and per-module docs.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08** — Done as part of WA4. `tools/gen-manifest.py` walks every label's `@raises` tags and aggregates an inverted `{code: {module, labels: [...]}}` index, written to `dist/errors.json` alongside the manifest. The CI manifest-check gate (WA5) covers this file too. `dist/errors.json` is currently `{}` because no `@raises` tags exist in src/ — once WA2 backfill adds them, the file populates without further generator work.
 
 ---
 
