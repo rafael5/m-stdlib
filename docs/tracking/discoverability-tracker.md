@@ -135,8 +135,8 @@ the work without further orientation.
 | WA8 | done | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md` ([v0.5.0] heading), `docs/modules/index.md` (Machine-readable surface section), git tag `v0.5.0` (local; not pushed) |
 | WB1 | done | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/m_cli/doc/{cli,lookup,format}.py` (new+rewrite), `~/projects/m-cli/tests/test_cli_doc_lookup.py` (new), m-cli commit `0024a72` pushed |
 | WB2 | done | WB | 2 | m-cli | `m doc --json` and `m doc --short` flags | WB1 | 0.5d | `--json` emits the raw manifest entry; `--short` emits one-line synopsis. Both stable for scripting. | § 4.1 | landed in the same commit as WB1 (`0024a72`) — `format.py` carries `format_*_short` and `format_*_json` formatters; `cli.py` wires the flags |
-| WB3 | not-started | WB | 3 | m-cli | `m search <query>` — full-text fuzzy search over manifest synopsis + description + example | WA4 | 0.5–1d | `m search "json parse"` returns ranked `module.label — synopsis` lines; matches against case-insensitive substrings in synopsis, description, examples. | § 4.2 | `~/projects/m-cli/src/cmd/search.m` (new) |
-| WB4 | not-started | WB | 4 | m-cli | `m manifest`, `m examples <module>`, `m errors` thin wrappers | WA4, WA7 | 0.5d | All three commands emit useful output piped from the manifest / errors registry. | § 4.3, § 4.4, § 4.5 | `~/projects/m-cli/src/cmd/manifest.m`, `examples.m`, `errors.m` (all new) |
+| WB3 | done | WB | 3 | m-cli | `m search <query>` — full-text fuzzy search over manifest synopsis + description + example | WA4 | 0.5–1d | `m search "json parse"` returns ranked `module.label — synopsis` lines; matches against case-insensitive substrings in synopsis, description, examples. | § 4.2 | `~/projects/m-cli/src/m_cli/doc/search.py` (new), m-cli commit `6542e73` pushed |
+| WB4 | done | WB | 4 | m-cli | `m manifest`, `m examples <module>`, `m errors` thin wrappers | WA4, WA7 | 0.5d | All three commands emit useful output piped from the manifest / errors registry. | § 4.3, § 4.4, § 4.5 | `~/projects/m-cli/src/m_cli/doc/{manifest,examples,errors}.py` (all new), m-cli commit `6542e73` pushed |
 | WC1 | not-started | WC | 1 | vscode | VS Code extension v0.1: hover, goto-def, completion driven by `dist/stdlib-manifest.json` (no LSP) | WA4 | 2–3d | Extension activates on `.m` files; hover on `^STDJSON` and `parse^STDJSON` shows synopsis + signature; goto-def jumps to `src/STDJSON.m:L`; completion suggests `^STD*` modules and labels. | § 5.1 | TBD in WC1: either new repo `~/projects/m-stdlib-vscode/` or `~/projects/m-cli/vscode/` |
 | WC2 | not-started | WC | 2 | vscode | Snippet pack for canonical patterns: STDASSERT suite skeleton, STDFIX `with` wrapper, STDLOG kv line, STDJSON parse-then-walk | WC1 | 0.5d | Typing `stdassert-suite` (etc.) in a `.m` file expands to the canonical idiom. | § 5.1 | extension repo |
 | WD1 | not-started | WD | 1 | skill | AI skill at `~/claude/skills/m-stdlib/` — `SKILL.md` + `manifest-index.md` + `patterns.md` + `error-codes.md`, generated from the manifest | WA4 | 1d | Skill files exist; `tools/gen-skill.m` regenerates them deterministically; CI fails on drift. | § 6.1 | `~/claude/skills/m-stdlib/`, `tools/gen-skill.m` (new), `.github/workflows/ci.yml` (extend) |
@@ -440,7 +440,7 @@ planning; expand them as work happens. The format is:
 
 #### WB3 — `m search <query>`
 
-**Status.** not-started.
+**Status.** done (2026-05-08; m-cli commit `6542e73` pushed to origin).
 
 **Goal.** Fuzzy search across manifest synopsis + description + examples.
 
@@ -453,13 +453,13 @@ planning; expand them as work happens. The format is:
 **Out of scope.** True fuzzy ranking (BM25, trigram). Substring is enough for v1.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08 (m-cli `6542e73`)** — Landed at `~/projects/m-cli/src/m_cli/doc/search.py` (~115 LoC). **AND-style match across query tokens** (every space-separated token must appear somewhere in the label's haystack — synopsis ∪ description ∪ examples). **Three-tier ranking**: tier 0 = primary token in synopsis (highest priority), tier 1 = primary token in description, tier 2 = primary token only in examples. Within tier, results sort by (module, label) for determinism. **`--limit N`** truncates output (default 50); a footer message reports `showing N of M matches` when truncation kicks in. Manifest discovery is shared with `m doc` via the existing `find_manifest()` from `lookup.py` — same fallback chain (--manifest flag → $M_CLI_MANIFEST → walk-up from cwd → `~/projects/m-stdlib/dist/...`). Exit codes: 0 = matches found, 1 = no matches, 2 = manifest unreachable. **End-to-end against m-stdlib v0.5.0**: `m search "URL encode"` correctly returns STDB64.urldecode + STDB64.urlencode + STDURL.encode (the first two via @example bodies that contain "URL"; STDURL.encode via synopsis). `m search "json parse"` returns 6 hits ranked by tier (STDJSON.valid + STDLOG.FORMAT in tier 0 because both labels' synopses have "json" or "JSON"; STDJSON.parse + STDJSON.parseFile + STDJSON.lastError + STDJSON.valueOf in tier 1/2). 7 unit tests in `tests/test_cli_manifest_subcommands.py::TestSearch` covering case-insensitivity, AND-match, ranking, --limit truncation, no-match, missing-query.
 
 ---
 
 #### WB4 — `m manifest`, `m examples`, `m errors`
 
-**Status.** not-started.
+**Status.** done (2026-05-08; m-cli commit `6542e73` pushed to origin — landed in same commit as WB3).
 
 **Goal.** Thin wrappers that surface the manifest's substructures directly. Plan § 4.3–4.5.
 
@@ -470,7 +470,12 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Filtering flags beyond what's already there in `m doc`.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08 (m-cli `6542e73`)** — Three sibling files under `~/projects/m-cli/src/m_cli/doc/`, each its own top-level CLI command, all sharing the manifest discovery from `lookup.py`:
+  - **`m manifest [path]`** (`manifest.py` ~80 LoC) — emits the resolved manifest as JSON. With no path → whole manifest. With `STDJSON` / `STDJSON.parse` / `modules` / `errors` / `stdlib_version` → just that subtree. Pipes cleanly into `jq`. Verified: `m manifest stdlib_version` → `"v0.5.0"`; `m manifest STDJSON.encode | jq .signature` → `$$encode^STDJSON(node)`.
+  - **`m examples [MODULE]`** (`examples.py` ~70 LoC) — walks every label's `@example` bodies and emits `module.label: <body>` lines for grep-friendliness. With a `MODULE` arg, scopes the walk to that module. Multi-line example bodies emit one prefixed line per source line. Verified: `m examples STDFMT` → `STDFMT.f: write $$f^STDFMT(...)`, `STDFMT.fn: set a("n")=...`.
+  - **`m errors`** (`errors.py` ~95 LoC) — inverted index over `@raises` tags. Reads `dist/errors.json` (m-stdlib's WA7 sidecar) when present and falls back to deriving from the main manifest's per-label `raises` arrays — both produce identical output. `--json` emits the same shape as the sidecar for scripting. Verified: `m errors` lists all 43 codes from m-stdlib v0.5.0, each with producing module + every label that raises it (e.g. `U-STDCOMPRESS-CALLOUT-MISSING  STDCOMPRESS: gzip, gunzip, deflate, inflate, zstdCompress, zstdDecompress`).
+- **17 unit tests** in `tests/test_cli_manifest_subcommands.py` covering: m manifest (full output, MODULE / MODULE.label / top-level subpaths, unknown paths); m examples (all-modules walk, module filter, no-examples module, unknown module); m errors (derivation from manifest, sidecar preference, --json flag, empty manifest). Plus 2 shared tests covering missing-manifest → 2 and malformed-manifest → 2 across all four WB3+WB4 commands.
+- **Wave B status: ALL DONE — WB1+WB2+WB3+WB4 = 4/4 rows.** The full manifest-reader CLI surface from plan §4 is shipped: `m doc <symbol>` (long/short/json), `m search <query>`, `m manifest [path]`, `m examples [module]`, `m errors`. Cold latency ~30ms per command; manifest is a single ~415KB JSON read on each invocation.
 
 ---
 
