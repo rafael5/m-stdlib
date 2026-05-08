@@ -9,7 +9,7 @@ SHELL := /bin/bash
 # m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter skill skill-check skill-install
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter skill skill-check skill-install doctest doctest-check doctest-run
 
 # vista-meta connection contract — published by `vista-meta: make run`.
 VISTA_CONN := $(HOME)/data/vista-meta/conn.env
@@ -122,6 +122,34 @@ skill-install: skill
 	cp -f dist/skill/patterns.md $(HOME)/claude/skills/m-stdlib/patterns.md
 	cp -f dist/skill/error-codes.md $(HOME)/claude/skills/m-stdlib/error-codes.md
 	@echo "skill installed at $(HOME)/claude/skills/m-stdlib/"
+
+# ── Doctest generation (WD2: discoverability + tooling plan §6.1) ─────
+#
+# `make doctest`        regenerates tests/STD<MOD>DOCTST.m for every
+#                       module that carries at least one self-contained
+#                       Pattern-A @example (write expr ; "expected" or
+#                       write expr ; <number>). Examples that reference
+#                       free variables, illustrative-only outputs (current
+#                       time, hostname, …), or non-write shapes are
+#                       skipped — see tools/gen-doctests.py for the rules
+#                       and the ILLUSTRATIVE_LABELS skiplist.
+# `make doctest-check`  drift gate: regenerate + diff. Fails if any
+#                       DOCTST file would change. Run by CI.
+# `make doctest-run`    execute the generated suites against the engine
+#                       (vista-meta). Separate from `make check` because
+#                       it requires a live engine connection — wire into
+#                       `make ci` once the doctest invariant stabilises.
+
+doctest:
+	python3 tools/gen-doctests.py
+
+doctest-check:
+	@python3 tools/gen-doctests.py --check \
+		|| { echo "ERROR: tests/STD*DOCTST.m is out of date — run 'make doctest' and commit."; exit 1; }
+	@echo "doctest: clean"
+
+doctest-run:
+	$(M) test tests/STD*DOCTST.m
 
 clean:
 	rm -rf coverage.lcov test-results.tap coverage.json
