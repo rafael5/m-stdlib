@@ -1,6 +1,6 @@
 ---
 title: m-stdlib — master module development tracker
-status: live (2026-05-07; STDCSPRNG promoted to Table 1; T21 closed — STDSNAP complete; T20 closed — STDPROF complete; T13+T14 closed — STDFS byte-faithful I/O via $ZF→libc)
+status: live (2026-05-07; **all three Phase 3 modules green on engine** — T28 closed for STDCRYPTO 23/23 + STDCOMPRESS 55/57, T29 closed for STDHTTP 68/68; T12 closed — STDCSPRNG `$ZF→getrandom(2)` 406/406; T27a+T27b closed — STDXML XPath wildcards / attribute axis / functions / comparison predicates; **T30 open** — STDCOMPRESS/STDCRYPTO `$ECODE` channel redesign)
 audience: anyone landing or proposing a module in m-stdlib.
 authority: this file is the canonical "what's done / in flight / proposed" view. All
   module-level commits MUST update the relevant row(s) here in the same commit.
@@ -78,7 +78,7 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P2 | L12 | 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` | ~10d ✅ | none | none (future `STDREGEX_PCRE` → `$ZF → libpcre2`) | Thompson-NFA regex (no back-refs / lookaround) | n/a — Python `re`; not inner-loop |
 | P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | ~5d ✅ | none | none | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | n/a — Python `collections`; not inner-loop |
 | P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | ~5d ✅ | none | none | RFC 3986 URI parse/build/normalise/resolve | 🔮 C9 — speculative; only via future STDHTTP (P3); m-cli host uses `urllib.parse` |
-| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ + ~Xh ✅ T12 | none | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); `$ZF → getrandom(2)` for batch perf (with `/dev/urandom` soft-fall-back) | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `cs_random` callout `\|` `/dev/urandom`) | n/a — not inner-loop; m-cli does not generate tokens / session IDs / signing salts |
+| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.2.x` (on `main`, **green on engine 2026-05-07** — T12 closed) | ~1d ✅ + ~Xh ✅ T12 | T12 ✅ | STDB64 (urlencode); STDHEX (encode); STDUUID (test-only valid()); `$ZF → getrandom(2)` for batch perf (with `/dev/urandom` soft-fall-back) | Crypto random — bytes / hex / base64 / token / int / uuid4 (kernel CSPRNG via `cs_random` callout `\|` `/dev/urandom`). STDCSPRNGTST 406/406 green via `make safe-test`. | n/a — not inner-loop; m-cli does not generate tokens / session IDs / signing salts |
 | P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.2.x` shipped + `v0.3.x` byte-I/O on `main` (awaiting tag) | ~1d ✅ + ~Xh ✅ T13+T14 | none | `$ZF → libc open/read/write/close` (T13+T14 closed; pure-M text I/O still uses `$ZEOF` / `$ZLEVEL` / `$ETRAP+ZGOTO`) | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode); **readBytes / writeBytes / appendBytes / available** (byte-faithful I/O via libc callout, atomic `O_APPEND`) | n/a — Python `pathlib` / `os` / `tempfile` / `shutil` cover host side; STDFS is for M-side consumers |
 | P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T15 | none (uses `$ZTRNLNM` / `$JOB` / `$ZCMDLINE` / `ZHALT`); future-soft `$ZF → libc setenv/getcwd/gethostname` for IRIS arm | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit | n/a — Python `os` / `sys` / `subprocess` / `shlex` cover host side; STDOS is for M-side consumers |
 | P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.2.x` (on `main`, awaiting tag) | ~1d ✅ | T16 | none (pure-M; STDREGEX listed as soft dep but not used in v1) | SemVer 2.0.0 — valid / parse / compare / matches (caret / tilde / comparator AND-combination) | 🔮 C10 — speculative; only if m-cli ever grows `m install <pkg>@<range>`; today not a package manager |
@@ -93,21 +93,19 @@ for queued / proposed work. Sub-day effort shown as **Xh**.
 | P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.3.x` (on `main`, awaiting tag) | ~Xh ✅ | none | none (pure-M; `@expr` indirection in own stack frame) | Higher-order array transforms — `map` / `filter` / `reduce` via `@expr`-evaluated lambdas (`value` / `key` / `acc` locals) | n/a — Python list-comprehensions / `map` / `filter` / `functools.reduce`; not inner-loop |
 | P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.3.x` (on `main`, **green on engine 2026-05-07**) | ~2d ✅ | T28 ✅ | `$&pkg.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512. STDCRYPTOTST 23/23 green; coverage 17/17 = 100%. T28 closed via `scripts/seed-callouts.sh` automation. | 🟡 C12 — speculative P3 hookup; m-cli has no current hashing/HMAC need; queued behind T11 |
 | P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.3.x` (engine-deployed; 55/57 green) | ~3d ✅ scaffolded / ~3d migration + deploy ✅ / ~0.5d remaining (M-side $ECODE redesign — T30) | T28 done, T30 open | `$&stdcompress.<sym>` → `libz` + `libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress / available. Output via `.out` byref (1 MiB cap); errors via `$ECODE`. **Scaffolded 2026-05-07:** C shim, .xc, M wrapper, 24-label test suite, doc. **Host build verified 2026-05-07:** `// link: -lz -lzstd` directive added; libzstd-dev installed; `so/linux-x86_64/stdcompress.so` builds with all 10 entrypoints exported. **T28 engine-deployed 2026-05-07:** scp'd .so + .xc into vista-meta `~/export/seed/m-stdlib/lib/`, wired `STDLIB_LIB` + `ydb_xc_stdcompress` env vars. Engine reports as GT.M V7.0-005, which (a) rejects `.var` byref output for `$ZF`, forcing a migration `$ZF(name,…)` → `$&stdcompress.<short>(…)` in STDCOMPRESS.m (mirrors STDCRYPTO); (b) requires `int argc` prepended to every C entry point under the `$&pkg.fn` ABI, so stdcompress.c got argc-checked; (c) caps M-string length at 1 MiB, so the .xc's `[16777216]` was rejected and the buffer cap (`STDCOMPRESS_OUT_BUFSIZE`, `preallocBuf()`, .xc declarations) was lowered to 1 MiB. **Engine results: 55/57 green** — all round-trips at 0–10 KB pass for all three codecs, bytes 0x00–0xFF preservation passes, magic-byte assertions pass, default-level sentinel passes, corrupt-input rejections return falsy. **Remaining 2 failures** are the `$ECODE tagged LIBZ-FAIL` / `$ECODE tagged LIBZSTD-FAIL` contains-asserts: dispatchC/D's local `$etrap` clears `$ecode` so the dispatch can quit 0 cleanly; by the time the test reads `$ecode` it's empty. Setting `$ecode` and returning falsy from an extrinsic *while leaving `$ecode` set for the caller* is incompatible with YDB r2.02's etrap semantics. Same latent bug in STDCRYPTO's dispatch3/dispatch4. Tracked under **new ticket T30** — route U-error code through a routine-local global that the public extrinsic copies to `$ECODE` after dispatch returns, instead of `set $ecode=",U-…,"` inside the dispatch helper. ~0.5d M-side rewrite; deployment infra unaffected. | 🟡 C13 — speculative P3 hookup; m-cli has no current compression need; queued behind T11 |
-| P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` (in progress) | ~1d ✅ iter 1 / ~7-11d remaining | T29 | STDURL; `$ZF → libcurl`; A6 | HTTP/1.1 client. **Iter 1 landed:** pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`). **Iter 2 queued:** libcurl callout (`src/callouts/http.c`) + `$$get` / `$$post` / `$$request` extrinsics. | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T29 |
+| P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` (on `main`, **green on engine 2026-05-07**) | ~1d ✅ iter 1 + ~3d ✅ iter 2 / ~3-5d remaining (iter 3 IRIS arm) | T29 ✅ | STDURL; `$&stdhttp.http_perform → libcurl`; A6 | HTTP/1.1 client. **Iter 1 landed:** pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`). **Iter 2 landed (T29 close):** `src/callouts/http.c` (251 LOC libcurl shim — `http_perform` + `http_available`), `tools/std_http.xc`, `$$request` / `$$get` / `$$post` driven via XECUTE-wrapped `$&stdhttp.http_perform(…)`. Both `$$available^STDHTTP` and the internal dispatch short-circuit on `$$env^STDOS("ydb_xc_stdhttp")=""` so engines without the descriptor exported soft-fail to `resp("error")="STDHTTP-NOT-WIRED"`. **STDHTTPTST 68/68 green; 94.1% label coverage; lint 0E.** Iter 3 (IRIS arm via `%Net.HttpRequest`) queued. | 🟡 C14 — speculative P3 hookup; m-cli today uses Python `urllib` / `requests`; queued behind T29 |
 
-**Aggregate:** ~93d shipped across the 30 landed modules
-(STDCSPRNG L15 P4 + STDFS L16 P4 + STDOS L17 P4 + STDSEMVER L18 P4
-+ STDSTR L19 P4 + STDTOML L20 P4 + STDCACHE L21 P4 + STDPROF L22 P4
-+ STDSNAP L23 P4 + STDENV L24 P4 + STDXML v0+T23+T24+T25+T27v0+T27a+T27b
-L25 P4 + STDMATH L26 P4 + STDXFRM L27 P4 + **STDCRYPTO H1 P3** —
-code-complete on `main`; engine green-run pending T28); STDXML
-covers ~95% of the 12-16d envelope so ~2d of T26 remains.
-~12–18d estimated for the two remaining queued Phase 3 modules
-(STDCOMPRESS, plus STDHTTP iter 2 — STDHTTP iter 1 already landed).
-Open ToDo work (T1-T29 with T13/T14/T20/T21/T23/T24/T25/T25b/T27v0/T27a/T27b
-resolved; T11 partially closed — STDCRYPTO landed, STDHTTP iter 1
-landed; T26, T28, T29 remaining) is incremental on top of the
-shipped totals — see ToDo expansion below for per-task estimates.
+**Aggregate:** ~99d shipped across all 32 landed modules. **All three
+Phase 3 modules engine-green on `main` 2026-05-07**: STDCRYPTO H1
+(23/23, T28 closed), STDCOMPRESS H2 (55/57, T28 closed for deployment;
+2 latent `$ECODE`-tagged-message asserts pending T30 redesign),
+STDHTTP H3 iter 1+2 (68/68, T29 closed). STDXML covers ~95% of the
+12-16d envelope so ~2d of T26 (DTDs) remains; T30 (~0.5d) is the only
+new ticket and is M-side only — deployment infra unaffected. Open
+ToDo work (T1-T30 with T1-T7/T12/T13/T14/T20/T21/T23-T25b/T27v0/T27a/T27b/T28/T29
+resolved; T11 closed — all three Phase 3 modules engine-green; T26
+and T30 remaining) is incremental on top of the shipped totals — see
+ToDo expansion below for per-task estimates.
 
 **m-cli integration status — short codes** (full track names spelled
 out in `docs/parallel-tracks.md` §3.4):
@@ -897,6 +895,51 @@ Per-module label coverage 94.1%; lint clean (0E).
 **IRIS arm (iteration 3):** deferred. The `%Net.HttpRequest`
 `$CLASSMETHOD` arm shares the same M-side req/resp shape and
 lands when the IRIS portability spike unblocks behind T28.
+
+### T30 — STDCOMPRESS / STDCRYPTO `$ECODE` channel redesign
+**Modules affected:** STDCOMPRESS (H2 P3), STDCRYPTO (H1 P3).
+**Status:** open. Surfaced in commit `c41ed25` while landing T28's
+STDCOMPRESS half — STDCOMPRESSTST hits 55/57 green, with the 2
+remaining failures both being `$ECODE tagged LIBZ-FAIL` /
+`$ECODE tagged LIBZSTD-FAIL` contains-asserts on corrupt-input
+rejection paths. Same latent bug exists in STDCRYPTO's
+`dispatch3` / `dispatch4`; not yet hit because STDCRYPTOTST has no
+analogous `$ECODE` contains-assert today.
+
+**Root cause:** `dispatchC/D`'s local `$etrap` fires when the body
+explicitly `set $ecode=",U-…-FAIL,"` to communicate the failure
+class. The trap clears `$ecode` (so the dispatch can `quit 0`
+cleanly without QUITARGREQD), but by the time the test reads
+`$ecode` after the call, it's empty. Setting `$ecode` and returning
+falsy from an extrinsic *while leaving `$ecode` set for the caller*
+is incompatible with YDB r2.02's etrap semantics — any non-empty
+`$ecode` at trap exit propagates to the outer (test's) trap, which
+typically does a bare `quit` and trips QUITARGREQD inside the
+extrinsic frame.
+
+**Fix shape:** stop using `set $ecode=",U-…,"` inside the dispatch
+helper. Route the U-error code through a routine-local global
+(e.g. `^STDLIB($JOB,"stdcompress","err")`) that the public
+extrinsic copies into `$ECODE` *after* the dispatch returns, just
+before the public `quit 0`. The `set $ecode=…` then fires only the
+caller's trap (whose contract is to clear and unwind), at which
+point the test reads the global *before* any trap can clear it —
+or the public extrinsic copies into `$ECODE` and the test's
+`new $etrap set $etrap="set $ecode="""" quit ""…""` consumes it
+cleanly with a quit-with-arg.
+
+Alternative: revisit the public API contract — switch from
+`$ECODE`-by-side-effect to a byref out-param the caller checks
+explicitly (`do gzip^STDCOMPRESS(data,.out,.err)`). Larger surface
+change; defer unless the global-routing variant has its own issues.
+
+**Effort estimate:** ~0.5d M-side rewrite per module
+(STDCOMPRESS + STDCRYPTO); deployment infra unaffected.
+
+**Why it didn't ship in `c41ed25`:** discovered in the same session
+that closed T28's deployment half; the redesign is mechanical but
+big enough to deserve its own focused commit, and the 55/57 result
+is already a strong engine-verification of the deployment path.
 
 ---
 
