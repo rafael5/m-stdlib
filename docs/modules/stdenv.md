@@ -1,3 +1,16 @@
+---
+module: STDENV
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: '.env file loader with typed accessors'
+labels: ['decodeDqString', 'decodeValue', 'get', 'getBool', 'getFloat', 'getInt', 'has', 'isNumeric', 'lower', 'parse', 'parseFile', 'parsePair', 'trimWs', 'valid', 'validKey']
+errors: []
+conformance: []
+see_also: ['STDFS']
+---
+
 # `STDENV` — `.env` loader + typed accessors
 
 Parse `.env`-formatted text or files into a caller-owned tree.

@@ -1,3 +1,16 @@
+---
+module: STDSNAP
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: 'Snapshot testing: serialize an M tree, diff against a baseline'
+labels: ['asserts', 'dq', 'isNumeric', 'matches', 'qval', 'save', 'serialize']
+errors: []
+conformance: []
+see_also: ['STDASSERT', 'STDFS']
+---
+
 # `STDSNAP` — Snapshot testing
 
 Capture a deterministic dump of an M tree on the first run; on

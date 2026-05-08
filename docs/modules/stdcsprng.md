@@ -1,3 +1,16 @@
+---
+module: STDCSPRNG
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: ""
+labels: ['available', 'base64', 'bytes', 'bytesFromDevice', 'dispatchRandom', 'hex', 'int', 'token', 'useCallout', 'uuid4']
+errors: []
+conformance: []
+see_also: ['STDB64', 'STDHEX', 'STDUUID']
+---
+
 # `STDCSPRNG` — Cryptographic random
 
 Kernel-CSPRNG-backed random for security-sensitive identifiers:

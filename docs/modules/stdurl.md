@@ -1,3 +1,16 @@
+---
+module: STDURL
+tag: v0.2.0
+phase: Phase 2
+stable: stable
+since: v0.2.0
+synopsis: 'RFC 3986 URI parser, builder, encoder, resolver'
+labels: ['build', 'decode', 'encode', 'findPathStart', 'hasAuth', 'hex2dec', 'isAlpha', 'isHex', 'isUriChar', 'lower', 'mergePath', 'normPct', 'normalize', 'parse', 'parseAuth', 'pct', 'removeDots', 'resolve', 'tryScheme', 'upper', 'valid']
+errors: []
+conformance: ['tests/conformance/url/']
+see_also: ['STDHTTP']
+---
+
 # `STDURL` — RFC 3986 URI parser, builder, encoder, resolver
 
 URL splitting / re-assembly, percent-encoding, validation, syntactic

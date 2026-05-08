@@ -1,3 +1,16 @@
+---
+module: STDCACHE
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: 'LRU + TTL cache over a caller-owned local array'
+labels: ['capacity', 'clear', 'evictWhileOver', 'get', 'has', 'new', 'nowSec', 'put', 'remove', 'size']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDCACHE` — LRU + TTL cache
 
 A small, caller-owned cache: bounded by capacity (LRU eviction)

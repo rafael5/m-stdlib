@@ -1,3 +1,16 @@
+---
+module: STDSEED
+tag: v0.1.3
+phase: Phase 1b
+stable: stable
+since: v0.1.3
+synopsis: 'declarative test data loader (v0.1.3)'
+labels: ['clear', 'dispatch', 'dispatchJson', 'fileViaDie', 'load', 'loadJson', 'loaded', 'processRow', 'trim', 'tryOpen', 'validate', 'walk', 'walkJson']
+errors: []
+conformance: []
+see_also: ['STDJSON']
+---
+
 # `STDSEED` — declarative test data
 
 Loads a TSV manifest of FileMan records into the runtime environment

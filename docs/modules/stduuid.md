@@ -1,3 +1,16 @@
+---
+module: STDUUID
+tag: v0.0.1
+phase: Phase 1
+stable: stable
+since: v0.0.1
+synopsis: 'UUID v4 + v7 (RFC 4122 / RFC 9562)'
+labels: ['randomHex', 'toHex', 'unixMs', 'v4', 'v7', 'valid', 'variant', 'version']
+errors: []
+conformance: ['tests/conformance/uuid/']
+see_also: ['STDCSPRNG']
+---
+
 # `STDUUID` — UUID v4 + v7
 
 RFC-4122 / RFC-9562 compliant UUID generator. Two formats:

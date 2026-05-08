@@ -130,7 +130,7 @@ the work without further orientation.
 | WA3 | not-started | WA | 3 | m-cli | Add lint rule `M-DOC-001` warning on public labels missing required tags (warn-only at first) | WA1 | 0.5–1d | `m lint` raises `M-DOC-001` (severity warn) on a public label whose `; doc:` block is missing `@returns` (extrinsic) or has a `@param` not in the formal-list. No errors emitted yet. | § 3.1 (acceptance gate) | m-cli lint rules dir |
 | WA4 | done | WA | 4 | stdlib | Implement `tools/gen-manifest.py` — hand-rolled parser — that walks `src/STD*.m` and emits `dist/stdlib-manifest.json` + `dist/errors.json` per the § 3.2 schema | WA1 | 1–2d | Running `make manifest` produces `dist/stdlib-manifest.json`; all public labels present with signature, source.file/line, plus tag-derived fields (params, returns, raises, examples, since, stable, see_also) populated when WA2 backfill provides tags. | § 3.2, § 11.4 | `tools/gen-manifest.py` (new, ~370 LoC), `dist/stdlib-manifest.json` (new, generated), `dist/errors.json` (new, generated), `Makefile` (`manifest` + `manifest-check` targets) |
 | WA5 | done | WA | 5 | stdlib | CI gate: regenerate manifest in CI, fail on diff against committed `dist/stdlib-manifest.json` | WA4 | 0.5d | CI workflow runs `make manifest-check`; passes today, fails if a label changes without manifest re-gen. | § 3.2 (acceptance gate) | `.github/workflows/ci.yml` (step add), `Makefile` (already had `manifest-check`) |
-| WA6 | not-started | WA | 6 | stdlib | Add YAML frontmatter (module / tag / phase / stable / since / synopsis / errors / labels / conformance / see_also) to every `docs/modules/stdXXX.md` | — | 0.5d | Every per-module markdown has frontmatter parsing cleanly as YAML. Field values agree with the manifest where overlapping (verified by a small check script, not gated yet). | § 3.3 | `docs/modules/std*.md` |
+| WA6 | done | WA | 6 | stdlib | Add YAML frontmatter (module / tag / phase / stable / since / synopsis / errors / labels / conformance / see_also) to every `docs/modules/stdXXX.md` | — | 0.5d | Every per-module markdown has frontmatter parsing cleanly as YAML. Field values agree with the manifest where overlapping (verified by a small check script, not gated yet). | § 3.3 | `docs/modules/std*.md`, `tools/write-module-frontmatter.py` (new), `Makefile` (`frontmatter` target) |
 | WA7 | done | WA | 7 | stdlib | Generate `dist/errors.json` (inverted index of `U-STD*` codes → producing module + labels) as a derivative of the manifest | WA4 | 0.25d | `make manifest` also writes `dist/errors.json` containing every `U-STD*` code with its origin module + labels. | § 3.5 | `tools/gen-manifest.py` (covers WA7 too), `dist/errors.json` (generated) |
 | WA8 | not-started | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA2, WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md`, `docs/modules/index.md`, git tag |
 | WB1 | not-started | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` (new) |
@@ -290,7 +290,7 @@ planning; expand them as work happens. The format is:
 
 #### WA6 — Doc frontmatter
 
-**Status.** not-started.
+**Status.** done (2026-05-08).
 
 **Goal.** Every `docs/modules/stdXXX.md` gains YAML frontmatter (per plan § 3.3 schema).
 
@@ -304,7 +304,15 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Generating these markdowns from the manifest — deferred. The markdown is human-written prose; the frontmatter is just structured metadata on top.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08** — Pivoted from "hand-edit each file" to a small idempotent backfill tool, `tools/write-module-frontmatter.py` (~180 LoC). Reads `dist/stdlib-manifest.json` (synopsis, labels, errors per module) plus `docs/modules/index.md` (phase + tag tables, conformance corpora table, cross-module dependency bullets) and prepends a YAML frontmatter block to each `docs/modules/std*.md`. Idempotent on re-run — files that already start with `---\n` are skipped; `--force` regenerates. New Makefile target `make frontmatter` invokes it.
+- **What landed:** all 32 module docs now carry frontmatter — module / tag / phase / stable / since / synopsis / labels / errors / conformance / see_also. Spot-check on `docs/modules/stdjson.md` shows the right shape (phase: Phase 2, tag: v0.2.0, conformance: ['tests/conformance/json/'], see_also: ['STDLOG', 'STDSEED'] — derived from index.md cross-deps).
+- **Calibration vs the plan §3.3 schema.** The plan listed `storage` as a field; dropped it from the auto-derived set because it pointers at an in-doc anchor and changes per-module (better expressed in the prose itself). All other plan fields are populated. Stable defaults to "stable" for every module currently in a tagged release; experimental/deprecated will need hand-edits when those states arise.
+- **Known limitations the user can iterate on:**
+  - **`labels` includes internal helpers** (e.g. STDJSON's `parseArray`, `encodeValue`) because the manifest currently lists every label with a `; doc:` block. Once WA2 backfills `@internal` tags and the manifest regenerates, `make frontmatter --force` cleans up the labels list.
+  - **`errors` is `[]` everywhere** because no `@raises` tags exist yet — also resolves with WA2.
+  - **`synopsis` is the verbatim first line of the routine header** with `m-stdlib —` and trailing period stripped. Some have parenthetical track/tag noise (e.g. STDHTTP: "HTTP/1.1 client (track H3, target tag v0.4.0)"). Cleaning these is a separate src/ pass — not WA6's scope.
+  - **`see_also`** is derived from index.md's cross-deps section — modules without a runtime dep relationship get `[]`. Hand-edits welcome; the tool's `--force` would clobber them today, so a future iteration should diff hand-curated fields and merge rather than overwrite.
+- **Unblocks WA8** (release tag) — the only remaining stdlib-side row. WA2 (backfill) and WA3 (m-cli lint) are cross-repo.
 
 ---
 

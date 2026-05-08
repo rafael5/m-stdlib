@@ -1,3 +1,16 @@
+---
+module: STDMOCK
+tag: v0.1.2
+phase: Phase 1b
+stable: stable
+since: v0.1.2
+synopsis: 'opt-in test-time call interception (mock registry)'
+labels: ['args', 'called', 'clear', 'invoke', 'register', 'resolve', 'unregister']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDMOCK` — opt-in test-time call interception
 
 A small mock registry for unit-testing M code that needs to redirect

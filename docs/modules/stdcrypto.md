@@ -1,3 +1,16 @@
+---
+module: STDCRYPTO
+tag: v0.4.0
+phase: Phase 3 + post-P4 wave
+stable: stable
+since: v0.4.0
+synopsis: ""
+labels: ['available', 'dispatch3', 'dispatch4', 'hmacSha256', 'sha256', 'sha256Bytes', 'sha384', 'sha512', 'shaLen', 'zeros']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDCRYPTO` — Cryptographic digests + HMAC
 
 SHA-2 digest family and HMAC-SHA-2 message authentication, bound via

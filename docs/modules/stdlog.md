@@ -1,3 +1,16 @@
+---
+module: STDLOG
+tag: v0.0.4
+phase: Phase 1
+stable: stable
+since: v0.0.4
+synopsis: 'structured key=value logger (v0.0.4)'
+labels: ['DEBUG', 'ERROR', 'FATAL', 'FORMAT', 'INFO', 'LEVEL', 'SINK', 'WARN', 'collect', 'emitJson', 'emitLine', 'escape', 'kvVal', 'levelNum', 'needsQuote', 'replace', 'writeLine']
+errors: []
+conformance: []
+see_also: ['STDDATE', 'STDJSON']
+---
+
 # `STDLOG` — structured key=value logger
 
 A small, dependency-free structured logger. Emits one line per record in

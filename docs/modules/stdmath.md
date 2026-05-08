@@ -1,3 +1,16 @@
+---
+module: STDMATH
+tag: v0.4.0
+phase: Phase 3 + post-P4 wave
+stable: stable
+since: v0.4.0
+synopsis: 'Numeric helpers (clamp / min / max / sum / count / mean over arrays)'
+labels: ['clamp', 'count', 'max', 'mean', 'min', 'sum']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDMATH` — Numeric helpers
 
 A small set of numeric primitives for the cases M's native arithmetic

@@ -1,3 +1,16 @@
+---
+module: STDARGS
+tag: v0.0.7
+phase: Phase 1
+stable: stable
+since: v0.0.7
+synopsis: 'argparse (v0.0.7)'
+labels: ['addflag', 'addpos', 'addsub', 'assignPositional', 'checkPositionals', 'free', 'handleLong', 'handleShort', 'help', 'initDefaults', 'new', 'parse', 'raise', 'tokenize', 'walk']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDARGS` — argparse
 
 A small argument parser for M command-line scripts. Long flags

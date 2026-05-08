@@ -1,3 +1,16 @@
+---
+module: STDSTR
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: 'String helpers (pad / trim / split / replaceAll / case / repeat)'
+labels: ['endsWith', 'pad', 'padLeft', 'padRight', 'repeat', 'replaceAll', 'split', 'startsWith', 'toLowerASCII', 'toUpperASCII', 'trim', 'trimLeft', 'trimRight']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDSTR` — String helpers
 
 A small set of string-manipulation primitives that show up

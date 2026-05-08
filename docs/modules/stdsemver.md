@@ -1,3 +1,16 @@
+---
+module: STDSEMVER
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: ""
+labels: ['build', 'compare', 'comparePreId', 'comparePrerelease', 'major', 'matches', 'matchesCaret', 'matchesOne', 'parse', 'prerelease', 'valid', 'validBuild', 'validBuildId', 'validNumericId', 'validPreId', 'validPrerelease', 'validTriple']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDSEMVER` — SemVer 2.0.0
 
 Parse, compare, and range-match Semantic Versioning 2.0.0 strings.

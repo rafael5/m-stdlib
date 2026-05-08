@@ -1,3 +1,16 @@
+---
+module: STDCOMPRESS
+tag: v0.4.0
+phase: Phase 3 + post-P4 wave
+stable: stable
+since: v0.4.0
+synopsis: ""
+labels: ['available', 'deflate', 'dispatchC', 'dispatchD', 'gunzip', 'gzip', 'inflate', 'libzLevel', 'preallocBuf', 'zstdCompress', 'zstdDecompress', 'zstdLevel']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDCOMPRESS` — gzip / deflate / zstd compression
 
 First Phase 3 (`$ZF`-bound) m-stdlib module. Wraps `libz` for the

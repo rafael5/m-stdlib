@@ -1,3 +1,16 @@
+---
+module: STDTOML
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: 'TOML 1.0 parser (deliberately narrow v1 subset)'
+labels: ['decodeFloat', 'decodeInteger', 'decodeString', 'decodeValue', 'get', 'parse', 'parsePair', 'parseTable', 'stripTrailingComment', 'trimWs', 'type', 'valid', 'validBareKey']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDTOML` — TOML 1.0 (subset)
 
 A deliberately narrow TOML parser for per-project config files.

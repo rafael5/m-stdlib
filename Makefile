@@ -9,7 +9,7 @@ SHELL := /bin/bash
 # m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter
 
 # vista-meta connection contract — published by `vista-meta: make run`.
 VISTA_CONN := $(HOME)/data/vista-meta/conn.env
@@ -86,6 +86,13 @@ manifest-check: manifest
 	@git diff --exit-code dist/stdlib-manifest.json dist/errors.json \
 		|| { echo "ERROR: dist/ manifest is out of date — run 'make manifest' and commit."; exit 1; }
 	@echo "manifest: clean"
+
+# `make frontmatter` re-syncs YAML frontmatter on every docs/modules/std*.md
+# from the manifest + index.md (WA6). Idempotent — files that already carry
+# frontmatter are skipped. Use `--force` to overwrite (e.g. after WA2 backfill
+# adds @raises tags and the errors / labels lists need refreshing).
+frontmatter:
+	python3 tools/write-module-frontmatter.py
 
 clean:
 	rm -rf coverage.lcov test-results.tap coverage.json

@@ -1,3 +1,16 @@
+---
+module: STDCSV
+tag: v0.0.6
+phase: Phase 1
+stable: stable
+since: v0.0.6
+synopsis: 'RFC-4180 CSV parser/writer (pure-M)'
+labels: ['dq', 'emit', 'parse', 'parseFile', 'write', 'writeFile']
+errors: []
+conformance: ['tests/conformance/csv/']
+see_also: []
+---
+
 # `STDCSV` — RFC-4180 CSV
 
 CSV parsing and serialisation per

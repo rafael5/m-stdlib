@@ -1,3 +1,16 @@
+---
+module: STDHTTP
+tag: v0.4.0
+phase: Phase 3 + post-P4 wave
+stable: stable
+since: v0.4.0
+synopsis: 'HTTP/1.1 client (track H3, target tag v0.4.0)'
+labels: ['available', 'buildRequest', 'dispatchPerform', 'formatHeaders', 'get', 'lower', 'parseHeader', 'parseHeaderStream', 'parseResponse', 'parseStatusLine', 'post', 'preallocBuf', 'request', 'requestHeaderBlock']
+errors: []
+conformance: []
+see_also: ['STDURL']
+---
+
 # `STDHTTP` — HTTP/1.1 client (libcurl callout)
 
 HTTP/1.1 + HTTPS client for m-stdlib. Track **H3**, target tag `v0.4.0`

@@ -1,3 +1,16 @@
+---
+module: STDDATE
+tag: v0.0.5
+phase: Phase 1
+stable: stable
+since: v0.0.5
+synopsis: 'ISO-8601 datetime + arithmetic (v0.0.5)'
+labels: ['add', 'civilFromDays', 'civilToDays', 'dayOfYear', 'daysInMonth', 'diff', 'fmtDate', 'fmtTime', 'fmtTzColon', 'fmtTzCompact', 'fromh', 'isLeap', 'now', 'padL', 'parseFrac', 'parseTz', 'strftime', 'strptime', 'toh', 'validDate']
+errors: []
+conformance: []
+see_also: ['STDLOG']
+---
+
 # `STDDATE` — ISO-8601 datetime + duration arithmetic
 
 ISO-8601 date/time formatting and parsing, plus calendar

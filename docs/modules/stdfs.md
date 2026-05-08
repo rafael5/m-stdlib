@@ -1,3 +1,16 @@
+---
+module: STDFS
+tag: v0.3.0
+phase: P4 wave
+stable: stable
+since: v0.3.0
+synopsis: 'File-system primitives (text I/O, path manipulation, bytes)'
+labels: ['append', 'appendBytes', 'available', 'basename', 'dirname', 'dispatch2', 'dispatchRead', 'exists', 'existsRet', 'join', 'lasterror', 'preallocBuf', 'readBytes', 'readFile', 'readLines', 'remove', 'size', 'writeBytes', 'writeFile', 'writeLines']
+errors: []
+conformance: []
+see_also: ['STDENV', 'STDSNAP']
+---
+
 # `STDFS` — File-system primitives
 
 Read / write / append / exists / remove / size on regular text

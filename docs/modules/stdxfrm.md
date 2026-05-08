@@ -1,3 +1,16 @@
+---
+module: STDXFRM
+tag: v0.4.0
+phase: Phase 3 + post-P4 wave
+stable: stable
+since: v0.4.0
+synopsis: 'Higher-order array transforms (map / filter / reduce via @-indirection lambdas)'
+labels: ['filter', 'map', 'reduce']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDXFRM` — `map` / `filter` / `reduce` over caller-owned arrays
 
 A small higher-order-function trio that modernises the standard

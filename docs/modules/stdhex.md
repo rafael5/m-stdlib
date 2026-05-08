@@ -1,3 +1,16 @@
+---
+module: STDHEX
+tag: v0.0.2
+phase: Phase 1
+stable: stable
+since: v0.0.2
+synopsis: 'RFC-4648 §8 hex encoding (lowercase by default)'
+labels: ['alpha', 'alphaU', 'decode', 'encode', 'encodeImpl', 'encodeu', 'valid']
+errors: []
+conformance: []
+see_also: ['STDCSPRNG']
+---
+
 # `STDHEX` — RFC-4648 §8 hex encoding
 
 Hex (base-16) encoding and decoding. Lowercase by default;

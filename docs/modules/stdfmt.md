@@ -1,3 +1,16 @@
+---
+module: STDFMT
+tag: v0.0.3
+phase: Phase 1
+stable: stable
+since: v0.0.3
+synopsis: 'printf-style formatter (subset of Python str.format)'
+labels: ['apply', 'convert', 'expand', 'f', 'fn', 'lookup', 'pad', 'parseSpec', 'raise', 'render', 'repeat', 'toBase']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDFMT` — printf-style formatter
 
 A subset of Python's `str.format`: positional and named placeholders,

@@ -1,3 +1,16 @@
+---
+module: STDFIX
+tag: v0.1.1
+phase: Phase 1b
+stable: stable
+since: v0.1.1
+synopsis: 'fixture lifecycle and per-test isolation'
+labels: ['active', 'cleanup', 'invoke', 'register', 'with']
+errors: []
+conformance: []
+see_also: []
+---
+
 # `STDFIX` — fixture lifecycle and per-test isolation
 
 Pure-M test-isolation primitive built on YDB nested transactions:

@@ -1,3 +1,16 @@
+---
+module: STDB64
+tag: v0.0.2
+phase: Phase 1
+stable: stable
+since: v0.0.2
+synopsis: 'RFC-4648 Base64 (standard + URL-safe)'
+labels: ['alpha', 'decode', 'decodeImpl', 'encode', 'encodeImpl', 'urlAlpha', 'urldecode', 'urlencode', 'valid']
+errors: []
+conformance: ['tests/conformance/b64/']
+see_also: ['STDCSPRNG']
+---
+
 # `STDB64` — RFC-4648 Base64
 
 Base64 encoding and decoding for the standard alphabet (RFC-4648 §4)

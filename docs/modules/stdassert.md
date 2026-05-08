@@ -1,3 +1,16 @@
+---
+module: STDASSERT
+tag: v0.0.1
+phase: Phase 1
+stable: stable
+since: v0.0.1
+synopsis: ""
+labels: ['contains', 'eq', 'false', 'len', 'ne', 'near', 'quote', 'raises', 'raisesUnwound', 'recordFail', 'recordPass', 'report', 'silent', 'start', 'true']
+errors: []
+conformance: []
+see_also: ['STDSNAP']
+---
+
 # `STDASSERT` — assertion library
 
 The cornerstone of every test suite in m-stdlib (and the recommended
