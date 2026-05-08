@@ -84,38 +84,75 @@ STDCRYPTO       ; m-stdlib — Cryptographic digests via $&stdcrypto → libcryp
         ; ---------- public API: SHA digests ----------
         ;
 sha256(data)    ; 64-char lowercase hex SHA-256 digest of data.
-        ; doc: data is treated as a byte string (one M character per byte —
-        ; doc: values 0..255). Empty input returns the well-known SHA-256
-        ; doc: digest of the empty string (e3b0c442...).
-        ; doc: Sets $ECODE=,U-STDCRYPTO-CALLOUT-MISSING, if std_crypto
-        ; doc: package is not loaded; ,U-STDCRYPTO-DIGEST-FAIL, if libcrypto
-        ; doc: itself reports failure.
-        ; doc: Example: write $$sha256^STDCRYPTO("abc")  ; "ba7816bf..."
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @returns       string       64-char lowercase hex digest
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto package not loaded
+        ; doc: @raises        U-STDCRYPTO-DIGEST-FAIL      libcrypto reported failure
+        ; doc: @example       write $$sha256^STDCRYPTO("abc")  ; "ba7816bf..."
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha384^STDCRYPTO, $$sha512^STDCRYPTO, $$sha256Bytes^STDCRYPTO
         quit $$encode^STDHEX($$sha256Bytes(data))
         ;
 sha384(data)    ; 96-char lowercase hex SHA-384 digest of data.
-        ; doc: See sha256(); same contract, 48-byte digest hex-encoded.
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @returns       string       96-char lowercase hex digest
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-DIGEST-FAIL      libcrypto reported failure
+        ; doc: @example       write $$sha384^STDCRYPTO("abc")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha256^STDCRYPTO, $$sha512^STDCRYPTO
         quit $$encode^STDHEX($$sha384Bytes(data))
         ;
 sha512(data)    ; 128-char lowercase hex SHA-512 digest of data.
-        ; doc: See sha256(); same contract, 64-byte digest hex-encoded.
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @returns       string       128-char lowercase hex digest
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-DIGEST-FAIL      libcrypto reported failure
+        ; doc: @example       write $$sha512^STDCRYPTO("abc")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha256^STDCRYPTO, $$sha384^STDCRYPTO
         quit $$encode^STDHEX($$sha512Bytes(data))
         ;
 sha256Bytes(data)       ; 32 raw bytes — SHA-256 digest of data.
-        ; doc: Use this when you need to feed the digest into another binary
-        ; doc: pipeline; otherwise sha256() is more convenient.
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @returns       byte-string  32 raw bytes
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-DIGEST-FAIL      libcrypto reported failure
+        ; doc: @example       set d=$$sha256Bytes^STDCRYPTO("abc")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha256^STDCRYPTO, $$sha384Bytes^STDCRYPTO
         new out
         set out=$$zeros($$shaLen("sha256"))
         if '$$dispatch3("sha256",data,.out,1) quit ""
         quit out
         ;
 sha384Bytes(data)       ; 48 raw bytes — SHA-384 digest of data.
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @returns       byte-string  48 raw bytes
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-DIGEST-FAIL      libcrypto reported failure
+        ; doc: @example       set d=$$sha384Bytes^STDCRYPTO("abc")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha384^STDCRYPTO
         new out
         set out=$$zeros($$shaLen("sha384"))
         if '$$dispatch3("sha384",data,.out,1) quit ""
         quit out
         ;
 sha512Bytes(data)       ; 64 raw bytes — SHA-512 digest of data.
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @returns       byte-string  64 raw bytes
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-DIGEST-FAIL      libcrypto reported failure
+        ; doc: @example       set d=$$sha512Bytes^STDCRYPTO("abc")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha512^STDCRYPTO
         new out
         set out=$$zeros($$shaLen("sha512"))
         if '$$dispatch3("sha512",data,.out,1) quit ""
@@ -124,33 +161,76 @@ sha512Bytes(data)       ; 64 raw bytes — SHA-512 digest of data.
         ; ---------- public API: HMAC ----------
         ;
 hmacSha256(key,msg)     ; 64-char lowercase hex HMAC-SHA-256 of msg under key.
-        ; doc: key may be any length (longer than the SHA-256 block size of
-        ; doc: 64 bytes is fine — RFC 2104 specifies hashing the key down).
-        ; doc: Empty key is technically permitted by RFC 2104 and produces
-        ; doc: a deterministic result; do not rely on it for security.
-        ; doc: Example:
-        ; doc: write $$hmacSha256^STDCRYPTO("Jefe","what do ya want for nothing?")
+        ; doc: @param key     byte-string  HMAC key (any length per RFC 2104)
+        ; doc: @param msg     byte-string  message to authenticate
+        ; doc: @returns       string       64-char lowercase hex MAC
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-HMAC-FAIL        libcrypto reported failure
+        ; doc: @example       write $$hmacSha256^STDCRYPTO("Jefe","what do ya want for nothing?")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hmacSha384^STDCRYPTO, $$hmacSha512^STDCRYPTO
         quit $$encode^STDHEX($$hmacSha256Bytes(key,msg))
         ;
 hmacSha384(key,msg)     ; 96-char lowercase hex HMAC-SHA-384.
+        ; doc: @param key     byte-string  HMAC key
+        ; doc: @param msg     byte-string  message to authenticate
+        ; doc: @returns       string       96-char lowercase hex MAC
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-HMAC-FAIL        libcrypto reported failure
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hmacSha256^STDCRYPTO, $$hmacSha512^STDCRYPTO
         quit $$encode^STDHEX($$hmacSha384Bytes(key,msg))
         ;
 hmacSha512(key,msg)     ; 128-char lowercase hex HMAC-SHA-512.
+        ; doc: @param key     byte-string  HMAC key
+        ; doc: @param msg     byte-string  message to authenticate
+        ; doc: @returns       string       128-char lowercase hex MAC
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-HMAC-FAIL        libcrypto reported failure
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hmacSha256^STDCRYPTO, $$hmacSha384^STDCRYPTO
         quit $$encode^STDHEX($$hmacSha512Bytes(key,msg))
         ;
 hmacSha256Bytes(key,msg)        ; 32 raw bytes — HMAC-SHA-256.
+        ; doc: @param key     byte-string  HMAC key
+        ; doc: @param msg     byte-string  message to authenticate
+        ; doc: @returns       byte-string  32 raw bytes
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-HMAC-FAIL        libcrypto reported failure
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hmacSha256^STDCRYPTO
         new out
         set out=$$zeros($$shaLen("sha256"))
         if '$$dispatch4("hmacSha256",key,msg,.out) quit ""
         quit out
         ;
 hmacSha384Bytes(key,msg)        ; 48 raw bytes — HMAC-SHA-384.
+        ; doc: @param key     byte-string  HMAC key
+        ; doc: @param msg     byte-string  message
+        ; doc: @returns       byte-string  48 raw bytes
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-HMAC-FAIL        libcrypto reported failure
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hmacSha384^STDCRYPTO
         new out
         set out=$$zeros($$shaLen("sha384"))
         if '$$dispatch4("hmacSha384",key,msg,.out) quit ""
         quit out
         ;
 hmacSha512Bytes(key,msg)        ; 64 raw bytes — HMAC-SHA-512.
+        ; doc: @param key     byte-string  HMAC key
+        ; doc: @param msg     byte-string  message
+        ; doc: @returns       byte-string  64 raw bytes
+        ; doc: @raises        U-STDCRYPTO-CALLOUT-MISSING  std_crypto not loaded
+        ; doc: @raises        U-STDCRYPTO-HMAC-FAIL        libcrypto reported failure
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hmacSha512^STDCRYPTO
         new out
         set out=$$zeros($$shaLen("sha512"))
         if '$$dispatch4("hmacSha512",key,msg,.out) quit ""
@@ -159,9 +239,12 @@ hmacSha512Bytes(key,msg)        ; 64 raw bytes — HMAC-SHA-512.
         ; ---------- public API: probe ----------
         ;
 available()     ; 1 iff std_crypto callout is loaded and resolves.
-        ; doc: Pre-flight probe — never raises. Use to gate code that needs
-        ; doc: cryptographic primitives before any sensitive operation.
-        ; doc: Example: if '$$available^STDCRYPTO() s $ec=",U-MYAPP-NO-CRYPTO,"
+        ; doc: @returns       bool    1 iff std_crypto callout is loaded and produces a digest
+        ; doc: @example       if '$$available^STDCRYPTO() s $ec=",U-MYAPP-NO-CRYPTO,"
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sha256^STDCRYPTO
+        ; doc: Pre-flight probe — never raises.
         new ok,probe
         set ok=0
         set probe=$$sha256Bytes("")
@@ -172,7 +255,8 @@ available()     ; 1 iff std_crypto callout is loaded and resolves.
         ; ---------- internal helpers ----------
         ;
 shaLen(name)    ; Digest size in bytes for the named algorithm.
-        ; doc: Internal — keeps the magic-number table out of the call sites.
+        ; doc: @internal
+        ; doc: Keeps the magic-number table out of the call sites.
         if name="sha256" quit 32
         if name="sha384" quit 48
         if name="sha512" quit 64
@@ -180,10 +264,9 @@ shaLen(name)    ; Digest size in bytes for the named algorithm.
         quit 0
         ;
 dispatch3(sym,inp,out,isDigest) ; Invoke $&stdcrypto.<sym>(inp,.out).
-        ; doc: Internal — wraps $& in an XECUTE'd command string so
-        ; doc: tree-sitter-m doesn't trip on the $&pkg.fn syntax.
-        ; doc: Returns 1 on success, 0 on failure with $ECODE set.
-        ; doc: isDigest selects the failure error code.
+        ; doc: @internal
+        ; doc: Wraps $& in an XECUTE'd command string. Returns 1 on
+        ; doc: success, 0 on failure with $ECODE set.
         new $etrap,rc,cmd
         set $etrap="set $ecode="""" set rc=-1 quit -1"
         set rc=0
@@ -196,7 +279,8 @@ dispatch3(sym,inp,out,isDigest) ; Invoke $&stdcrypto.<sym>(inp,.out).
         quit 0
         ;
 dispatch4(sym,key,msg,out)      ; Invoke $&stdcrypto.<sym>(key,msg,.out).
-        ; doc: Internal — same XECUTE-wrap rationale as dispatch3.
+        ; doc: @internal
+        ; doc: Same XECUTE-wrap rationale as dispatch3.
         new $etrap,rc,cmd
         set $etrap="set $ecode="""" set rc=-1 quit -1"
         set rc=0
@@ -208,9 +292,8 @@ dispatch4(sym,key,msg,out)      ; Invoke $&stdcrypto.<sym>(key,msg,.out).
         quit 0
         ;
 zeros(n)        ; n NUL bytes — pre-allocates the O:ydb_string_t* output.
-        ; doc: Internal — YDB callouts need the M-side string at full length
-        ; doc: before the callout writes into it; the C side updates the
-        ; doc: ydb_string_t.length to the actual digest size on return.
+        ; doc: @internal
+        ; doc: Pre-allocation for YDB callout output buffers.
         new buf,i
         set buf=""
         for i=1:1:n  set buf=buf_$char(0)

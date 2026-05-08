@@ -5,8 +5,8 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: ""
-labels: ['available', 'base64', 'bytes', 'bytesFromDevice', 'dispatchRandom', 'hex', 'int', 'token', 'useCallout', 'uuid4']
-errors: []
+labels: ['available', 'base64', 'bytes', 'hex', 'int', 'token', 'useCallout', 'uuid4']
+errors: ['U-STDCSPRNG-BAD-COUNT', 'U-STDCSPRNG-BAD-RANGE', 'U-STDCSPRNG-OPEN-FAIL']
 conformance: []
 see_also: ['STDB64', 'STDHEX', 'STDUUID']
 ---

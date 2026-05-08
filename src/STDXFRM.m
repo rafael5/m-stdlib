@@ -36,10 +36,13 @@ STDXFRM ; m-stdlib — Higher-order array transforms (map / filter / reduce via 
         ; ---------- public API ----------
         ;
 map(in,expr,out)        ; out(k) := <expr> for each k in $ORDER(in,k).
-        ; doc: Example:
-        ; doc:   new a,out  set a(1)=1,a(2)=2,a(3)=3
-        ; doc:   do map^STDXFRM(.a, "value*2", .out)
-        ; doc:   ; out(1)=2, out(2)=4, out(3)=6
+        ; doc: @param in      array   by-ref local; source array (depth 1)
+        ; doc: @param expr    string  M expression; locals `value` and `key` available
+        ; doc: @param out     array   by-ref local; killed then populated as out(k)
+        ; doc: @example       new a,out  set a(1)=1,a(2)=2,a(3)=3  do map^STDXFRM(.a,"value*2",.out)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do filter^STDXFRM, $$reduce^STDXFRM
         ; doc: Lambda locals visible to expr: `value` (in(k)) and `key` (k).
         kill out
         new k,value,key,result,cmd
@@ -52,12 +55,14 @@ map(in,expr,out)        ; out(k) := <expr> for each k in $ORDER(in,k).
         quit
         ;
 filter(in,expr,out)     ; Copy in(k)→out(k) iff <expr> is truthy.
-        ; doc: Example:
-        ; doc:   new a,out  set a(1)=5,a(2)=15,a(3)=8,a(4)=20
-        ; doc:   do filter^STDXFRM(.a, "value>10", .out)
-        ; doc:   ; out(2)=15, out(4)=20 (others dropped)
-        ; doc: Subscripts are preserved. Values are copied verbatim — the
-        ; doc: predicate result is discarded after the keep/drop decision.
+        ; doc: @param in      array   by-ref local; source array
+        ; doc: @param expr    string  M predicate expression; `value` and `key` visible
+        ; doc: @param out     array   by-ref local; killed then populated with kept entries
+        ; doc: @example       do filter^STDXFRM(.a,"value>10",.out)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do map^STDXFRM, $$reduce^STDXFRM
+        ; doc: Subscripts are preserved. Values are copied verbatim.
         kill out
         new k,value,key,keep,cmd
         set cmd="set keep="_expr
@@ -69,11 +74,14 @@ filter(in,expr,out)     ; Copy in(k)→out(k) iff <expr> is truthy.
         quit
         ;
 reduce(in,expr,init)    ; Fold left: walk in, evaluate expr with `acc`+`value`+`key`.
-        ; doc: Returns the final accumulator. Empty `in` returns `init` unchanged.
-        ; doc: Example:
-        ; doc:   new a  set a(1)=1,a(2)=2,a(3)=3,a(4)=4
-        ; doc:   write $$reduce^STDXFRM(.a, "acc+value", 0)  ; 10
-        ; doc:   write $$reduce^STDXFRM(.a, "acc*value", 1)  ; 24
+        ; doc: @param in      array   by-ref local; source array
+        ; doc: @param expr    string  M expression; locals `acc`, `value`, `key` available
+        ; doc: @param init    string  initial accumulator
+        ; doc: @returns       string  final accumulator (init if `in` is empty)
+        ; doc: @example       write $$reduce^STDXFRM(.a,"acc+value",0)  ; sum
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do map^STDXFRM, do filter^STDXFRM
         new k,value,key,acc,cmd
         set cmd="set acc="_expr
         set acc=init,k=""

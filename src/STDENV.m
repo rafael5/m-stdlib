@@ -32,9 +32,14 @@ STDENV  ; m-stdlib — .env file loader with typed accessors.
         ; ---------- public API ----------
         ;
 parse(text,env) ; Parse .env text into env tree; return 1 on success, 0 on parse error.
-        ; doc: env is by-reference; on failure, env is left in whatever
-        ; doc: partial state the parse achieved (caller may want to KILL it).
-        ; doc: Example: do  set rc=$$parse^STDENV(text,.cfg)
+        ; doc: @param text    string  .env-formatted text
+        ; doc: @param env     array   by-ref local; killed then populated as env(KEY)=value
+        ; doc: @returns       bool    1 on success; 0 on parse error
+        ; doc: @example       do  set rc=$$parse^STDENV(text,.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$parseFile^STDENV, $$valid^STDENV
+        ; doc: On failure, env is left in whatever partial state the parse achieved.
         kill env
         new n,i,line,trimmed,key,raw,value,rc
         set rc=1
@@ -49,28 +54,61 @@ parse(text,env) ; Parse .env text into env tree; return 1 on success, 0 on parse
         quit rc
         ;
 parseFile(path,env)     ; Read path via STDFS and parse the contents.
-        ; doc: Returns 0 (with $ECODE set by STDFS) if the file can't be read.
-        ; doc: Example: do  set rc=$$parseFile^STDENV(".env",.cfg)
+        ; doc: @param path    string  filesystem path to a .env file
+        ; doc: @param env     array   by-ref local; populated as env(KEY)=value
+        ; doc: @returns       bool    1 on success; 0 if file is missing or parse fails
+        ; doc: @raises        U-STDFS-OPEN-FAIL  could not read `path` (propagated from STDFS)
+        ; doc: @example       do  set rc=$$parseFile^STDENV(".env",.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$parse^STDENV
+        ; doc: A missing file returns 0 without raising; an unreadable file raises.
         new text
         if '$$exists^STDFS(path) quit 0
         set text=$$readFile^STDFS(path)
         quit $$parse(text,.env)
         ;
 valid(text)     ; Return 1 iff text is parseable as .env. Discards the result.
-        ; doc: Example: write $$valid^STDENV(".env line\nA=1")
+        ; doc: @param text    string  candidate .env text
+        ; doc: @returns       bool    1 iff parseable; 0 otherwise
+        ; doc: @example       write $$valid^STDENV(".env line\nA=1")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$parse^STDENV
         new tmp
         quit $$parse(text,.tmp)
         ;
 has(env,key)    ; Return 1 iff key is defined in env; else 0.
-        ; doc: Example: if $$has^STDENV(.cfg,"DATABASE_URL") ...
+        ; doc: @param env     array   by-ref env tree from $$parse^STDENV
+        ; doc: @param key     string  env key
+        ; doc: @returns       bool    1 iff key is defined; 0 otherwise
+        ; doc: @example       if $$has^STDENV(.cfg,"DATABASE_URL") ...
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$get^STDENV
         quit $select($data(env(key)):1,1:0)
         ;
 get(env,key,default)    ; Return env(key); else default.
-        ; doc: Example: set host=$$get^STDENV(.cfg,"HOST","localhost")
+        ; doc: @param env       array   by-ref env tree
+        ; doc: @param key       string  env key
+        ; doc: @param default   string  fallback when key is absent
+        ; doc: @returns         string  env(key) or default
+        ; doc: @example         set host=$$get^STDENV(.cfg,"HOST","localhost")
+        ; doc: @since           v0.3.0
+        ; doc: @stable          stable
+        ; doc: @see             $$getInt^STDENV, $$getBool^STDENV, $$getFloat^STDENV
         quit $get(env(key),default)
         ;
 getInt(env,key,default) ; Return env(key) coerced to integer; default if missing or non-numeric.
-        ; doc: Example: set port=$$getInt^STDENV(.cfg,"PORT",8080)
+        ; doc: @param env       array   by-ref env tree
+        ; doc: @param key       string  env key
+        ; doc: @param default   int     fallback when key is absent or non-integer
+        ; doc: @returns         int     parsed integer or default
+        ; doc: @example         set port=$$getInt^STDENV(.cfg,"PORT",8080)
+        ; doc: @since           v0.3.0
+        ; doc: @stable          stable
+        ; doc: @see             $$get^STDENV, $$getFloat^STDENV
+        ; doc: Floats and non-numeric values yield the default.
         new v
         if '$data(env(key)) quit default
         set v=env(key)
@@ -80,7 +118,14 @@ getInt(env,key,default) ; Return env(key) coerced to integer; default if missing
         quit +v
         ;
 getFloat(env,key,default)       ; Return env(key) coerced to float; default if missing or non-numeric.
-        ; doc: Example: set ratio=$$getFloat^STDENV(.cfg,"RATIO",1.0)
+        ; doc: @param env       array   by-ref env tree
+        ; doc: @param key       string  env key
+        ; doc: @param default   num     fallback when key is absent or non-numeric
+        ; doc: @returns         num     parsed float or default
+        ; doc: @example         set ratio=$$getFloat^STDENV(.cfg,"RATIO",1.0)
+        ; doc: @since           v0.3.0
+        ; doc: @stable          stable
+        ; doc: @see             $$get^STDENV, $$getInt^STDENV
         new v
         if '$data(env(key)) quit default
         set v=env(key)
@@ -89,9 +134,16 @@ getFloat(env,key,default)       ; Return env(key) coerced to float; default if m
         quit +v
         ;
 getBool(env,key,default)        ; Return env(key) interpreted as boolean; default if missing or unrecognized.
+        ; doc: @param env       array   by-ref env tree
+        ; doc: @param key       string  env key
+        ; doc: @param default   bool    fallback when key is absent or unrecognized
+        ; doc: @returns         bool    parsed boolean or default
+        ; doc: @example         set debug=$$getBool^STDENV(.cfg,"DEBUG",0)
+        ; doc: @since           v0.3.0
+        ; doc: @stable          stable
+        ; doc: @see             $$get^STDENV
         ; doc: Truthy: "true" / "yes" / "on" / "1" (case-insensitive).
         ; doc: Falsy:  "false" / "no" / "off" / "0" (case-insensitive).
-        ; doc: Example: set debug=$$getBool^STDENV(.cfg,"DEBUG",0)
         new v
         if '$data(env(key)) quit default
         set v=$$lower(env(key))
@@ -102,7 +154,8 @@ getBool(env,key,default)        ; Return env(key) interpreted as boolean; defaul
         ; ---------- internal helpers ----------
         ;
 parsePair(line,env,rc)  ; Parse a key=value line; populate env or set rc=0.
-        ; doc: Internal — called for non-blank, non-comment lines.
+        ; doc: @internal
+        ; doc: Called for non-blank, non-comment lines.
         new eq,key,raw,value
         set value=""
         set eq=$find(line,"=")
@@ -115,7 +168,8 @@ parsePair(line,env,rc)  ; Parse a key=value line; populate env or set rc=0.
         quit
         ;
 decodeValue(raw,value)  ; Strip optional surrounding quotes and (if double-quoted) decode escapes.
-        ; doc: Internal. Empty string is valid.
+        ; doc: @internal
+        ; doc: Empty string is valid.
         new first,last,inner
         if raw="" set value="" quit 1
         set first=$extract(raw,1)
@@ -126,7 +180,8 @@ decodeValue(raw,value)  ; Strip optional surrounding quotes and (if double-quote
         quit 1
         ;
 decodeDqString(raw,value)       ; Decode escapes in a stripped double-quoted value.
-        ; doc: Internal — accepts \n \t \r \" \\.
+        ; doc: @internal
+        ; doc: Accepts \n \t \r \" \\.
         new n,i,c,out,prev,ok
         set n=$length(raw),i=1,out="",ok=1
         for  quit:i>n  quit:'ok  do
@@ -147,7 +202,8 @@ decodeDqString(raw,value)       ; Decode escapes in a stripped double-quoted val
         quit 1
         ;
 validKey(s)     ; True iff s is a non-empty .env-style key.
-        ; doc: Internal — first char letter or _; subsequent letters/digits/_.
+        ; doc: @internal
+        ; doc: First char letter or _; subsequent letters/digits/_.
         new alpha,first,rest
         if s="" quit 0
         set first=$extract(s,1)
@@ -159,12 +215,14 @@ validKey(s)     ; True iff s is a non-empty .env-style key.
         quit $select($translate(rest,alpha)="":1,1:0)
         ;
 isNumeric(v)    ; True iff v is a non-empty canonical M numeric form.
-        ; doc: Internal — relies on M's `+v=v` canonicalisation.
+        ; doc: @internal
+        ; doc: Relies on M's `+v=v` canonicalisation.
         if v="" quit 0
         quit $select(+v=v:1,1:0)
         ;
 trimWs(s)       ; Strip leading and trailing space/tab.
-        ; doc: Internal — STDSTR.trim variant.
+        ; doc: @internal
+        ; doc: STDSTR.trim variant.
         new t
         set t=s
         for  quit:t=""  quit:'($extract(t,1)?1(1" ",1C))  set t=$extract(t,2,$length(t))
@@ -172,5 +230,6 @@ trimWs(s)       ; Strip leading and trailing space/tab.
         quit t
         ;
 lower(s)        ; ASCII A-Z → a-z.
-        ; doc: Internal — getBool uses this for case-insensitive matching.
+        ; doc: @internal
+        ; doc: getBool uses this for case-insensitive matching.
         quit $translate(s,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")

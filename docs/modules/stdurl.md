@@ -5,7 +5,7 @@ phase: Phase 2
 stable: stable
 since: v0.2.0
 synopsis: 'RFC 3986 URI parser, builder, encoder, resolver'
-labels: ['build', 'decode', 'encode', 'findPathStart', 'hasAuth', 'hex2dec', 'isAlpha', 'isHex', 'isUriChar', 'lower', 'mergePath', 'normPct', 'normalize', 'parse', 'parseAuth', 'pct', 'removeDots', 'resolve', 'tryScheme', 'upper', 'valid']
+labels: ['build', 'decode', 'encode', 'normalize', 'parse', 'resolve', 'valid']
 errors: []
 conformance: ['tests/conformance/url/']
 see_also: ['STDHTTP']

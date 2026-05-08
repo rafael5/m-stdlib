@@ -65,11 +65,14 @@ STDREGEX        ; m-stdlib — regular expressions (track L12, v0.2.0).
         ; ---------- public API ----------
         ;
 compile(pattern)        ; Compile pattern into a handle.
-        ; doc: Returns a positive integer; pass to match/search/find/findall/
-        ; doc: groups/replace/split/free. Sets $ECODE to U-STDREGEX-BAD-PATTERN
-        ; doc: on parse error or U-STDREGEX-UNSUPPORTED on a feature outside
-        ; doc: the v0.2.0 subset.
-        ; doc: Example: set h=$$compile^STDREGEX("\d+")
+        ; doc: @param pattern   string  regex source
+        ; doc: @returns         int     positive handle; pass to match/search/find/etc.
+        ; doc: @raises          U-STDREGEX-BAD-PATTERN  parse error
+        ; doc: @raises          U-STDREGEX-UNSUPPORTED  feature outside v0.2.0 subset
+        ; doc: @example         set h=$$compile^STDREGEX("\d+")
+        ; doc: @since           v0.2.0
+        ; doc: @stable          stable
+        ; doc: @see             $$valid^STDREGEX, do free^STDREGEX, $$match^STDREGEX
         new ast,root,err,handle,src
         set src=$get(pattern)
         set err=$$parse(src,.ast,.root)
@@ -87,7 +90,8 @@ compile(pattern)        ; Compile pattern into a handle.
         quit handle
         ;
 raise(err)      ; Raise a U-STDREGEX-<err> error code via a fresh frame.
-        ; doc: Internal — fires the caller's $ETRAP from a nested frame so
+        ; doc: @internal
+        ; doc: Fires the caller's $ETRAP from a nested frame so
         ; doc: that the trap's QUIT-with-empty-$ECODE resumes execution
         ; doc: at a known safe point in the caller (a guarded quit), not
         ; doc: in the middle of post-error cleanup.
@@ -95,46 +99,75 @@ raise(err)      ; Raise a U-STDREGEX-<err> error code via a fresh frame.
         quit
         ;
 free(h) ; Release the compiled-pattern state.
+        ; doc: @param h       int     handle from compile()
+        ; doc: @example       do free^STDREGEX(h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$compile^STDREGEX
         ; doc: Idempotent. The handle must not be reused after free().
-        ; doc: Example: do free^STDREGEX(h)
         kill ^STDLIB($job,"stdregex",h)
         quit
         ;
 valid(pattern)  ; True iff pattern parses cleanly under the v0.2.0 subset.
-        ; doc: Returns 1 for a parseable pattern, 0 otherwise. Does not
-        ; doc: distinguish BAD-PATTERN from UNSUPPORTED — compile() does.
-        ; doc: Example: write $$valid^STDREGEX("[a-z]+")  ; 1
+        ; doc: @param pattern   string  regex source
+        ; doc: @returns         bool    1 iff parseable; 0 otherwise
+        ; doc: @example         write $$valid^STDREGEX("[a-z]+")  ; 1
+        ; doc: @since           v0.2.0
+        ; doc: @stable          stable
+        ; doc: @see             $$compile^STDREGEX
+        ; doc: Does not distinguish BAD-PATTERN from UNSUPPORTED — compile() does.
         new ast,root,err
         set err=$$parse($get(pattern),.ast,.root)
         quit err=""
         ;
 match(h,s)      ; True iff the entire string s matches the pattern.
+        ; doc: @param h       int     handle from compile()
+        ; doc: @param s       string  candidate string
+        ; doc: @returns       bool    1 iff entire s matches; 0 otherwise
+        ; doc: @example       write $$match^STDREGEX(h,"42")  ; 1 if h compiled "\d+"
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$search^STDREGEX, $$find^STDREGEX
         ; doc: Anchored on both ends — equivalent to "^pattern$" semantics.
-        ; doc: Example: write $$match^STDREGEX(h,"42")  ; 1 if h compiled "\d+"
         new str,len,bestEnd
         set str=$get(s),len=$length(str)
         set bestEnd=$$attempt(h,str,1,len)
         quit (bestEnd=(len+1))
         ;
 search(h,s)     ; True iff any substring of s matches the pattern.
-        ; doc: Unanchored unless the pattern itself uses ^ or $.
-        ; doc: Example: write $$search^STDREGEX(h,"the 42 cats")  ; 1 for "\d+"
+        ; doc: @param h       int     handle from compile()
+        ; doc: @param s       string  candidate string
+        ; doc: @returns       bool    1 iff any substring matches
+        ; doc: @example       write $$search^STDREGEX(h,"the 42 cats")  ; 1 for "\d+"
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$match^STDREGEX, $$find^STDREGEX
         new str,len,p,found
         set str=$get(s),len=$length(str),found=0
         for p=1:1:len+1 set found=$$attempt(h,str,p,len)>0 quit:found
         quit found
         ;
 find(h,s)       ; 1-indexed start of the first match in s; 0 if no match.
-        ; doc: Example: write $$find^STDREGEX(h,"the 42 cats")  ; 5 for "\d+"
+        ; doc: @param h       int     handle from compile()
+        ; doc: @param s       string  candidate string
+        ; doc: @returns       int     1-based start index of first match; 0 if none
+        ; doc: @example       write $$find^STDREGEX(h,"the 42 cats")  ; 5 for "\d+"
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$findall^STDREGEX, $$search^STDREGEX
         new str,len,p,foundAt
         set str=$get(s),len=$length(str),foundAt=0
         for p=1:1:len+1 if $$attempt(h,str,p,len)>0 set foundAt=p quit
         quit foundAt
         ;
 findall(h,s,out)        ; Populate out(1..N) with every non-overlapping match text.
-        ; doc: out is by-reference. After return, $order(out("")) walks the
-        ; doc: matches in left-to-right order. Empty out if no match.
-        ; doc: Example: do findall^STDREGEX(h,"a 1 b 22",.out)
+        ; doc: @param h       int     handle from compile()
+        ; doc: @param s       string  candidate string
+        ; doc: @param out     array   by-ref local; populated as out(1..N)
+        ; doc: @example       do findall^STDREGEX(h,"a 1 b 22",.out)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$find^STDREGEX, do split^STDREGEX
         new str,len,pos,n,startPos,bestEnd
         kill out
         set str=$get(s),len=$length(str),pos=1,n=0
@@ -148,11 +181,15 @@ findall(h,s,out)        ; Populate out(1..N) with every non-overlapping match te
         quit
         ;
 groups(h,s,g)   ; Populate g(0..N) with the full match text and each capture group.
-        ; doc: g is by-reference. g(0) is the full match; g(k) for k>=1 is
-        ; doc: the k-th capture group counted by '(' position. Capture-group
-        ; doc: numbering ignores (?:...) non-capturing groups. Sets $ECODE to
-        ; doc: U-STDREGEX-NO-MATCH if pattern does not match s.
-        ; doc: Example: do groups^STDREGEX(h,"42-foo",.g)
+        ; doc: @param h       int     handle from compile()
+        ; doc: @param s       string  candidate string
+        ; doc: @param g       array   by-ref local; killed then populated as g(0..N)
+        ; doc: @raises        U-STDREGEX-NO-MATCH  pattern does not match s
+        ; doc: @example       do groups^STDREGEX(h,"42-foo",.g)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$find^STDREGEX, $$replace^STDREGEX
+        ; doc: g(0) is the full match; g(k) for k>=1 is the k-th capture group.
         new str,len,startPos,bestEnd,winCaps,k,gnum
         kill g
         set str=$get(s),len=$length(str),bestEnd=0
@@ -168,9 +205,14 @@ groups(h,s,g)   ; Populate g(0..N) with the full match text and each capture gro
         quit
         ;
 replace(h,s,repl)       ; Return s with every match replaced by repl.
-        ; doc: \1..\9 in repl are expanded to the corresponding capture group
-        ; doc: text. \\ in repl is a literal backslash.
-        ; doc: Example: write $$replace^STDREGEX(h,"x42y","[\1]")  ; "x[42]y"
+        ; doc: @param h       int     handle from compile()
+        ; doc: @param s       string  candidate string
+        ; doc: @param repl    string  replacement template (\1..\9 = capture groups; \\ = literal \)
+        ; doc: @returns       string  s with every non-overlapping match replaced
+        ; doc: @example       write $$replace^STDREGEX(h,"x42y","[\1]")  ; "x[42]y"
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$findall^STDREGEX, $$groups^STDREGEX
         new str,len,pos,result,startPos,bestEnd,winCaps
         set str=$get(s),len=$length(str),pos=1,result=""
         for  quit:pos>(len+1)  do
@@ -190,7 +232,8 @@ replace(h,s,repl)       ; Return s with every match replaced by repl.
         quit result
         ;
 expand(str,repl,caps)   ; Expand \\1..\\9 backrefs in repl using caps; \\\\ is literal.
-        ; doc: Internal — used by replace(). Unrecognised \X is treated as
+        ; doc: @internal
+        ; doc: Used by replace(). Unrecognised \X is treated as
         ; doc: a literal \X (passed through). \\\\ becomes a single \\.
         new i,c,nxt,result,gsub
         set result="",i=1
@@ -208,10 +251,15 @@ expand(str,repl,caps)   ; Expand \\1..\\9 backrefs in repl using caps; \\\\ is l
         quit result
         ;
 split(h,s,out)  ; Populate out(1..N) with the segments of s between matches.
-        ; doc: out is by-reference. Adjacent matches produce empty segments;
-        ; doc: leading/trailing matches produce a leading/trailing empty
-        ; doc: segment. Empty pattern is a parse error.
-        ; doc: Example: do split^STDREGEX(h,"a,b,c",.out)
+        ; doc: @param h       int     handle from compile() (e.g. for the separator pattern)
+        ; doc: @param s       string  candidate string
+        ; doc: @param out     array   by-ref local; killed then populated as out(1..N)
+        ; doc: @example       do split^STDREGEX(h,"a,b,c",.out)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$findall^STDREGEX
+        ; doc: Adjacent matches produce empty segments; leading/trailing matches
+        ; doc: produce leading/trailing empty segments.
         new str,len,pos,n,startPos,bestEnd
         kill out
         set str=$get(s),len=$length(str),pos=1,n=0,bestEnd=1
@@ -237,7 +285,8 @@ split(h,s,out)  ; Populate out(1..N) with the segments of s between matches.
         ;   st("err")        — "" on success; "BAD-PATTERN" or "UNSUPPORTED" on failure
         ;
 parse(pattern,ast,root) ; Parse pattern into ast(...); set root id.
-        ; doc: Internal — returns "" on success, "BAD-PATTERN" or
+        ; doc: @internal
+        ; doc: Returns "" on success, "BAD-PATTERN" or
         ; doc: "UNSUPPORTED" on failure. Does not set $ECODE; callers
         ; doc: choose whether to raise or to return a soft signal.
         new st
@@ -254,7 +303,8 @@ parse(pattern,ast,root) ; Parse pattern into ast(...); set root id.
         quit ""
         ;
 nextId(st,ast,type)     ; Allocate a fresh AST id and stamp its type.
-        ; doc: Internal — every node-builder calls this first to reserve
+        ; doc: @internal
+        ; doc: Every node-builder calls this first to reserve
         ; doc: an id, then writes its type-specific subscripts.
         new id
         set id=$increment(st("nextId"))
@@ -262,7 +312,8 @@ nextId(st,ast,type)     ; Allocate a fresh AST id and stamp its type.
         quit id
         ;
 pAlt(st,ast)    ; alt -> concat ('|' concat)*
-        ; doc: Internal — yields either the single concat node or an
+        ; doc: @internal
+        ; doc: Yields either the single concat node or an
         ; doc: alt node whose branches are the concats.
         new firstId,branches,n,id,i
         set firstId=$$pConcat(.st,.ast)
@@ -276,7 +327,8 @@ pAlt(st,ast)    ; alt -> concat ('|' concat)*
         quit id
         ;
 pConcat(st,ast) ; concat -> atomQuant*
-        ; doc: Internal — empty input is legal and yields an empty concat
+        ; doc: @internal
+        ; doc: Empty input is legal and yields an empty concat
         ; doc: (epsilon match). One element collapses to that element.
         new items,n,id,i
         set n=0
@@ -288,7 +340,8 @@ pConcat(st,ast) ; concat -> atomQuant*
         quit id
         ;
 concatStops(st)         ; True if the next byte ends the current concat sequence.
-        ; doc: Internal — concat ends at end-of-pattern, '|', or ')'.
+        ; doc: @internal
+        ; doc: Concat ends at end-of-pattern, '|', or ')'.
         new c
         if st("pos")>st("len") quit 1
         set c=$extract(st("pat"),st("pos"))
@@ -297,7 +350,8 @@ concatStops(st)         ; True if the next byte ends the current concat sequence
         quit 0
         ;
 pAtomQuant(st,ast)      ; atomQuant -> atom (quantifier)?
-        ; doc: Internal — wraps the atom in a star/plus/quest/range node
+        ; doc: @internal
+        ; doc: Wraps the atom in a star/plus/quest/range node
         ; doc: when a quantifier follows. Lazy '?' or possessive '+' after
         ; doc: a quantifier is rejected as UNSUPPORTED.
         new atomId,c,quantId
@@ -314,7 +368,8 @@ pAtomQuant(st,ast)      ; atomQuant -> atom (quantifier)?
         quit atomId
         ;
 checkLazyPoss(st)       ; Reject a trailing '?' (lazy) or '+' (possessive) modifier.
-        ; doc: Internal — v0.2.0 ships greedy quantifiers only.
+        ; doc: @internal
+        ; doc: V0.2.0 ships greedy quantifiers only.
         new c
         if st("pos")>st("len") quit
         set c=$extract(st("pat"),st("pos"))
@@ -322,7 +377,8 @@ checkLazyPoss(st)       ; Reject a trailing '?' (lazy) or '+' (possessive) modif
         quit
         ;
 pAtom(st,ast)   ; atom -> literal | '.' | '^' | '$' | escape | klass | group
-        ; doc: Internal — the unitary regex element a quantifier can attach to.
+        ; doc: @internal
+        ; doc: The unitary regex element a quantifier can attach to.
         ; doc: Stray '*' / '+' / '?' / '{' / ')' / '|' here are BAD-PATTERN.
         new c,id
         if st("pos")>st("len") set st("err")="BAD-PATTERN" quit ""
@@ -341,7 +397,8 @@ pAtom(st,ast)   ; atom -> literal | '.' | '^' | '$' | escape | klass | group
         quit id
         ;
 pEscape(st,ast) ; '\' followed by one char or short class.
-        ; doc: Internal — handles literal escapes, predefined classes,
+        ; doc: @internal
+        ; doc: Handles literal escapes, predefined classes,
         ; doc: control chars, back-refs (UNSUPPORTED), and \p / \P
         ; doc: Unicode property heads (UNSUPPORTED).
         new c,id
@@ -365,7 +422,8 @@ pEscape(st,ast) ; '\' followed by one char or short class.
         quit ""
         ;
 pClass(st,ast)  ; '[' ['^'] item+ ']'
-        ; doc: Internal — empty class '[]' is BAD-PATTERN. Items are bare
+        ; doc: @internal
+        ; doc: Empty class '[]' is BAD-PATTERN. Items are bare
         ; doc: chars, escape-class items, or 'lo-hi' ranges; reverse range
         ; doc: 'z-a' is BAD-PATTERN. Final '-' is a literal.
         new id,n,lo
@@ -383,7 +441,8 @@ pClass(st,ast)  ; '[' ['^'] item+ ']'
         quit id
         ;
 classItem(st,ast,id,n)  ; Read one class item — bare char, escape, range, or pred.
-        ; doc: Internal — handles 'a' / '\d' / 'a-z' / '\n' / '-' (literal at end).
+        ; doc: @internal
+        ; doc: Handles 'a' / '\d' / 'a-z' / '\n' / '-' (literal at end).
         new lo,c,c2
         set c=$extract(st("pat"),st("pos"))
         if c="\" do  quit
@@ -402,7 +461,8 @@ classItem(st,ast,id,n)  ; Read one class item — bare char, escape, range, or p
         quit
         ;
 classEscape(st,ast,id,n)        ; Handle a '\<x>' inside a character class.
-        ; doc: Internal — predefined classes (\d, \w, …) become "pred" items;
+        ; doc: @internal
+        ; doc: Predefined classes (\d, \w, …) become "pred" items;
         ; doc: literal escapes become "char" items (and may begin a range).
         new c,lo
         set lo=""
@@ -429,7 +489,8 @@ classEscape(st,ast,id,n)        ; Handle a '\<x>' inside a character class.
         quit
         ;
 classRangeHi(st,ast,id,n,lo)    ; Read the high end of a class range and append it.
-        ; doc: Internal — accepts a literal char or an escape-via-literal
+        ; doc: @internal
+        ; doc: Accepts a literal char or an escape-via-literal
         ; doc: form. Reverse range (lo > hi by ASCII) is BAD-PATTERN.
         new c,hi
         if st("pos")>st("len") set st("err")="BAD-PATTERN" quit
@@ -454,7 +515,8 @@ classRangeHi(st,ast,id,n,lo)    ; Read the high end of a class range and append 
         quit
         ;
 pGroup(st,ast)  ; '(' [head] alt ')'
-        ; doc: Internal — '(?:' non-capturing; '(?=' / '(?!' / '(?<=' /
+        ; doc: @internal
+        ; doc: '(?:' non-capturing; '(?=' / '(?!' / '(?<=' /
         ; doc: '(?<!' lookaround (UNSUPPORTED); '(?<' or '(?P<' named
         ; doc: capture (UNSUPPORTED); '(?[imsxn]' inline modifier
         ; doc: (UNSUPPORTED). Plain '(' is a capturing group.
@@ -485,7 +547,8 @@ pGroup(st,ast)  ; '(' [head] alt ')'
         quit id
         ;
 pRange(st,ast,atomId)   ; '{' n [',' [m]] '}' — bounded quantifier.
-        ; doc: Internal — bare '{' that isn't a valid range (no leading
+        ; doc: @internal
+        ; doc: Bare '{' that isn't a valid range (no leading
         ; doc: digit, missing '}', m<n) is BAD-PATTERN; literal '{' must
         ; doc: be escaped as '\{'.
         new c,n,m,buf,id
@@ -512,7 +575,8 @@ pRange(st,ast,atomId)   ; '{' n [',' [m]] '}' — bounded quantifier.
         quit id
         ;
 isDigit(c)      ; True iff c is one ASCII decimal digit.
-        ; doc: Internal — used by pRange for {n,m} parsing.
+        ; doc: @internal
+        ; doc: Used by pRange for {n,m} parsing.
         quit "0123456789"[c
         ;
         ; ---------- internal: NFA construction (Pass B) ----------
@@ -549,7 +613,8 @@ isDigit(c)      ; True iff c is one ASCII decimal digit.
         ;   ^STDLIB($job,"stdregex",h,"nfa","s",S,"e",E,"group") — for capStart/End
         ;
 buildNfa(h)     ; Build the NFA for handle h from its committed AST root.
-        ; doc: Internal — called by compile() once parse() has committed
+        ; doc: @internal
+        ; doc: Called by compile() once parse() has committed
         ; doc: the AST. Allocates state ids densely from 1; sets entry/exit.
         new root,frag
         set ^STDLIB($job,"stdregex",h,"nfa","next")=0
@@ -561,7 +626,8 @@ buildNfa(h)     ; Build the NFA for handle h from its committed AST root.
         quit
         ;
 newSt(h)        ; Allocate a fresh NFA state id under handle h.
-        ; doc: Internal — every fragment-builder calls this for endpoints.
+        ; doc: @internal
+        ; doc: Every fragment-builder calls this for endpoints.
         quit $increment(^STDLIB($job,"stdregex",h,"nfa","next"))
         ;
 addEps(h,s,target)      ; Append an ε-edge to state s.
@@ -627,7 +693,8 @@ addKlass(h,s,ref,target)        ; Append a character-class consume edge.
         quit
         ;
 bld(h,id,frag)  ; Compile AST node id; populate frag("entry","exit").
-        ; doc: Internal — central dispatcher. Each AST node type has a
+        ; doc: @internal
+        ; doc: Central dispatcher. Each AST node type has a
         ; doc: matching bld* helper that allocates fresh state ids and
         ; doc: writes its edges into the NFA global.
         new t
@@ -682,7 +749,8 @@ bldKlassN(h,id,frag)    ; user character class — refers back to AST items.
         quit
         ;
 bldConcat(h,id,frag)    ; A B C ... — chain fragments through ε-edges.
-        ; doc: Internal — empty concat (no children) yields a one-state
+        ; doc: @internal
+        ; doc: Empty concat (no children) yields a one-state
         ; doc: ε-fragment so callers can treat it uniformly.
         new n,i,prev,first,sub
         set n=0
@@ -749,8 +817,9 @@ bldQuest(h,id,frag)     ; A? — split entry, no loop.
         quit
         ;
 bldRange(h,id,frag)     ; {n}, {n,}, {n,m} — unrolled into n required +
-        ; doc: optional copies. Test patterns use small bounds (n<=4) so
-        ; doc: unrolling is fine; a future pass could special-case large m.
+        ; doc: @internal
+        ; doc: Optional copies. Test patterns use small bounds (n<=4)
+        ; doc: so unrolling is fine; a future pass could special-case large m.
         new childAst,n,m,i,sub,prev,e,x
         set childAst=^STDLIB($job,"stdregex",h,"ast",id,"child")
         set n=^STDLIB($job,"stdregex",h,"ast",id,"min")
@@ -821,7 +890,8 @@ bldGroup(h,id,frag)     ; (A) capturing or (?:A) non-capturing.
         ; Capture-tracking and groups() ride on top of this in Pass D.
         ;
 attempt(h,str,startPos,len)     ; Run NFA from startPos; return rightmost end pos.
-        ; doc: Internal — returns 0 if no match starts here, otherwise the
+        ; doc: @internal
+        ; doc: Returns 0 if no match starts here, otherwise the
         ; doc: 1-indexed position one past the last consumed char where the
         ; doc: accept state was reached.
         new entry,exit,active,next,closed,bestEnd,p,c,isStart,isEnd,st
@@ -847,7 +917,8 @@ attempt(h,str,startPos,len)     ; Run NFA from startPos; return rightmost end po
         quit bestEnd
         ;
 step(h,c,active,next)   ; Consume char c from each active state; populate next.
-        ; doc: Internal — only consuming edges (literal/dot/pred/klass)
+        ; doc: @internal
+        ; doc: Only consuming edges (literal/dot/pred/klass)
         ; doc: are followed here; zero-width edges are handled by epsClose.
         new st,n,i,kind,target
         set st=""
@@ -863,7 +934,8 @@ step(h,c,active,next)   ; Consume char c from each active state; populate next.
         quit
         ;
 epsClose(h,st,isStart,isEnd,close)      ; Add st + ε-reachable states to close.
-        ; doc: Internal — iterative BFS through eps / anchor / capStart /
+        ; doc: @internal
+        ; doc: Iterative BFS through eps / anchor / capStart /
         ; doc: capEnd edges. Anchor edges only pass when isStart / isEnd
         ; doc: matches the symbol. close is by-reference and may already
         ; doc: contain other states; epsClose unions in.
@@ -886,7 +958,8 @@ epsClose(h,st,isStart,isEnd,close)      ; Add st + ε-reachable states to close.
         quit
         ;
 predMatch(sym,c)        ; True iff char c satisfies predicate sym.
-        ; doc: Internal — \d/\D digit, \w/\W word (alnum + '_'),
+        ; doc: @internal
+        ; doc: \d/\D digit, \w/\W word (alnum + '_'),
         ; doc: \s/\S whitespace (space, tab, LF, CR, FF, VT).
         new code
         if c="" quit 0
@@ -900,7 +973,8 @@ predMatch(sym,c)        ; True iff char c satisfies predicate sym.
         quit 0
         ;
 klassMatch(h,id,c)      ; True iff char c matches the user character class at AST id.
-        ; doc: Internal — items live under ^...,h,"ast",id,"item",N. A
+        ; doc: @internal
+        ; doc: Items live under ^...,h,"ast",id,"item",N. A
         ; doc: char hits if any item matches; negated classes invert.
         new neg,n,kind,result,clo,chi
         if c="" quit 0
@@ -932,7 +1006,8 @@ klassMatch(h,id,c)      ; True iff char c matches the user character class at AS
         ; capture semantics for the v0.2.0 subset.
         ;
 attemptCap(h,str,startPos,len,winCaps)  ; Like attempt() but tracks captures.
-        ; doc: Internal — returns 0 on no match, otherwise the rightmost
+        ; doc: @internal
+        ; doc: Returns 0 on no match, otherwise the rightmost
         ; doc: position one past the last consumed char where the accept
         ; doc: state was reached. winCaps is by-reference and on success
         ; doc: holds (g,"s")/(g,"e") for every group plus (0,"s")/(0,"e")
@@ -970,7 +1045,8 @@ attemptCap(h,str,startPos,len,winCaps)  ; Like attempt() but tracks captures.
         quit bestEnd
         ;
 stepCap(h,c,active,next)        ; Consume char c; carry cap state forward.
-        ; doc: Internal — only consuming edges (literal/dot/pred/klass)
+        ; doc: @internal
+        ; doc: Only consuming edges (literal/dot/pred/klass)
         ; doc: are followed; first-arrival wins for next-state caps.
         new st,n,i,kind,target
         set st=""
@@ -986,7 +1062,8 @@ stepCap(h,c,active,next)        ; Consume char c; carry cap state forward.
         quit
         ;
 epsCloseCap(h,srcCaps,st,isStart,isEnd,pos,active)
-        ; doc: Internal — recursive DFS over zero-width edges in edge-index
+        ; doc: @internal
+        ; doc: Recursive DFS over zero-width edges in edge-index
         ; doc: order. First arrival at a state wins; capStart / capEnd
         ; doc: stamp pos into a fresh capture map before recursing.
         new n,i,kind,target,sym,g,newCaps

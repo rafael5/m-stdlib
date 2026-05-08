@@ -34,36 +34,57 @@ STDMOCK ; m-stdlib — opt-in test-time call interception (mock registry).
         ; ---------- public API ----------
         ;
 register(target,replacement)    ; Record a target -> replacement redirect.
-        ; doc: Procedure-form. Overwrites any prior registration for target.
-        ; doc: Example: do register^STDMOCK("EN^DIE","stub^DIETST")
+        ; doc: @param target       string  M call-site to intercept (e.g. "EN^DIE")
+        ; doc: @param replacement  string  M call-site to invoke instead
+        ; doc: @example            do register^STDMOCK("EN^DIE","stub^DIETST")
+        ; doc: @since              v0.1.2
+        ; doc: @stable             stable
+        ; doc: @see                do unregister^STDMOCK, $$resolve^STDMOCK, do invoke^STDMOCK
+        ; doc: Overwrites any prior registration for target.
         set ^STDLIB($job,"stdmock","reg",target)=replacement
         quit
         ;
 unregister(target)      ; Remove one redirect (idempotent).
-        ; doc: Procedure-form. Also drops the call count and recorded args
-        ; doc: for that target so a subsequent re-register starts fresh.
+        ; doc: @param target  string  M call-site previously register()ed
+        ; doc: @example       do unregister^STDMOCK("EN^DIE")
+        ; doc: @since         v0.1.2
+        ; doc: @stable        stable
+        ; doc: @see           do register^STDMOCK, do clear^STDMOCK
+        ; doc: Drops the call count and recorded args for that target so a
+        ; doc: subsequent re-register starts fresh.
         kill ^STDLIB($job,"stdmock","reg",target)
         kill ^STDLIB($job,"stdmock","cnt",target)
         kill ^STDLIB($job,"stdmock","arg",target)
         quit
         ;
 clear   ; Remove every redirect, counter, and recorded args list.
-        ; doc: Procedure-form. Idempotent. The m-cli test runner calls
-        ; doc: this between tests so registrations don't leak across cases.
+        ; doc: @example       do clear^STDMOCK
+        ; doc: @since         v0.1.2
+        ; doc: @stable        stable
+        ; doc: @see           do unregister^STDMOCK
+        ; doc: Idempotent. The m-cli test runner calls this between tests
+        ; doc: so registrations don't leak across cases.
         kill ^STDLIB($job,"stdmock")
         quit
         ;
 resolve(target) ; Return the replacement if registered, else target itself.
-        ; doc: Single-level lookup; chains are NOT followed. If target is
-        ; doc: registered to A and A is registered to B, $$resolve(target)
-        ; doc: returns A, not B.
-        ; doc: Example: write $$resolve^STDMOCK("EN^DIE")  ; "stub^DIETST"
+        ; doc: @param target  string  M call-site
+        ; doc: @returns       string  registered replacement; target itself if no registration
+        ; doc: @example       write $$resolve^STDMOCK("EN^DIE")  ; "stub^DIETST"
+        ; doc: @since         v0.1.2
+        ; doc: @stable        stable
+        ; doc: @see           do register^STDMOCK, do invoke^STDMOCK
+        ; doc: Single-level lookup; chains are NOT followed.
         quit $get(^STDLIB($job,"stdmock","reg",target),target)
         ;
 invoke(target,args)     ; Record this call + invoke resolve(target).
-        ; doc: Procedure-form. .args is passed by reference to the resolved
-        ; doc: target. Records the call (count + arg copy) before calling.
-        ; doc: Example: new a  set a(1)=42  do invoke^STDMOCK("LBL^ROU",.a)
+        ; doc: @param target  string  M call-site
+        ; doc: @param args    array   by-ref local; passed verbatim to the resolved target
+        ; doc: @example       new a  set a(1)=42  do invoke^STDMOCK("LBL^ROU",.a)
+        ; doc: @since         v0.1.2
+        ; doc: @stable        stable
+        ; doc: @see           $$resolve^STDMOCK, $$called^STDMOCK, $$args^STDMOCK
+        ; doc: Records the call (count + arg copy) before calling.
         new resolved,callN,key
         set resolved=$$resolve(target)
         set callN=$increment(^STDLIB($job,"stdmock","cnt",target))
@@ -75,10 +96,21 @@ invoke(target,args)     ; Record this call + invoke resolve(target).
         quit
         ;
 called(target)  ; Number of invocations for target since clear / unregister.
-        ; doc: Returns 0 for never-invoked targets.
+        ; doc: @param target  string  M call-site
+        ; doc: @returns       int     invocation count; 0 if never invoked
+        ; doc: @example       write $$called^STDMOCK("EN^DIE")  ; 3
+        ; doc: @since         v0.1.2
+        ; doc: @stable        stable
+        ; doc: @see           do invoke^STDMOCK, $$args^STDMOCK
         quit $get(^STDLIB($job,"stdmock","cnt",target),0)
         ;
 args(target,n,i)        ; Return arg i of call n for target; "" if absent.
-        ; doc: 1-indexed for both call number and argument position.
-        ; doc: Example: $$args^STDMOCK("LBL",1,2) — second arg of first call.
+        ; doc: @param target  string  M call-site
+        ; doc: @param n       int     1-based call number
+        ; doc: @param i       int     1-based argument position
+        ; doc: @returns       string  recorded arg value; "" if absent
+        ; doc: @example       $$args^STDMOCK("LBL",1,2) — second arg of first call.
+        ; doc: @since         v0.1.2
+        ; doc: @stable        stable
+        ; doc: @see           $$called^STDMOCK, do invoke^STDMOCK
         quit $get(^STDLIB($job,"stdmock","arg",target,n,i),"")

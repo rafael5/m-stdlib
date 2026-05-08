@@ -5,8 +5,8 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'File-system primitives (text I/O, path manipulation, bytes)'
-labels: ['append', 'appendBytes', 'available', 'basename', 'dirname', 'dispatch2', 'dispatchRead', 'exists', 'existsRet', 'join', 'lasterror', 'preallocBuf', 'readBytes', 'readFile', 'readLines', 'remove', 'size', 'writeBytes', 'writeFile', 'writeLines']
-errors: []
+labels: ['append', 'appendBytes', 'available', 'basename', 'dirname', 'exists', 'join', 'readBytes', 'readFile', 'readLines', 'remove', 'size', 'writeBytes', 'writeFile', 'writeLines']
+errors: ['U-STDFS-NOT-WIRED', 'U-STDFS-OPEN-FAIL', 'U-STDFS-READ-TRUNCATED', 'U-STDFS-REMOVE-FAIL']
 conformance: []
 see_also: ['STDENV', 'STDSNAP']
 ---

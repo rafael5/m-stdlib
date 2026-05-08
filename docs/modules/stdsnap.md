@@ -5,8 +5,8 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'Snapshot testing: serialize an M tree, diff against a baseline'
-labels: ['asserts', 'dq', 'isNumeric', 'matches', 'qval', 'save', 'serialize']
-errors: []
+labels: ['asserts', 'matches', 'save', 'serialize']
+errors: ['U-STDFS-OPEN-FAIL']
 conformance: []
 see_also: ['STDASSERT', 'STDFS']
 ---

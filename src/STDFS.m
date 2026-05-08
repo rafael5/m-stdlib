@@ -72,9 +72,13 @@ STDFS   ; m-stdlib — File-system primitives (text I/O, path manipulation, byte
         ; ---------- public API: path manipulation ----------
         ;
 basename(path)  ; Return the last component of path.
+        ; doc: @param path    path    POSIX path
+        ; doc: @returns       string  last path component; "/" for root; "" for empty input
+        ; doc: @example       write $$basename^STDFS("/etc/hosts")  ; "hosts"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$dirname^STDFS, $$join^STDFS
         ; doc: Trailing slash is stripped before extracting the last segment.
-        ; doc: Root path "/" returns "/"; empty path returns "".
-        ; doc: Example: write $$basename^STDFS("/etc/hosts")  ; "hosts"
         if path="" quit ""
         if path="/" quit "/"
         new p,n
@@ -85,9 +89,13 @@ basename(path)  ; Return the last component of path.
         quit $piece(p,"/",n)
         ;
 dirname(path)   ; Return the parent path (everything but the last component).
-        ; doc: No-slash inputs return ".". Root "/" returns "/". Trailing
-        ; doc: slashes are normalised first ("/foo/bar/" → "/foo").
-        ; doc: Example: write $$dirname^STDFS("/etc/hosts")  ; "/etc"
+        ; doc: @param path    path    POSIX path
+        ; doc: @returns       path    parent path; "." for no-slash input; "/" for root
+        ; doc: @example       write $$dirname^STDFS("/etc/hosts")  ; "/etc"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$basename^STDFS, $$join^STDFS
+        ; doc: Trailing slashes are normalised first ("/foo/bar/" → "/foo").
         if path="" quit "."
         if path="/" quit "/"
         new p,n,parent
@@ -100,10 +108,14 @@ dirname(path)   ; Return the parent path (everything but the last component).
         quit parent
         ;
 join(left,right)        ; POSIX path join: absolute right replaces left.
+        ; doc: @param left    path    left operand
+        ; doc: @param right   path    right operand (absolute right wins)
+        ; doc: @returns       path    joined path
+        ; doc: @example       write $$join^STDFS("/a","b")     ; "/a/b"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$dirname^STDFS, $$basename^STDFS
         ; doc: Empty operand drops out. Trailing slash on left is collapsed.
-        ; doc: Example: write $$join^STDFS("/a","b")     ; "/a/b"
-        ; doc:          write $$join^STDFS("/a","/b")    ; "/b"
-        ; doc:          write $$join^STDFS("/a/","b")    ; "/a/b"
         if right="" quit left
         if left="" quit right
         if $extract(right,1)="/" quit right
@@ -113,13 +125,16 @@ join(left,right)        ; POSIX path join: absolute right replaces left.
         ; ---------- public API: existence / metadata ----------
         ;
 exists(path)    ; Return 1 iff path exists; else 0.
+        ; doc: @param path    path    filesystem path
+        ; doc: @returns       bool    1 iff openable; 0 otherwise
+        ; doc: @example       write $$exists^STDFS("/etc/hosts")  ; 1
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$size^STDFS, $$readFile^STDFS
         ; doc: Probes via OPEN with timeout=0 inside an $ETRAP — succeeds iff
         ; doc: the path is openable. Avoids $ZSEARCH's per-process cache, so
         ; doc: a path created and removed inside one M process round-trips
-        ; doc: correctly. The trap catches YDB's hard-error on missing files
-        ; doc: (Z150379354) and unwinds via ZGOTO so the extrinsic returns
-        ; doc: cleanly — same pattern as raises^STDASSERT (TOOLCHAIN P1 fix).
-        ; doc: Example: write $$exists^STDFS("/etc/hosts")  ; 1
+        ; doc: correctly.
         new $etrap,result,lvl
         if path="" quit 0
         set result=0,lvl=$zlevel
@@ -128,14 +143,20 @@ exists(path)    ; Return 1 iff path exists; else 0.
         close path
         set result=1
 existsRet       ; Trap-resume target; reached on success fall-through too.
-        ; doc: Internal — never an external entry point.
+        ; doc: @internal
+        ; doc: Never an external entry point.
         quit result
         ;
 size(path)      ; Return size of path in bytes; -1 if missing or unreadable.
+        ; doc: @param path    path    filesystem path
+        ; doc: @returns       int     byte count; -1 if missing or unreadable
+        ; doc: @example       write $$size^STDFS(path)  ; 4096
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$exists^STDFS, $$readBytes^STDFS
         ; doc: Implemented via OPEN/READ-loop tally — does not depend on a stat
         ; doc: callout. Acceptable for routine-sized files; for multi-MB paths
         ; doc: prefer the future $ZF→stat backend.
-        ; doc: Example: write $$size^STDFS(path)  ; 4096
         if '$$exists(path) quit -1
         new total,line,prev
         set total=0,prev=$io
@@ -153,10 +174,15 @@ size(path)      ; Return size of path in bytes; -1 if missing or unreadable.
         ; ---------- public API: I/O ----------
         ;
 readFile(path)  ; Return file content as a string (lines joined by $C(10)).
+        ; doc: @param path    path    filesystem path
+        ; doc: @returns       string  file content; lines LF-separated, trailing LF dropped
+        ; doc: @raises        U-STDFS-OPEN-FAIL  path is missing or unreadable
+        ; doc: @example       set body=$$readFile^STDFS("/etc/hosts")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$writeFile^STDFS, $$readBytes^STDFS, do readLines^STDFS
         ; doc: Trailing CR on each line is dropped (CRLF normalisation).
         ; doc: A trailing LF is normalised away (round-trips with writeFile).
-        ; doc: Sets $ECODE=,U-STDFS-OPEN-FAIL, if path is missing or unreadable.
-        ; doc: Example: set body=$$readFile^STDFS("/etc/hosts")
         if '$$exists(path) set $ecode=",U-STDFS-OPEN-FAIL," quit ""
         new buf,line,prev
         set buf="",prev=$io
@@ -172,9 +198,14 @@ readFile(path)  ; Return file content as a string (lines joined by $C(10)).
         quit buf
         ;
 writeFile(path,data)    ; Write data to path (overwrite if exists).
-        ; doc: Empty data creates a zero-byte file. Sets $ECODE=,U-STDFS-OPEN-FAIL,
-        ; doc: on open failure (typically a missing parent directory).
-        ; doc: Example: do writeFile^STDFS("/tmp/out.txt","hi")
+        ; doc: @param path    path    filesystem path; truncated if exists
+        ; doc: @param data    string  text content (lines may be LF-separated)
+        ; doc: @raises        U-STDFS-OPEN-FAIL  could not open `path` for write
+        ; doc: @example       do writeFile^STDFS("/tmp/out.txt","hi")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$readFile^STDFS, do writeBytes^STDFS, do writeLines^STDFS
+        ; doc: Empty data creates a zero-byte file.
         new prev
         set prev=$io
         open path:(newversion:stream:nowrap):5  else  set $ecode=",U-STDFS-OPEN-FAIL," quit
@@ -185,15 +216,15 @@ writeFile(path,data)    ; Write data to path (overwrite if exists).
         quit
         ;
 append(path,data)       ; Append data to path; create the file if missing.
-        ; doc: Sets $ECODE=,U-STDFS-OPEN-FAIL, on open failure.
-        ; doc: Example: do append^STDFS("/tmp/log","tick"_$char(10))
-        ; doc: Implementation: text-mode read-then-rewrite — readFile of the
-        ; doc: existing content, string-concatenate data, writeFile back. The
-        ; doc: trailing-LF normalisation that writeFile always emits is the
-        ; doc: documented contract, so the native O_APPEND path is *not* used
-        ; doc: here (it would leave an interior LF whenever the file already
-        ; doc: ended with one, breaking readFile round-trip semantics). For
-        ; doc: byte-faithful append at EOF use $$appendBytes^STDFS instead.
+        ; doc: @param path    path    filesystem path; created if absent
+        ; doc: @param data    string  text content
+        ; doc: @raises        U-STDFS-OPEN-FAIL  could not open for read or write
+        ; doc: @example       do append^STDFS("/tmp/log","tick"_$char(10))
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$writeFile^STDFS, do appendBytes^STDFS
+        ; doc: Implementation: text-mode read-then-rewrite. For byte-faithful
+        ; doc: append at EOF use $$appendBytes^STDFS instead.
         if '$$exists(path) do writeFile(path,data) quit
         new old
         set old=$$readFile(path)
@@ -201,18 +232,26 @@ append(path,data)       ; Append data to path; create the file if missing.
         quit
         ;
 remove(path)    ; Delete path; idempotent (no-op if already absent).
-        ; doc: Sets $ECODE=,U-STDFS-REMOVE-FAIL, if the open-with-DELETE fails
-        ; doc: for any reason other than "file already absent".
-        ; doc: Example: do remove^STDFS("/tmp/out.txt")
+        ; doc: @param path    path    filesystem path
+        ; doc: @raises        U-STDFS-REMOVE-FAIL  open-with-DELETE failed (not the missing-file case)
+        ; doc: @example       do remove^STDFS("/tmp/out.txt")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$exists^STDFS
         if '$$exists(path) quit
         open path:(readonly):2  else  set $ecode=",U-STDFS-REMOVE-FAIL," quit
         close path:(delete)
         quit
         ;
 readLines(path,lines)   ; Read path into lines(1..N) (1-indexed; CRLF normalised).
+        ; doc: @param path    path    filesystem path
+        ; doc: @param lines   array   by-ref local; killed then populated as lines(1..N)
+        ; doc: @raises        U-STDFS-OPEN-FAIL  path is missing or unreadable
+        ; doc: @example       do readLines^STDFS(path,.lines)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$readFile^STDFS, $$writeLines^STDFS
         ; doc: Each line is one M string under lines(i). Empty file → empty array.
-        ; doc: Sets $ECODE=,U-STDFS-OPEN-FAIL, if path is missing or unreadable.
-        ; doc: Example: do readLines^STDFS(path,.lines)
         kill lines
         if '$$exists(path) set $ecode=",U-STDFS-OPEN-FAIL," quit
         new line,n,prev
@@ -229,9 +268,14 @@ readLines(path,lines)   ; Read path into lines(1..N) (1-indexed; CRLF normalised
         quit
         ;
 writeLines(path,lines)  ; Write lines(1..N) to path, separated and terminated by LF.
+        ; doc: @param path    path    filesystem path; truncated if exists
+        ; doc: @param lines   array   by-ref local subscripted as lines(1..N)
+        ; doc: @raises        U-STDFS-OPEN-FAIL  could not open `path` for write
+        ; doc: @example       do writeLines^STDFS(path,.lines)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           do readLines^STDFS, $$writeFile^STDFS
         ; doc: lines must be 1-indexed and dense (no gaps in $ORDER).
-        ; doc: Sets $ECODE=,U-STDFS-OPEN-FAIL, on open failure.
-        ; doc: Example: do writeLines^STDFS(path,.lines)
         new i,prev
         set prev=$io
         open path:(newversion:stream:nowrap):5  else  set $ecode=",U-STDFS-OPEN-FAIL," quit
@@ -245,41 +289,53 @@ writeLines(path,lines)  ; Write lines(1..N) to path, separated and terminated by
         ; ---------- public API: byte-faithful I/O via $ZF callouts (T13+T14) ----------
         ;
 writeBytes(path,data)   ; Write data to path verbatim — no trailing LF, no transcoding.
-        ; doc: data is a byte string (one M character per byte, 0..255).
-        ; doc: Overwrites any existing file. Empty data creates a zero-byte file.
-        ; doc: Sets $ECODE=,U-STDFS-NOT-WIRED, when stdfs.so is unavailable;
-        ; doc: ,U-STDFS-OPEN-FAIL, on open(2) failure.
-        ; doc: Example: do writeBytes^STDFS("/tmp/blob.bin",bytes)
+        ; doc: @param path    path    filesystem path; truncated if exists
+        ; doc: @param data    byte-string  one M character per byte (0..255)
+        ; doc: @raises        U-STDFS-NOT-WIRED  stdfs.so is unavailable
+        ; doc: @raises        U-STDFS-OPEN-FAIL  open(2) failed
+        ; doc: @example       do writeBytes^STDFS("/tmp/blob.bin",bytes)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$readBytes^STDFS, do appendBytes^STDFS, $$writeFile^STDFS
         do dispatch2("stdfs_writeBytes",path,data)
         quit
         ;
 appendBytes(path,data)  ; Append data to path via O_APPEND — atomic at EOF, byte-faithful.
-        ; doc: Creates the file if missing. data is a byte string.
-        ; doc: Sets $ECODE=,U-STDFS-NOT-WIRED, when stdfs.so is unavailable;
-        ; doc: ,U-STDFS-OPEN-FAIL, on open(2) failure.
-        ; doc: Example: do appendBytes^STDFS("/tmp/blob.bin",chunk)
+        ; doc: @param path    path    filesystem path; created if absent
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @raises        U-STDFS-NOT-WIRED  stdfs.so is unavailable
+        ; doc: @raises        U-STDFS-OPEN-FAIL  open(2) failed
+        ; doc: @example       do appendBytes^STDFS("/tmp/blob.bin",chunk)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do writeBytes^STDFS, do append^STDFS
         do dispatch2("stdfs_appendBytes",path,data)
         quit
         ;
 readBytes(path) ; Return file content as a byte string — no CR/LF normalisation.
-        ; doc: Preserves every byte exactly. For text I/O with newline-joining
-        ; doc: and CRLF normalisation, prefer $$readFile^STDFS instead.
-        ; doc: Sets $ECODE=,U-STDFS-NOT-WIRED, when stdfs.so is unavailable;
-        ; doc: ,U-STDFS-OPEN-FAIL, on open(2) failure;
-        ; doc: ,U-STDFS-READ-TRUNCATED, if file exceeds the 16 MiB buffer cap.
-        ; doc: Example: set blob=$$readBytes^STDFS("/tmp/blob.bin")
+        ; doc: @param path    path    filesystem path
+        ; doc: @returns       byte-string  file contents byte-for-byte
+        ; doc: @raises        U-STDFS-NOT-WIRED       stdfs.so is unavailable
+        ; doc: @raises        U-STDFS-OPEN-FAIL       open(2) failed
+        ; doc: @raises        U-STDFS-READ-TRUNCATED  file exceeds the 16 MiB buffer cap
+        ; doc: @example       set blob=$$readBytes^STDFS("/tmp/blob.bin")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$readFile^STDFS, do writeBytes^STDFS
+        ; doc: For text I/O with newline-joining and CRLF normalisation,
+        ; doc: prefer $$readFile^STDFS instead.
         new out
         if '$$available() set $ecode=",U-STDFS-NOT-WIRED," quit ""
         set out=$$dispatchRead("stdfs_readBytes",path)
         quit out
         ;
 available()     ; 1 iff the stdfs callout is loaded and open(2) is reachable.
-        ; doc: Returns 0 if the .so is missing, the descriptor is not exported,
-        ; doc: or libc open(2) fails on /dev/null.
+        ; doc: @returns       bool    1 iff stdfs.so is loaded; 0 otherwise
+        ; doc: @example       if '$$available^STDFS() do warn^MYAPP("byte-faithful I/O unavailable")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do writeBytes^STDFS, $$readBytes^STDFS
         ; doc: Never raises — clears $ECODE on the way out.
-        ; doc: Cheap fast path: if $ZTRNLNM("ydb_xc_std_fs") is empty the
-        ; doc: descriptor isn't deployed — return 0 without paying the
-        ; doc: XECUTE / $ZF round-trip.
         new $etrap,rc,cmd
         if $$env^STDOS("ydb_xc_std_fs")="" quit 0
         set $etrap="set $ecode="""" set rc=0 quit"
@@ -292,12 +348,11 @@ available()     ; 1 iff the stdfs callout is loaded and open(2) is reachable.
         ; ---------- internal helpers ----------
         ;
 dispatch2(sym,path,data)        ; Two-input $ZF dispatch (writeBytes / appendBytes).
-        ; doc: Internal — XECUTE-wraps $ZF(sym, path, data) so the m fmt
-        ; doc: token-mangler doesn't touch $ZF. Sets $ECODE on failure:
+        ; doc: @internal
+        ; doc: XECUTE-wraps $ZF(sym, path, data) so the m fmt token-mangler
+        ; doc: doesn't touch $ZF. Sets $ECODE on failure:
         ; doc: ,U-STDFS-NOT-WIRED, if the .so is unloaded;
-        ; doc: ,U-STDFS-OPEN-FAIL, otherwise (the C-side classifies via
-        ; doc: stdfs_lasterror but the M API surfaces a single error code
-        ; doc: per the OPEN-fail convention used by the SEQ-device path).
+        ; doc: ,U-STDFS-OPEN-FAIL, otherwise.
         new $etrap,rc,cmd
         if $$env^STDOS("ydb_xc_std_fs")="" set $ecode=",U-STDFS-NOT-WIRED," quit
         set $etrap="set $ecode="""" set rc=-1 quit"
@@ -309,10 +364,9 @@ dispatch2(sym,path,data)        ; Two-input $ZF dispatch (writeBytes / appendByt
         quit
         ;
 dispatchRead(sym,path)  ; One-input / one-output $ZF dispatch (readBytes).
-        ; doc: Internal — preallocates a 16 MiB buffer (matching the .xc-
-        ; doc: declared cap), invokes $ZF(sym, path, .out), returns the
-        ; doc: filled bytes. Sets $ECODE on failure (same scheme as dispatch2;
-        ; doc: ,U-STDFS-READ-TRUNCATED, surfaces when the file exceeds the cap).
+        ; doc: @internal
+        ; doc: Preallocates a 16 MiB buffer (matching the .xc-declared cap),
+        ; doc: invokes $ZF(sym, path, .out), returns the filled bytes.
         new $etrap,rc,cmd,out
         if $$env^STDOS("ydb_xc_std_fs")="" set $ecode=",U-STDFS-NOT-WIRED," quit ""
         set $etrap="set $ecode="""" set rc=-1 quit"
@@ -329,16 +383,15 @@ dispatchRead(sym,path)  ; One-input / one-output $ZF dispatch (readBytes).
         quit out
         ;
 preallocBuf()   ; 16 MiB pre-allocated output buffer for the C side to fill.
-        ; doc: Internal — YDB callouts need the M-side string at full
-        ; doc: capacity before the C side writes into it. $justify("",N)
-        ; doc: allocates N spaces in one O(N) pass; the C side overwrites
-        ; doc: the contents and updates ydb_string_t.length on return.
+        ; doc: @internal
+        ; doc: YDB callouts need the M-side string at full capacity before
+        ; doc: the C side writes into it.
         quit $justify("",16777216)
         ;
 lasterror()     ; Return the C-side last-error message ("" if none).
-        ; doc: Internal — readBytes uses this to distinguish OPEN-fail from
-        ; doc: READ-TRUNCATED. Soft-fails to "" if the callout is missing
-        ; doc: (callers already classify that via the rc path).
+        ; doc: @internal
+        ; doc: readBytes uses this to distinguish OPEN-fail from
+        ; doc: READ-TRUNCATED. Soft-fails to "" if the callout is missing.
         new $etrap,rc,cmd,out
         if $$env^STDOS("ydb_xc_std_fs")="" quit ""
         set $etrap="set $ecode="""" set rc=0 quit"

@@ -5,7 +5,7 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'Wall-clock profiler with per-tag aggregates + percentiles'
-labels: ['clear', 'count', 'max', 'mean', 'min', 'new', 'nowMicros', 'percentile', 'start', 'stop', 'tags', 'total']
+labels: ['clear', 'count', 'max', 'mean', 'min', 'new', 'percentile', 'start', 'stop', 'tags', 'total']
 errors: []
 conformance: []
 see_also: []

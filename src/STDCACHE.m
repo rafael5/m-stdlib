@@ -38,9 +38,14 @@ STDCACHE        ; m-stdlib — LRU + TTL cache over a caller-owned local array.
         ; ---------- public API ----------
         ;
 new(cache,capacity,ttl) ; Initialise cache with optional capacity / TTL.
-        ; doc: Both default to 0 (unlimited / no expiry). Idempotent — calling
-        ; doc: new() on an existing cache wipes it.
-        ; doc: Example: do new^STDCACHE(.cfg,128,300)  ; 128 entries, 5-minute TTL
+        ; doc: @param cache       array  by-ref local; killed then populated
+        ; doc: @param capacity    int    max entries; 0 = unlimited (default 0)
+        ; doc: @param ttl         int    TTL in seconds; 0 = no expiry (default 0)
+        ; doc: @example           do new^STDCACHE(.cfg,128,300)  ; 128 entries, 5-minute TTL
+        ; doc: @since             v0.3.0
+        ; doc: @stable            stable
+        ; doc: @see               do put^STDCACHE, do clear^STDCACHE
+        ; doc: Idempotent — calling new() on an existing cache wipes it.
         kill cache
         set cache("cap")=$get(capacity,0)
         set cache("ttl")=$get(ttl,0)
@@ -49,7 +54,13 @@ new(cache,capacity,ttl) ; Initialise cache with optional capacity / TTL.
         quit
         ;
 put(cache,key,value)    ; Insert / update. Promotes the key to most-recent. May evict.
-        ; doc: Example: do put^STDCACHE(.cfg,"hostname","example.org")
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @param key     string  cache key
+        ; doc: @param value   string  value to store
+        ; doc: @example       do put^STDCACHE(.cfg,"hostname","example.org")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$get^STDCACHE, do remove^STDCACHE
         new now,seq,oldSeq
         ; If the key already exists, this is an update — drop its old recency entry.
         if $data(cache("v",key)) do
@@ -71,8 +82,14 @@ put(cache,key,value)    ; Insert / update. Promotes the key to most-recent. May 
         quit
         ;
 get(cache,key)  ; Return the cached value, or "" if absent / expired. Touches recency.
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @param key     string  cache key
+        ; doc: @returns       string  the stored value; "" if absent or expired
+        ; doc: @example       write $$get^STDCACHE(.cfg,"hostname")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$has^STDCACHE, do put^STDCACHE
         ; doc: Expired entries are reaped inline before the lookup returns.
-        ; doc: Example: write $$get^STDCACHE(.cfg,"hostname")
         if '$$has(.cache,key) quit ""
         new seq,oldSeq
         ; Bump recency.
@@ -85,13 +102,24 @@ get(cache,key)  ; Return the cached value, or "" if absent / expired. Touches re
         quit cache("v",key)
         ;
 has(cache,key)  ; Return 1 iff key is present and not expired; reap if expired.
-        ; doc: Example: if $$has^STDCACHE(.cfg,"hostname") ...
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @param key     string  cache key
+        ; doc: @returns       bool    1 iff present and not expired; 0 otherwise
+        ; doc: @example       if $$has^STDCACHE(.cfg,"hostname") ...
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$get^STDCACHE
         if '$data(cache("v",key)) quit 0
         if cache("ttl")>0,$$nowSec()'<cache("ex",key) do remove(.cache,key) quit 0
         quit 1
         ;
 remove(cache,key)       ; Delete one entry. Idempotent — no-op if key is absent.
-        ; doc: Example: do remove^STDCACHE(.cfg,"stale-token")
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @param key     string  cache key
+        ; doc: @example       do remove^STDCACHE(.cfg,"stale-token")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           do clear^STDCACHE
         new oldSeq
         if '$data(cache("v",key)) quit
         set oldSeq=cache("ts",key)
@@ -103,34 +131,50 @@ remove(cache,key)       ; Delete one entry. Idempotent — no-op if key is absen
         quit
         ;
 clear(cache)    ; Drop every entry; preserve capacity / TTL settings.
-        ; doc: Example: do clear^STDCACHE(.cfg)
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @example       do clear^STDCACHE(.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           do new^STDCACHE, do remove^STDCACHE
         kill cache("v"),cache("ts"),cache("o"),cache("ex")
         set cache("size")=0
         set cache("seq")=0
         quit
         ;
 size(cache)     ; Return the current entry count.
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @returns       int     current entry count
+        ; doc: @example       write $$size^STDCACHE(.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$capacity^STDCACHE
         ; doc: Reflects entries actually in the cache; expired entries that have
         ; doc: not yet been touched are still counted until lazily reaped.
-        ; doc: Example: write $$size^STDCACHE(.cfg)
         quit $get(cache("size"),0)
         ;
 capacity(cache) ; Return the declared capacity (0 = unlimited).
-        ; doc: Example: write $$capacity^STDCACHE(.cfg)
+        ; doc: @param cache   array   by-ref local from new^STDCACHE
+        ; doc: @returns       int     declared capacity (0 = unlimited)
+        ; doc: @example       write $$capacity^STDCACHE(.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$size^STDCACHE
         quit $get(cache("cap"),0)
         ;
         ; ---------- internal helpers ----------
         ;
 nowSec()        ; Return seconds since the M epoch (1840-12-31).
-        ; doc: Internal — drives TTL stamping and expiry checks. M $H is
-        ; doc: "DDDDD,SSSSS"; we collapse to a single integer.
+        ; doc: @internal
+        ; doc: Drives TTL stamping and expiry checks. M $H is "DDDDD,SSSSS";
+        ; doc: we collapse to a single integer.
         new h
         set h=$horolog
         quit $piece(h,",",1)*86400+$piece(h,",",2)
         ;
 evictWhileOver(cache)   ; Pop oldest entries until size <= capacity.
-        ; doc: Internal — driven by put() when capacity is finite. Picks the
-        ; doc: smallest seq in cache("o",...), maps to a key, removes it.
+        ; doc: @internal
+        ; doc: Driven by put() when capacity is finite. Picks the smallest
+        ; doc: seq in cache("o",...), maps to a key, removes it.
         new oldestSeq,oldestKey
         set oldestKey=""
         for  quit:cache("size")'>cache("cap")  do  quit:oldestKey=""

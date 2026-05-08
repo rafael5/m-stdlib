@@ -37,8 +37,17 @@ STDSEED ; m-stdlib — declarative test data loader (v0.1.3).
         ; ---------- public API ----------
         ;
 load(path,filer)        ; Load manifest at `path` via `filer` (default FILE^DIE).
-        ; doc: Each parsed row is dispatched once. Errors propagate via $ECODE.
-        ; doc: Example: do load^STDSEED("/etc/seed.tsv")
+        ; doc: @param path    string  filesystem path to a TSV manifest
+        ; doc: @param filer   string  M call-site "label^routine" (default fileViaDie^STDSEED)
+        ; doc: @raises        U-STDSEED-FILE-NOT-FOUND  could not open `path`
+        ; doc: @raises        U-STDSEED-MISSING-FILE    a row's first TSV column is empty
+        ; doc: @raises        U-STDSEED-MISSING-FIELD   a non-empty TSV piece does not contain "="
+        ; doc: @raises        U-STDSEED-FILER-ERROR     filer raised; propagated as a STDSEED code
+        ; doc: @example       do load^STDSEED("/etc/seed.tsv")
+        ; doc: @since         v0.1.3
+        ; doc: @stable        stable
+        ; doc: @see           $$validate^STDSEED, do loadJson^STDSEED, do clear^STDSEED
+        ; doc: Each parsed row is dispatched once.
         new f
         set f=$get(filer)
         if f="" set f="fileViaDie^STDSEED"
@@ -46,30 +55,50 @@ load(path,filer)        ; Load manifest at `path` via `filer` (default FILE^DIE)
         quit
         ;
 loaded(path)    ; Predicate — 1 iff `path` is currently loaded.
-        ; doc: Example: write $$loaded^STDSEED("/etc/seed.tsv")
+        ; doc: @param path    string  filesystem path
+        ; doc: @returns       bool    1 iff `path` has been load()ed in this job; 0 otherwise
+        ; doc: @example       write $$loaded^STDSEED("/etc/seed.tsv")
+        ; doc: @since         v0.1.3
+        ; doc: @stable        stable
+        ; doc: @see           do load^STDSEED, do clear^STDSEED
         quit $select($data(^STDLIB($job,"stdseed",path)):1,1:0)
         ;
 clear(path)     ; Drop bookkeeping for `path`. Idempotent.
+        ; doc: @param path    string  filesystem path of a previously-loaded manifest
+        ; doc: @example       do clear^STDSEED("/etc/seed.tsv")
+        ; doc: @since         v0.1.3
+        ; doc: @stable        stable
+        ; doc: @see           do load^STDSEED, do with^STDFIX
         ; doc: Best-effort — does not delete already-filed records (caller's
         ; doc: responsibility, typically via STDFIX rollback).
-        ; doc: Example: do clear^STDSEED("/etc/seed.tsv")
         kill ^STDLIB($job,"stdseed",path)
         quit
         ;
 validate(path)  ; Parse-only check — return 1 on success; raise on syntax error.
+        ; doc: @param path    string  filesystem path to a TSV manifest
+        ; doc: @returns       bool    1 on success
+        ; doc: @raises        U-STDSEED-FILE-NOT-FOUND  could not open `path`
+        ; doc: @raises        U-STDSEED-MISSING-FILE    a row's first TSV column is empty
+        ; doc: @raises        U-STDSEED-MISSING-FIELD   a non-empty TSV piece does not contain "="
+        ; doc: @example       write $$validate^STDSEED("/etc/seed.tsv")
+        ; doc: @since         v0.1.3
+        ; doc: @stable        stable
+        ; doc: @see           do load^STDSEED
         ; doc: Never invokes the filer. Use as a pre-flight before load().
-        ; doc: Example: write $$validate^STDSEED("/etc/seed.tsv")
         do walk(path,"",0)
         quit 1
         ;
 loadJson(jsonText,filer)        ; Load JSON-array manifest via `filer`.
-        ; doc: jsonText is a JSON array; each element is an object with
-        ; doc: required string key "file" and optional object key "fields"
-        ; doc: whose members become FDA fname=fval pairs. Dispatched once
-        ; doc: per element via `filer` (default fileViaDie -> FILE^DIE).
-        ; doc: Parse failures raise U-STDSEED-INVALID-JSON; structurally
-        ; doc: malformed manifests raise U-STDSEED-INVALID-MANIFEST.
-        ; doc: Example: do loadJson^STDSEED("[{""file"":""PATIENT"",""fields"":{"".01"":""Smith""}}]")
+        ; doc: @param jsonText  string  JSON array; each element {"file":..,"fields":{..}}
+        ; doc: @param filer     string  M call-site "label^routine" (default fileViaDie^STDSEED)
+        ; doc: @raises          U-STDSEED-INVALID-JSON      jsonText does not parse as JSON
+        ; doc: @raises          U-STDSEED-INVALID-MANIFEST  parsed JSON is not an array of objects with "file"
+        ; doc: @raises          U-STDSEED-MISSING-FILE      element lacks a "file" string member
+        ; doc: @raises          U-STDSEED-FILER-ERROR       filer raised; propagated as a STDSEED code
+        ; doc: @example         do loadJson^STDSEED("[{""file"":""PATIENT"",""fields"":{"".01"":""Smith""}}]")
+        ; doc: @since           v0.2.0
+        ; doc: @stable          stable
+        ; doc: @see             do load^STDSEED, $$parse^STDJSON
         new tree,ok,f
         set f=$get(filer)
         if f="" set f="fileViaDie^STDSEED"
@@ -82,8 +111,9 @@ loadJson(jsonText,filer)        ; Load JSON-array manifest via `filer`.
         ; ---------- internal: manifest walk ----------
         ;
 walk(path,filer,doFile) ; Read TSV at `path`; dispatch per non-blank/non-comment row.
-        ; doc: Internal — load() and validate() share this; doFile=0 skips the
-        ; doc: filer call and the bookkeeping write.
+        ; doc: @internal
+        ; doc: load() and validate() share this; doFile=0 skips the filer
+        ; doc: call and the bookkeeping write.
         new line,trimmed,opened
         do tryOpen(path,.opened)
         if 'opened set $ecode=",U-STDSEED-FILE-NOT-FOUND," quit
@@ -98,8 +128,9 @@ walk(path,filer,doFile) ; Read TSV at `path`; dispatch per non-blank/non-comment
         quit
         ;
 processRow(path,line,filer,doFile)      ; Parse one TSV row; build FDA; dispatch.
-        ; doc: Internal — sets $ECODE on syntax errors. When doFile=0 only
-        ; doc: validates the row's shape.
+        ; doc: @internal
+        ; doc: Sets $ECODE on syntax errors. When doFile=0 only validates
+        ; doc: the row's shape.
         new file,fda,col,piece,fname,fval,iens,seq
         set file=$piece(line,$char(9),1)
         if file="" set $ecode=",U-STDSEED-MISSING-FILE," quit
@@ -115,8 +146,9 @@ processRow(path,line,filer,doFile)      ; Parse one TSV row; build FDA; dispatch
         quit
         ;
 dispatch(path,file,fda,filer)   ; Invoke `filer` and book-keep the result.
-        ; doc: Internal — wraps the filer call and translates any $ECODE the
-        ; doc: filer raises into U-STDSEED-FILER-ERROR.
+        ; doc: @internal
+        ; doc: Wraps the filer call and translates any $ECODE the filer
+        ; doc: raises into U-STDSEED-FILER-ERROR.
         new iens,seq
         ; m-lint: disable-next-line=M-MOD-036
         do @filer@(file,.fda,.iens)
@@ -127,7 +159,8 @@ dispatch(path,file,fda,filer)   ; Invoke `filer` and book-keep the result.
         quit
         ;
 walkJson(tree,filer)    ; Iterate a parsed JSON array; dispatch each element.
-        ; doc: Internal — tree is the root array node from $$parse^STDJSON.
+        ; doc: @internal
+        ; doc: tree is the root array node from $$parse^STDJSON.
         ; doc: Element shape: {"file":<string>,"fields":{<fname>:<scalar>,...}}
         new n,i,fileNode,file,fda,fname,fnode,c
         set n=0,i=$order(tree(""))
@@ -151,7 +184,8 @@ walkJson(tree,filer)    ; Iterate a parsed JSON array; dispatch each element.
         quit
         ;
 dispatchJson(file,fda,filer)    ; Invoke filer for one JSON element.
-        ; doc: Internal — relays filer $ECODE as U-STDSEED-FILER-ERROR.
+        ; doc: @internal
+        ; doc: Relays filer $ECODE as U-STDSEED-FILER-ERROR.
         new iens
         ; m-lint: disable-next-line=M-MOD-036
         do @filer@(file,.fda,.iens)
@@ -159,7 +193,8 @@ dispatchJson(file,fda,filer)    ; Invoke filer for one JSON element.
         quit
         ;
 fileViaDie(file,fda,iens)       ; Default filer — call FILE^DIE.
-        ; doc: Internal default. Assumes FileMan available. After FILE^DIE,
+        ; doc: @internal
+        ; doc: Default filer. Assumes FileMan available. After FILE^DIE,
         ; doc: ^TMP("DIERR",$JOB) is checked; on error sets $ECODE which
         ; doc: dispatch() relays as U-STDSEED-FILER-ERROR. Real-environment
         ; doc: integration is the v0.1.4 follow-on; this label compiles and
@@ -181,9 +216,10 @@ fileViaDie(file,fda,iens)       ; Default filer — call FILE^DIE.
         ; ---------- internal: helpers ----------
         ;
 tryOpen(path,opened)    ; Attempt OPEN with timeout; trap IO errors.
-        ; doc: Internal — sets opened=1 on success, 0 on any IO failure
-        ; doc: (missing file, permission denied, etc.). Lets walk() decide
-        ; doc: whether to raise FILE-NOT-FOUND.
+        ; doc: @internal
+        ; doc: Sets opened=1 on success, 0 on any IO failure (missing file,
+        ; doc: permission denied, etc.). Lets walk() decide whether to
+        ; doc: raise FILE-NOT-FOUND.
         new $etrap
         set opened=0
         set $etrap="set $ecode="""" quit"
@@ -193,7 +229,8 @@ tryOpen(path,opened)    ; Attempt OPEN with timeout; trap IO errors.
         quit
         ;
 trim(s) ; Strip leading and trailing ASCII whitespace (space, tab, CR, LF).
-        ; doc: Internal — TSV manifest hygiene.
+        ; doc: @internal
+        ; doc: TSV manifest hygiene.
         new ws,n,start,fin
         set ws=" "_$char(9)_$char(13)_$char(10)
         set n=$length(s)

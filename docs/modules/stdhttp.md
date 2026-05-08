@@ -5,7 +5,7 @@ phase: Phase 3 + post-P4 wave
 stable: stable
 since: v0.4.0
 synopsis: 'HTTP/1.1 client (track H3, target tag v0.4.0)'
-labels: ['available', 'buildRequest', 'dispatchPerform', 'formatHeaders', 'get', 'lower', 'parseHeader', 'parseHeaderStream', 'parseResponse', 'parseStatusLine', 'post', 'preallocBuf', 'request', 'requestHeaderBlock']
+labels: ['available', 'buildRequest', 'formatHeaders', 'get', 'parseHeader', 'parseResponse', 'parseStatusLine', 'post', 'request']
 errors: []
 conformance: []
 see_also: ['STDURL']

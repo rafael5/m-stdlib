@@ -55,15 +55,17 @@ STDCSPRNG       ; m-stdlib — Cryptographic random (kernel CSPRNG via getrandom
         ; ---------- public API ----------
         ;
 bytes(n)        ; Return n random bytes from the kernel CSPRNG.
-        ; doc: For n=0 returns "". May contain any byte value 0..255.
-        ; doc: Tries $ZF → cs_random (getrandom(2)) first; falls back
-        ; doc: to a /dev/urandom READ *b loop when the callout descriptor
-        ; doc: is unset or the .so does not resolve. Both paths read from
-        ; doc: the same kernel ChaCha20 pool — the choice is a perf swap.
-        ; doc: Sets $ECODE=,U-STDCSPRNG-BAD-COUNT, if n<0.
-        ; doc: Sets $ECODE=,U-STDCSPRNG-OPEN-FAIL, if neither backend can
-        ; doc: produce bytes (callout missing AND /dev/urandom unopenable).
-        ; doc: Example: set b=$$bytes^STDCSPRNG(16)  ; 16 random bytes
+        ; doc: @param n       int     byte count (>= 0)
+        ; doc: @returns       byte-string  n random bytes; "" for n=0
+        ; doc: @raises        U-STDCSPRNG-BAD-COUNT  n < 0
+        ; doc: @raises        U-STDCSPRNG-OPEN-FAIL  neither backend can produce bytes
+        ; doc: @example       set b=$$bytes^STDCSPRNG(16)  ; 16 random bytes
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$hex^STDCSPRNG, $$base64^STDCSPRNG, $$token^STDCSPRNG, $$uuid4^STDCSPRNG
+        ; doc: Tries $ZF → cs_random (getrandom(2)) first; falls back to a
+        ; doc: /dev/urandom READ *b loop when the callout descriptor is unset
+        ; doc: or the .so does not resolve.
         if n<0 set $ecode=",U-STDCSPRNG-BAD-COUNT," quit ""
         if 'n quit ""
         new buf
@@ -72,10 +74,9 @@ bytes(n)        ; Return n random bytes from the kernel CSPRNG.
         quit $$bytesFromDevice(n)
         ;
 bytesFromDevice(n)      ; /dev/urandom backend — soft-fall-back when callout absent.
-        ; doc: Internal — reads n bytes one at a time via READ *b so
-        ; doc: record terminators (LF=$C(10), CR=$C(13)) in the byte
-        ; doc: stream don't truncate the read. Sets $ECODE=,U-STDCSPRNG-
-        ; doc: OPEN-FAIL, if the device cannot be opened.
+        ; doc: @internal
+        ; doc: Reads n bytes one at a time via READ *b so record terminators
+        ; doc: (LF=$C(10), CR=$C(13)) in the byte stream don't truncate the read.
         new dev,buf,prev,i,b
         set dev="/dev/urandom",buf="",prev=$io
         open dev:(readonly:nowrap):2  else  set $ecode=",U-STDCSPRNG-OPEN-FAIL," quit ""
@@ -86,24 +87,39 @@ bytesFromDevice(n)      ; /dev/urandom backend — soft-fall-back when callout a
         quit buf
         ;
 hex(n)  ; Return 2n lowercase hex chars representing n random bytes.
-        ; doc: Convenience wrapper: $$encode^STDHEX($$bytes(n)).
-        ; doc: Example: set t=$$hex^STDCSPRNG(16)  ; 32-char hex token
+        ; doc: @param n       int     byte count (>= 0)
+        ; doc: @returns       string  2n lowercase hex chars
+        ; doc: @raises        U-STDCSPRNG-BAD-COUNT  n < 0
+        ; doc: @example       set t=$$hex^STDCSPRNG(16)  ; 32-char hex token
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$bytes^STDCSPRNG, $$encode^STDHEX
         if n<0 set $ecode=",U-STDCSPRNG-BAD-COUNT," quit ""
         if 'n quit ""
         quit $$encode^STDHEX($$bytes(n))
         ;
 base64(n)       ; Return URL-safe base64 of n random bytes (no padding).
-        ; doc: Convenience wrapper: $$urlencode^STDB64($$bytes(n)).
-        ; doc: Example: set t=$$base64^STDCSPRNG(32)  ; ~43-char URL-safe token
+        ; doc: @param n       int     byte count (>= 0)
+        ; doc: @returns       string  URL-safe base64 (no padding)
+        ; doc: @raises        U-STDCSPRNG-BAD-COUNT  n < 0
+        ; doc: @example       set t=$$base64^STDCSPRNG(32)  ; ~43-char URL-safe token
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$bytes^STDCSPRNG, $$urlencode^STDB64
         if n<0 set $ecode=",U-STDCSPRNG-BAD-COUNT," quit ""
         if 'n quit ""
         quit $$urlencode^STDB64($$bytes(n))
         ;
 token(n)        ; Return an n-char URL-safe token from alphabet [A-Za-z0-9_-].
+        ; doc: @param n       int     character count (>= 0)
+        ; doc: @returns       string  n-char token from [A-Za-z0-9_-]
+        ; doc: @raises        U-STDCSPRNG-BAD-COUNT  n < 0
+        ; doc: @example       set t=$$token^STDCSPRNG(22)  ; 22-char URL-safe token
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$base64^STDCSPRNG, $$bytes^STDCSPRNG
         ; doc: Each character is one uniform draw from a 64-char alphabet
         ; doc: (6 bits of entropy per char), giving 6n bits of entropy total.
-        ; doc: Sets $ECODE=,U-STDCSPRNG-BAD-COUNT, if n<0.
-        ; doc: Example: set t=$$token^STDCSPRNG(22)  ; 22-char URL-safe token
         if n<0 set $ecode=",U-STDCSPRNG-BAD-COUNT," quit ""
         if 'n quit ""
         new alpha,raw,out,i
@@ -113,12 +129,17 @@ token(n)        ; Return an n-char URL-safe token from alphabet [A-Za-z0-9_-].
         quit out
         ;
 int(min,max)    ; Return uniform integer in [min, max] (inclusive both ends).
+        ; doc: @param min     int     lower bound (inclusive)
+        ; doc: @param max     int     upper bound (inclusive)
+        ; doc: @returns       int     uniform random integer in [min, max]
+        ; doc: @raises        U-STDCSPRNG-BAD-RANGE  max < min
+        ; doc: @example       set d=$$int^STDCSPRNG(1,6)  ; fair 6-sided die
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$bytes^STDCSPRNG
         ; doc: Uses rejection sampling on the smallest power of 256 covering
-        ; doc: the range, so the distribution is unbiased.
-        ; doc: Sets $ECODE=,U-STDCSPRNG-BAD-RANGE, if max<min.
-        ; doc: Range is bounded by M scalar precision (~10^18 ≈ 2^60); do
-        ; doc: not pass spans larger than 2^53 if exact uniformity is required.
-        ; doc: Example: set d=$$int^STDCSPRNG(1,6)  ; fair 6-sided die
+        ; doc: the range, so the distribution is unbiased. Range is bounded
+        ; doc: by M scalar precision (~10^18 ≈ 2^60).
         if max<min set $ecode=",U-STDCSPRNG-BAD-RANGE," quit ""
         if max=min quit min
         new range,nbytes,limit,accept,r,i,b
@@ -134,10 +155,14 @@ int(min,max)    ; Return uniform integer in [min, max] (inclusive both ends).
         quit min+(r#range)
         ;
 uuid4() ; Return a cryptographically strong RFC-4122 v4 UUID.
-        ; doc: 122 bits of entropy from /dev/urandom. Same canonical 36-char
-        ; doc: hex form as STDUUID's $$v4 — but use this when the UUID is a
-        ; doc: security boundary (session tokens, signed-URL nonces, JWT jti).
-        ; doc: Example: set id=$$uuid4^STDCSPRNG()
+        ; doc: @returns       string  canonical 36-char hex UUID v4 (lowercase, hyphenated)
+        ; doc: @example       set id=$$uuid4^STDCSPRNG()
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$v4^STDUUID, $$bytes^STDCSPRNG
+        ; doc: 122 bits of entropy from the kernel CSPRNG. Use this when the
+        ; doc: UUID is a security boundary (session tokens, signed-URL nonces,
+        ; doc: JWT jti) — STDUUID's $$v4 uses non-cryptographic $RANDOM.
         new b,h,b7,b9
         set b=$$bytes(16)
         set b7=$ascii(b,7)
@@ -150,13 +175,14 @@ uuid4() ; Return a cryptographically strong RFC-4122 v4 UUID.
         quit $extract(h,1,8)_"-"_$extract(h,9,12)_"-"_$extract(h,13,16)_"-"_$extract(h,17,20)_"-"_$extract(h,21,32)
         ;
 available()     ; Return 1 iff /dev/urandom is openable for reading; else 0.
-        ; doc: Pre-flight probe — never raises. Useful for guarding code that
-        ; doc: needs CSPRNG entropy before any sensitive operation begins.
-        ; doc: Returns 1 whenever /dev/urandom is readable, irrespective of
-        ; doc: whether the cs_random callout is loaded (the device is the
-        ; doc: always-available soft-fall-back; see useCallout() to detect
-        ; doc: the perf-tier backend separately).
-        ; doc: Example: if '$$available^STDCSPRNG() set $ecode=",U-MYAPP-NO-CSPRNG,"
+        ; doc: @returns       bool    1 iff /dev/urandom is readable
+        ; doc: @example       if '$$available^STDCSPRNG() set $ecode=",U-MYAPP-NO-CSPRNG,"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$useCallout^STDCSPRNG
+        ; doc: Pre-flight probe — never raises. The device is the always-
+        ; doc: available soft-fall-back; see useCallout() to detect the
+        ; doc: perf-tier backend separately.
         new dev,prev
         set dev="/dev/urandom",prev=$io
         open dev:(readonly:nowrap):2  else  quit 0
@@ -165,15 +191,13 @@ available()     ; Return 1 iff /dev/urandom is openable for reading; else 0.
         quit 1
         ;
 useCallout()    ; Return 1 iff the cs_random callout resolves; else 0.
+        ; doc: @returns       bool    1 iff $ZF → cs_random is wired and getrandom(2) succeeded
+        ; doc: @example       if $$useCallout^STDCSPRNG() write "fast path"
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$available^STDCSPRNG, $$bytes^STDCSPRNG
         ; doc: Pre-flight probe for the $ZF → getrandom(2) backend.
-        ; doc: Never raises — clears $ECODE on the way out. Cheap fast
-        ; doc: path: if $ZTRNLNM("ydb_xc_std_csprng") is empty the
-        ; doc: descriptor isn't deployed — return 0 without paying the
-        ; doc: XECUTE / $ZF round-trip. Otherwise issues a 1-byte probe
-        ; doc: through the callout; returns 1 only when the .so loaded
-        ; doc: and getrandom(2) succeeded.
-        ; doc: Example:
-        ; doc:   if $$useCallout^STDCSPRNG() write "fast path"
+        ; doc: Never raises — clears $ECODE on the way out.
         new buf,n
         if $$env^STDOS("ydb_xc_std_csprng")="" quit 0
         set buf=$$dispatchRandom(1)
@@ -184,13 +208,11 @@ useCallout()    ; Return 1 iff the cs_random callout resolves; else 0.
         ; ---------- internal helpers ----------
         ;
 dispatchRandom(n)       ; Invoke $ZF("cs_random", n, .out). Returns out on success, "" on miss.
-        ; doc: Internal — XECUTE-wraps $ZF so m fmt cannot mangle the
-        ; doc: token (longest-prefix bug against $ZFIND). Returns the
-        ; doc: filled buffer on rc=0 (callout success); returns "" when
-        ; doc: the descriptor isn't deployed, the .so doesn't resolve,
-        ; doc: or getrandom(2) reports failure — the M-side caller falls
-        ; doc: back to /dev/urandom on "". Same XECUTE rationale as
-        ; doc: STDCRYPTO.dispatch3 / STDHTTP.dispatchPerform.
+        ; doc: @internal
+        ; doc: XECUTE-wraps $ZF so m fmt cannot mangle the token. Returns
+        ; doc: the filled buffer on rc=0; returns "" when the descriptor
+        ; doc: isn't deployed, the .so doesn't resolve, or getrandom(2)
+        ; doc: reports failure — caller falls back to /dev/urandom on "".
         new $etrap,rc,cmd,out,i
         if $$env^STDOS("ydb_xc_std_csprng")="" quit ""
         set $etrap="set $ecode="""" set rc=-99 quit"

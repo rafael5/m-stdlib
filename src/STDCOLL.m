@@ -95,9 +95,12 @@ STDCOLL ; m-stdlib — collections (Set, Map, Stack, Queue, Deque, Heap, Ordered
         ; ---------- Set ----------
         ;
 setAdd(s,value) ; Add value to set s (idempotent).
-        ; doc: Empty-string members are silently ignored — the iteration
-        ; doc: API uses $order, which cannot reach an empty subscript.
-        ; doc: Example: do setAdd^STDCOLL(.s,"alpha")
+        ; doc: @param s       array   by-ref local; the set
+        ; doc: @param value   string  member to add (empty string is silently ignored)
+        ; doc: @example       do setAdd^STDCOLL(.s,"alpha")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           $$setHas^STDCOLL, do setRemove^STDCOLL
         if value="" quit
         if $data(s("v",value)) quit
         set s("v",value)=""
@@ -105,74 +108,130 @@ setAdd(s,value) ; Add value to set s (idempotent).
         quit
         ;
 setHas(s,value) ; Return 1 iff value is a member of set s.
-        ; doc: Example: write $$setHas^STDCOLL(.s,"alpha")
+        ; doc: @param s       array   by-ref local; the set
+        ; doc: @param value   string  candidate member
+        ; doc: @returns       bool    1 iff value is a member; 0 otherwise
+        ; doc: @example       write $$setHas^STDCOLL(.s,"alpha")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
+        ; doc: @see           do setAdd^STDCOLL
         if value="" quit 0
         quit ''$data(s("v",value))
         ;
 setRemove(s,value)      ; Remove value from set s; absent values are no-ops.
-        ; doc: Example: do setRemove^STDCOLL(.s,"alpha")
+        ; doc: @param s       array   by-ref local; the set
+        ; doc: @param value   string  member to remove
+        ; doc: @example       do setRemove^STDCOLL(.s,"alpha")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if '$data(s("v",value)) quit
         kill s("v",value)
         set s("n")=$get(s("n"),0)-1
         quit
         ;
 setSize(s)      ; Return cardinality.
-        ; doc: Example: write $$setSize^STDCOLL(.s)
+        ; doc: @param s       array   by-ref local
+        ; doc: @returns       int     cardinality
+        ; doc: @example       write $$setSize^STDCOLL(.s)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $get(s("n"),0)
         ;
 setClear(s)     ; Drop every member.
-        ; doc: Example: do setClear^STDCOLL(.s)
+        ; doc: @param s       array   by-ref local
+        ; doc: @example       do setClear^STDCOLL(.s)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill s
         quit
         ;
 setNext(s,prev) ; Return the next member after prev in $order; "" at end.
-        ; doc: Pass "" for the first call; loop until "" is returned.
-        ; doc: Example: set k=$$setNext^STDCOLL(.s,"") for  quit:k=""  ...
+        ; doc: @param s       array   by-ref local
+        ; doc: @param prev    string  previous member ("" for first call)
+        ; doc: @returns       string  next member; "" at end
+        ; doc: @example       set k=$$setNext^STDCOLL(.s,"") for  quit:k=""  ...
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $order(s("v",prev))
         ;
         ; ---------- Map ----------
         ;
 mapPut(m,key,value)     ; Store value at key (overwrites).
-        ; doc: Empty-string keys are silently ignored — see preamble.
-        ; doc: Example: do mapPut^STDCOLL(.m,"name","Alice")
+        ; doc: @param m       array   by-ref local; the map
+        ; doc: @param key     string  map key (empty silently ignored)
+        ; doc: @param value   string  value to store
+        ; doc: @example       do mapPut^STDCOLL(.m,"name","Alice")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if key="" quit
         if '$data(m("v",key)) set m("n")=$get(m("n"),0)+1
         set m("v",key)=value
         quit
         ;
 mapGet(m,key,default)   ; Return value at key; default if absent.
-        ; doc: Example: set v=$$mapGet^STDCOLL(.m,"name","")
+        ; doc: @param m       array   by-ref local
+        ; doc: @param key     string  map key
+        ; doc: @param default string  fallback if key absent
+        ; doc: @returns       string  stored value or default
+        ; doc: @example       set v=$$mapGet^STDCOLL(.m,"name","")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $select($data(m("v",key)):m("v",key),1:default)
         ;
 mapHas(m,key)   ; Return 1 iff key is set.
-        ; doc: Example: write $$mapHas^STDCOLL(.m,"name")
+        ; doc: @param m       array   by-ref local
+        ; doc: @param key     string  candidate key
+        ; doc: @returns       bool    1 iff present; 0 otherwise
+        ; doc: @example       write $$mapHas^STDCOLL(.m,"name")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if key="" quit 0
         quit ''$data(m("v",key))
         ;
 mapRemove(m,key)        ; Drop key (no-op when absent).
-        ; doc: Example: do mapRemove^STDCOLL(.m,"name")
+        ; doc: @param m       array   by-ref local
+        ; doc: @param key     string  key to remove
+        ; doc: @example       do mapRemove^STDCOLL(.m,"name")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if '$data(m("v",key)) quit
         kill m("v",key)
         set m("n")=$get(m("n"),0)-1
         quit
         ;
 mapSize(m)      ; Return number of keys.
-        ; doc: Example: write $$mapSize^STDCOLL(.m)
+        ; doc: @param m       array   by-ref local
+        ; doc: @returns       int     number of keys
+        ; doc: @example       write $$mapSize^STDCOLL(.m)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $get(m("n"),0)
         ;
 mapClear(m)     ; Drop every entry.
-        ; doc: Example: do mapClear^STDCOLL(.m)
+        ; doc: @param m       array   by-ref local
+        ; doc: @example       do mapClear^STDCOLL(.m)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill m
         quit
         ;
 mapNext(m,prev) ; Return next key after prev in $order; "" at end.
-        ; doc: Example: set k=$$mapNext^STDCOLL(.m,"") for  quit:k=""  ...
+        ; doc: @param m       array   by-ref local
+        ; doc: @param prev    string  previous key ("" for first call)
+        ; doc: @returns       string  next key; "" at end
+        ; doc: @example       set k=$$mapNext^STDCOLL(.m,"") for  quit:k=""  ...
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $order(m("v",prev))
         ;
         ; ---------- Stack ----------
         ;
 stackPush(s,value)      ; Push value on top of the stack.
-        ; doc: Example: do stackPush^STDCOLL(.s,"alpha")
+        ; doc: @param s       array   by-ref local; the stack
+        ; doc: @param value   string  value to push
+        ; doc: @example       do stackPush^STDCOLL(.s,"alpha")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new n
         set n=$get(s("n"),0)+1
         set s("v",n)=value
@@ -180,7 +239,11 @@ stackPush(s,value)      ; Push value on top of the stack.
         quit
         ;
 stackPop(s)     ; Remove and return the top; "" when empty.
-        ; doc: Example: set top=$$stackPop^STDCOLL(.s)
+        ; doc: @param s       array   by-ref local
+        ; doc: @returns       string  top value; "" when empty
+        ; doc: @example       set top=$$stackPop^STDCOLL(.s)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new n,v
         set n=$get(s("n"),0)
         if n<1 quit ""
@@ -191,25 +254,40 @@ stackPop(s)     ; Remove and return the top; "" when empty.
         quit v
         ;
 stackPeek(s)    ; Return the top without removal; "" when empty.
-        ; doc: Example: set top=$$stackPeek^STDCOLL(.s)
+        ; doc: @param s       array   by-ref local
+        ; doc: @returns       string  top value; "" when empty
+        ; doc: @example       set top=$$stackPeek^STDCOLL(.s)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new n
         set n=$get(s("n"),0)
         if n<1 quit ""
         quit s("v",n)
         ;
 stackSize(s)    ; Return depth.
-        ; doc: Example: write $$stackSize^STDCOLL(.s)
+        ; doc: @param s       array   by-ref local
+        ; doc: @returns       int     stack depth
+        ; doc: @example       write $$stackSize^STDCOLL(.s)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $get(s("n"),0)
         ;
 stackClear(s)   ; Drop every entry.
-        ; doc: Example: do stackClear^STDCOLL(.s)
+        ; doc: @param s       array   by-ref local
+        ; doc: @example       do stackClear^STDCOLL(.s)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill s
         quit
         ;
         ; ---------- Queue ----------
         ;
 queuePush(q,value)      ; Enqueue at back.
-        ; doc: Example: do queuePush^STDCOLL(.q,"alpha")
+        ; doc: @param q       array   by-ref local; the queue
+        ; doc: @param value   string  value to enqueue
+        ; doc: @example       do queuePush^STDCOLL(.q,"alpha")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new t
         ; head/tail initialise to (1, 0): empty when t<h.
         if '$data(q("h")) set q("h")=1,q("t")=0
@@ -219,7 +297,11 @@ queuePush(q,value)      ; Enqueue at back.
         quit
         ;
 queuePop(q)     ; Dequeue at front; "" when empty.
-        ; doc: Example: set front=$$queuePop^STDCOLL(.q)
+        ; doc: @param q       array   by-ref local
+        ; doc: @returns       string  front value; "" when empty
+        ; doc: @example       set front=$$queuePop^STDCOLL(.q)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t,v
         set h=$get(q("h"),1),t=$get(q("t"),0)
         if t<h quit ""
@@ -230,29 +312,43 @@ queuePop(q)     ; Dequeue at front; "" when empty.
         quit v
         ;
 queuePeek(q)    ; Return front without removal; "" when empty.
-        ; doc: Example: set front=$$queuePeek^STDCOLL(.q)
+        ; doc: @param q       array   by-ref local
+        ; doc: @returns       string  front value; "" when empty
+        ; doc: @example       set front=$$queuePeek^STDCOLL(.q)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t
         set h=$get(q("h"),1),t=$get(q("t"),0)
         if t<h quit ""
         quit q("v",h)
         ;
 queueSize(q)    ; Return queue length.
-        ; doc: Example: write $$queueSize^STDCOLL(.q)
+        ; doc: @param q       array   by-ref local
+        ; doc: @returns       int     queue length
+        ; doc: @example       write $$queueSize^STDCOLL(.q)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t
         set h=$get(q("h"),1),t=$get(q("t"),0)
         if t<h quit 0
         quit t-h+1
         ;
 queueClear(q)   ; Drop every entry.
-        ; doc: Example: do queueClear^STDCOLL(.q)
+        ; doc: @param q       array   by-ref local
+        ; doc: @example       do queueClear^STDCOLL(.q)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill q
         quit
         ;
         ; ---------- Deque ----------
         ;
 dequePushFront(d,value) ; Push value at the front.
-        ; doc: Front is q("h")-1 after the push.
-        ; doc: Example: do dequePushFront^STDCOLL(.d,"alpha")
+        ; doc: @param d       array   by-ref local; the deque
+        ; doc: @param value   string  value to push
+        ; doc: @example       do dequePushFront^STDCOLL(.d,"alpha")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h
         if '$data(d("h")) set d("h")=1,d("t")=0
         set h=d("h")-1
@@ -261,7 +357,11 @@ dequePushFront(d,value) ; Push value at the front.
         quit
         ;
 dequePushBack(d,value)  ; Push value at the back.
-        ; doc: Example: do dequePushBack^STDCOLL(.d,"omega")
+        ; doc: @param d       array   by-ref local
+        ; doc: @param value   string  value to push
+        ; doc: @example       do dequePushBack^STDCOLL(.d,"omega")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new t
         if '$data(d("h")) set d("h")=1,d("t")=0
         set t=d("t")+1
@@ -270,7 +370,11 @@ dequePushBack(d,value)  ; Push value at the back.
         quit
         ;
 dequePopFront(d)        ; Pop and return the front; "" when empty.
-        ; doc: Example: set v=$$dequePopFront^STDCOLL(.d)
+        ; doc: @param d       array   by-ref local
+        ; doc: @returns       string  front value; "" when empty
+        ; doc: @example       set v=$$dequePopFront^STDCOLL(.d)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t,v
         set h=$get(d("h"),1),t=$get(d("t"),0)
         if t<h quit ""
@@ -281,7 +385,11 @@ dequePopFront(d)        ; Pop and return the front; "" when empty.
         quit v
         ;
 dequePopBack(d) ; Pop and return the back; "" when empty.
-        ; doc: Example: set v=$$dequePopBack^STDCOLL(.d)
+        ; doc: @param d       array   by-ref local
+        ; doc: @returns       string  back value; "" when empty
+        ; doc: @example       set v=$$dequePopBack^STDCOLL(.d)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t,v
         set h=$get(d("h"),1),t=$get(d("t"),0)
         if t<h quit ""
@@ -292,37 +400,55 @@ dequePopBack(d) ; Pop and return the back; "" when empty.
         quit v
         ;
 dequePeekFront(d)       ; Return front without removal; "" when empty.
-        ; doc: Example: set v=$$dequePeekFront^STDCOLL(.d)
+        ; doc: @param d       array   by-ref local
+        ; doc: @returns       string  front value; "" when empty
+        ; doc: @example       set v=$$dequePeekFront^STDCOLL(.d)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t
         set h=$get(d("h"),1),t=$get(d("t"),0)
         if t<h quit ""
         quit d("v",h)
         ;
 dequePeekBack(d)        ; Return back without removal; "" when empty.
-        ; doc: Example: set v=$$dequePeekBack^STDCOLL(.d)
+        ; doc: @param d       array   by-ref local
+        ; doc: @returns       string  back value; "" when empty
+        ; doc: @example       set v=$$dequePeekBack^STDCOLL(.d)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t
         set h=$get(d("h"),1),t=$get(d("t"),0)
         if t<h quit ""
         quit d("v",t)
         ;
 dequeSize(d)    ; Return deque length.
-        ; doc: Example: write $$dequeSize^STDCOLL(.d)
+        ; doc: @param d       array   by-ref local
+        ; doc: @returns       int     deque length
+        ; doc: @example       write $$dequeSize^STDCOLL(.d)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new h,t
         set h=$get(d("h"),1),t=$get(d("t"),0)
         if t<h quit 0
         quit t-h+1
         ;
 dequeClear(d)   ; Drop every entry.
-        ; doc: Example: do dequeClear^STDCOLL(.d)
+        ; doc: @param d       array   by-ref local
+        ; doc: @example       do dequeClear^STDCOLL(.d)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill d
         quit
         ;
         ; ---------- Heap (min-heap, numeric keys) ----------
         ;
 heapPush(h,key,value)   ; Push (key, value) onto the heap.
-        ; doc: Sort uses M's numeric `<` over keys. value defaults to key
-        ; doc: when omitted so a heap-of-numbers form just works.
-        ; doc: Example: do heapPush^STDCOLL(.h,3,"task A")
+        ; doc: @param h       array   by-ref local; the heap
+        ; doc: @param key     num     numeric priority (smaller = higher priority in min-heap)
+        ; doc: @param value   string  payload; defaults to key if omitted
+        ; doc: @example       do heapPush^STDCOLL(.h,3,"task A")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new n,val
         set val=$select($data(value):value,1:key)
         set n=$get(h("n"),0)+1
@@ -333,7 +459,11 @@ heapPush(h,key,value)   ; Push (key, value) onto the heap.
         quit
         ;
 heapPop(h)      ; Pop value at the min key; "" when empty.
-        ; doc: Example: set v=$$heapPop^STDCOLL(.h)
+        ; doc: @param h       array   by-ref local
+        ; doc: @returns       string  payload at the min key; "" when empty
+        ; doc: @example       set v=$$heapPop^STDCOLL(.h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new n,v
         set n=$get(h("n"),0)
         if n<1 quit ""
@@ -342,7 +472,11 @@ heapPop(h)      ; Pop value at the min key; "" when empty.
         quit v
         ;
 heapPopKey(h)   ; Pop and return the min key; "" when empty.
-        ; doc: Example: set k=$$heapPopKey^STDCOLL(.h)
+        ; doc: @param h       array   by-ref local
+        ; doc: @returns       num     min key; "" when empty
+        ; doc: @example       set k=$$heapPopKey^STDCOLL(.h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new n,k
         set n=$get(h("n"),0)
         if n<1 quit ""
@@ -351,30 +485,46 @@ heapPopKey(h)   ; Pop and return the min key; "" when empty.
         quit k
         ;
 heapPeek(h)     ; Return value at min key without removal; "" when empty.
-        ; doc: Example: set v=$$heapPeek^STDCOLL(.h)
+        ; doc: @param h       array   by-ref local
+        ; doc: @returns       string  payload at min key; "" when empty
+        ; doc: @example       set v=$$heapPeek^STDCOLL(.h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if $get(h("n"),0)<1 quit ""
         quit h("v",1)
         ;
 heapPeekKey(h)  ; Return min key without removal; "" when empty.
-        ; doc: Example: set k=$$heapPeekKey^STDCOLL(.h)
+        ; doc: @param h       array   by-ref local
+        ; doc: @returns       num     min key; "" when empty
+        ; doc: @example       set k=$$heapPeekKey^STDCOLL(.h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if $get(h("n"),0)<1 quit ""
         quit h("k",1)
         ;
 heapSize(h)     ; Return heap size.
-        ; doc: Example: write $$heapSize^STDCOLL(.h)
+        ; doc: @param h       array   by-ref local
+        ; doc: @returns       int     heap size
+        ; doc: @example       write $$heapSize^STDCOLL(.h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $get(h("n"),0)
         ;
 heapClear(h)    ; Drop every entry.
-        ; doc: Example: do heapClear^STDCOLL(.h)
+        ; doc: @param h       array   by-ref local
+        ; doc: @example       do heapClear^STDCOLL(.h)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill h
         quit
         ;
         ; ---------- heap helpers ----------
         ;
 heapRemoveTop(h,n)      ; Remove the root, restoring the heap property.
-        ; doc: Internal — called by heapPop / heapPopKey after the root
-        ; doc: value has been captured. Replaces the root with the last
-        ; doc: leaf and sifts it down; clears the array entirely on n=1.
+        ; doc: @internal
+        ; doc: Called by heapPop / heapPopKey after the root value has
+        ; doc: been captured. Replaces the root with the last leaf and
+        ; doc: sifts it down; clears the array entirely on n=1.
         if n=1 kill h quit
         set h("k",1)=h("k",n)
         set h("v",1)=h("v",n)
@@ -384,8 +534,9 @@ heapRemoveTop(h,n)      ; Remove the root, restoring the heap property.
         quit
         ;
 siftup(h,i)     ; Restore heap order by walking i toward the root.
-        ; doc: Internal — used by heapPush. Compares h("k",i) against its
-        ; doc: parent at i\2 and swaps until the parent is <= the child.
+        ; doc: @internal
+        ; doc: Used by heapPush. Compares h("k",i) against its parent at
+        ; doc: i\2 and swaps until the parent is <= the child.
         new p,tk,tv
         for  quit:i'>1  do
         . set p=i\2
@@ -397,9 +548,10 @@ siftup(h,i)     ; Restore heap order by walking i toward the root.
         quit
         ;
 siftdown(h,i)   ; Restore heap order by walking i toward the leaves.
-        ; doc: Internal — used after heapRemoveTop replaces the root with
-        ; doc: the last leaf. Compares against the smaller of two children
-        ; doc: and swaps while a child is strictly less.
+        ; doc: @internal
+        ; doc: Used after heapRemoveTop replaces the root with the last
+        ; doc: leaf. Compares against the smaller of two children and
+        ; doc: swaps while a child is strictly less.
         new n,c,r,smallest,tk,tv
         set n=$get(h("n"),0),smallest=-1
         for  do  quit:smallest=i
@@ -416,10 +568,14 @@ siftdown(h,i)   ; Restore heap order by walking i toward the leaves.
         ; ---------- OrderedDict ----------
         ;
 odictPut(o,key,value)   ; Store value at key; create-or-update preserving position.
+        ; doc: @param o       array   by-ref local; the ordered dict
+        ; doc: @param key     string  dict key (empty silently ignored)
+        ; doc: @param value   string  value to store
+        ; doc: @example       do odictPut^STDCOLL(.o,"name","Alice")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         ; doc: Sequence numbers are monotonic — an update reuses the
         ; doc: existing position; a new key is appended to the back.
-        ; doc: Empty-string keys are silently ignored (see preamble).
-        ; doc: Example: do odictPut^STDCOLL(.o,"name","Alice")
         new seq
         if key="" quit
         if $data(o("v",key)) set o("v",key)=value quit
@@ -432,16 +588,31 @@ odictPut(o,key,value)   ; Store value at key; create-or-update preserving positi
         quit
         ;
 odictGet(o,key,default) ; Return value at key; default if absent.
-        ; doc: Example: set v=$$odictGet^STDCOLL(.o,"name","")
+        ; doc: @param o       array   by-ref local
+        ; doc: @param key     string  dict key
+        ; doc: @param default string  fallback if key absent
+        ; doc: @returns       string  stored value or default
+        ; doc: @example       set v=$$odictGet^STDCOLL(.o,"name","")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $select($data(o("v",key)):o("v",key),1:default)
         ;
 odictHas(o,key) ; Return 1 iff key is set.
-        ; doc: Example: write $$odictHas^STDCOLL(.o,"name")
+        ; doc: @param o       array   by-ref local
+        ; doc: @param key     string  candidate key
+        ; doc: @returns       bool    1 iff present
+        ; doc: @example       write $$odictHas^STDCOLL(.o,"name")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         if key="" quit 0
         quit ''$data(o("v",key))
         ;
 odictRemove(o,key)      ; Drop key (no-op when absent).
-        ; doc: Example: do odictRemove^STDCOLL(.o,"name")
+        ; doc: @param o       array   by-ref local
+        ; doc: @param key     string  key to remove
+        ; doc: @example       do odictRemove^STDCOLL(.o,"name")
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new seq
         if '$data(o("v",key)) quit
         set seq=o("seq",key)
@@ -450,32 +621,50 @@ odictRemove(o,key)      ; Drop key (no-op when absent).
         quit
         ;
 odictSize(o)    ; Return number of keys.
-        ; doc: Example: write $$odictSize^STDCOLL(.o)
+        ; doc: @param o       array   by-ref local
+        ; doc: @returns       int     number of keys
+        ; doc: @example       write $$odictSize^STDCOLL(.o)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         quit $get(o("n"),0)
         ;
 odictClear(o)   ; Drop every entry.
-        ; doc: Example: do odictClear^STDCOLL(.o)
+        ; doc: @param o       array   by-ref local
+        ; doc: @example       do odictClear^STDCOLL(.o)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         kill o
         quit
         ;
 odictFirst(o)   ; Return first key in insertion order; "" when empty.
-        ; doc: Example: set k=$$odictFirst^STDCOLL(.o)
+        ; doc: @param o       array   by-ref local
+        ; doc: @returns       string  first key; "" when empty
+        ; doc: @example       set k=$$odictFirst^STDCOLL(.o)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new s
         set s=$order(o("ord",""))
         if s="" quit ""
         quit o("ord",s)
         ;
 odictLast(o)    ; Return last key in insertion order; "" when empty.
-        ; doc: Example: set k=$$odictLast^STDCOLL(.o)
+        ; doc: @param o       array   by-ref local
+        ; doc: @returns       string  last key; "" when empty
+        ; doc: @example       set k=$$odictLast^STDCOLL(.o)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new s
         set s=$order(o("ord",""),-1)
         if s="" quit ""
         quit o("ord",s)
         ;
 odictNext(o,prev)       ; Return next key (insertion order) after prev; "" at end.
-        ; doc: Pair with odictFirst to walk forward; pass "" to get the
-        ; doc: first key. Skips entries removed via odictRemove.
-        ; doc: Example: set k=$$odictNext^STDCOLL(.o,k)
+        ; doc: @param o       array   by-ref local
+        ; doc: @param prev    string  previous key ("" for first call)
+        ; doc: @returns       string  next key; "" at end
+        ; doc: @example       set k=$$odictNext^STDCOLL(.o,k)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new s,n
         if prev="" set s=$order(o("ord",""))
         else  set s=$get(o("seq",prev),0)
@@ -485,9 +674,12 @@ odictNext(o,prev)       ; Return next key (insertion order) after prev; "" at en
         quit o("ord",s)
         ;
 odictPrev(o,next)       ; Return previous key (insertion order) before next; "" at start.
-        ; doc: Pair with odictLast to walk backward; pass "" to get the
-        ; doc: last key. Skips entries removed via odictRemove.
-        ; doc: Example: set k=$$odictPrev^STDCOLL(.o,k)
+        ; doc: @param o       array   by-ref local
+        ; doc: @param next    string  next key ("" for last call)
+        ; doc: @returns       string  previous key; "" at start
+        ; doc: @example       set k=$$odictPrev^STDCOLL(.o,k)
+        ; doc: @since         v0.2.0
+        ; doc: @stable        stable
         new s
         if next="" set s=$order(o("ord",""),-1)
         else  set s=$get(o("seq",next),0)

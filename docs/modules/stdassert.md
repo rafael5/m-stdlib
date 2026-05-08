@@ -5,7 +5,7 @@ phase: Phase 1
 stable: stable
 since: v0.0.1
 synopsis: ""
-labels: ['contains', 'eq', 'false', 'len', 'ne', 'near', 'quote', 'raises', 'raisesUnwound', 'recordFail', 'recordPass', 'report', 'silent', 'start', 'true']
+labels: ['contains', 'eq', 'false', 'len', 'ne', 'near', 'raises', 'report', 'start', 'true']
 errors: []
 conformance: []
 see_also: ['STDSNAP']

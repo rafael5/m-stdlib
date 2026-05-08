@@ -5,7 +5,7 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'LRU + TTL cache over a caller-owned local array'
-labels: ['capacity', 'clear', 'evictWhileOver', 'get', 'has', 'new', 'nowSec', 'put', 'remove', 'size']
+labels: ['capacity', 'clear', 'get', 'has', 'new', 'put', 'remove', 'size']
 errors: []
 conformance: []
 see_also: []

@@ -30,8 +30,14 @@ STDMATH ; m-stdlib — Numeric helpers (clamp / min / max / sum / count / mean o
         ; ---------- public API: scalar ----------
         ;
 clamp(x,lo,hi)  ; Clamp x into [lo, hi]. Returns lo if x<lo, hi if x>hi, else x.
-        ; doc: Caller is responsible for lo ≤ hi; the function does not validate.
-        ; doc: Example: write $$clamp^STDMATH(99,0,10)  ; 10
+        ; doc: @param x       num     value to clamp
+        ; doc: @param lo      num     lower bound
+        ; doc: @param hi      num     upper bound (caller must ensure lo <= hi)
+        ; doc: @returns       num     clamped value
+        ; doc: @example       write $$clamp^STDMATH(99,0,10)  ; 10
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$min^STDMATH, $$max^STDMATH
         if x<lo quit lo
         if x>hi quit hi
         quit x
@@ -39,7 +45,12 @@ clamp(x,lo,hi)  ; Clamp x into [lo, hi]. Returns lo if x<lo, hi if x>hi, else x.
         ; ---------- public API: array reductions ----------
         ;
 min(arr)        ; Smallest value in arr (1st-level $ORDER walk). "" if empty.
-        ; doc: Example: new a  set a(1)=3,a(2)=1,a(3)=4  write $$min^STDMATH(.a)  ; 1
+        ; doc: @param arr     array   by-ref local; values walked at depth 1
+        ; doc: @returns       num     smallest value; "" if empty
+        ; doc: @example       new a  set a(1)=3,a(2)=1,a(3)=4  write $$min^STDMATH(.a)  ; 1
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$max^STDMATH, $$mean^STDMATH
         new k,result,first,v
         set k="",first=1,result=""
         for  set k=$order(arr(k)) quit:k=""  do
@@ -49,7 +60,12 @@ min(arr)        ; Smallest value in arr (1st-level $ORDER walk). "" if empty.
         quit result
         ;
 max(arr)        ; Largest value in arr. "" if empty.
-        ; doc: Example: new a  set a(1)=3,a(2)=9,a(3)=4  write $$max^STDMATH(.a)  ; 9
+        ; doc: @param arr     array   by-ref local; values walked at depth 1
+        ; doc: @returns       num     largest value; "" if empty
+        ; doc: @example       new a  set a(1)=3,a(2)=9,a(3)=4  write $$max^STDMATH(.a)  ; 9
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$min^STDMATH, $$mean^STDMATH
         new k,result,first,v
         set k="",first=1,result=""
         for  set k=$order(arr(k)) quit:k=""  do
@@ -59,21 +75,36 @@ max(arr)        ; Largest value in arr. "" if empty.
         quit result
         ;
 sum(arr)        ; Sum of arr's values (unary-+ coercion). 0 if empty.
-        ; doc: Example: new a  set a(1)=10,a(2)=-3,a(3)=5  write $$sum^STDMATH(.a)  ; 12
+        ; doc: @param arr     array   by-ref local
+        ; doc: @returns       num     sum of values; 0 if empty
+        ; doc: @example       new a  set a(1)=10,a(2)=-3,a(3)=5  write $$sum^STDMATH(.a)  ; 12
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$mean^STDMATH, $$count^STDMATH
         new k,total
         set total=0,k=""
         for  set k=$order(arr(k)) quit:k=""  set total=total+arr(k)
         quit total
         ;
 count(arr)      ; Number of $ORDER-visible values at depth 1. 0 if empty.
-        ; doc: Example: new a  set a(1)=10,a("k")=20  write $$count^STDMATH(.a)  ; 2
+        ; doc: @param arr     array   by-ref local
+        ; doc: @returns       int     number of values at depth 1
+        ; doc: @example       new a  set a(1)=10,a("k")=20  write $$count^STDMATH(.a)  ; 2
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sum^STDMATH
         new k,n
         set n=0,k=""
         for  set k=$order(arr(k)) quit:k=""  set n=n+1
         quit n
         ;
 mean(arr)       ; Arithmetic mean = sum / count. "" if arr is empty (no /0).
-        ; doc: Example: new a  set a(1)=2,a(2)=4,a(3)=6  write $$mean^STDMATH(.a)  ; 4
+        ; doc: @param arr     array   by-ref local
+        ; doc: @returns       num     arithmetic mean; "" if arr is empty
+        ; doc: @example       new a  set a(1)=2,a(2)=4,a(3)=6  write $$mean^STDMATH(.a)  ; 4
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$sum^STDMATH, $$count^STDMATH
         new n
         set n=$$count(.arr)
         if n=0 quit ""

@@ -34,10 +34,14 @@ STDSNAP ; m-stdlib — Snapshot testing: serialize an M tree, diff against a bas
         ; ---------- public API ----------
         ;
 serialize(data) ; Walk data tree; return the canonical line-per-leaf dump.
-        ; doc: An empty tree (no defined subscripts) returns "".
+        ; doc: @param data    array   by-ref local; the tree to serialize
+        ; doc: @returns       string  canonical line-per-leaf dump; "" for an empty tree
+        ; doc: @example       write $$serialize^STDSNAP(.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           do save^STDSNAP, $$matches^STDSNAP
         ; doc: Trailing LF is *not* emitted — keeps round-trip clean against
         ; doc: writeFile/readFile, which add and strip a trailing LF.
-        ; doc: Example: write $$serialize^STDSNAP(.cfg)
         new ref,out,line,raw,subs,value
         set out=""
         set ref="data"
@@ -53,18 +57,28 @@ serialize(data) ; Walk data tree; return the canonical line-per-leaf dump.
         quit out
         ;
 save(path,data) ; Write serialize(data) to path. Overwrites if exists.
-        ; doc: Sets $ECODE=,U-STDFS-OPEN-FAIL, on write failure (propagated
-        ; doc: from STDFS).
-        ; doc: Example: do save^STDSNAP("snapshots/cfg.snap",.cfg)
+        ; doc: @param path    string  filesystem path; truncated if it exists
+        ; doc: @param data    array   by-ref local; the tree to serialize
+        ; doc: @raises        U-STDFS-OPEN-FAIL  could not open `path` for write (propagated from STDFS)
+        ; doc: @example       do save^STDSNAP("snapshots/cfg.snap",.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$matches^STDSNAP, do asserts^STDSNAP
         new text
         set text=$$serialize(.data)
         do writeFile^STDFS(path,text)
         quit
         ;
 matches(path,data)      ; Return 1 iff serialize(data) equals the file's content.
+        ; doc: @param path    string  filesystem path to the baseline snapshot
+        ; doc: @param data    array   by-ref local; current tree
+        ; doc: @returns       bool    1 iff current matches baseline; 0 otherwise (incl. missing file)
+        ; doc: @example       write $$matches^STDSNAP("snapshots/cfg.snap",.cfg)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           do save^STDSNAP, do asserts^STDSNAP
         ; doc: A missing file returns 0 (no match — first run typically calls
         ; doc: save() to seed the snapshot before relying on matches).
-        ; doc: Example: write $$matches^STDSNAP("snapshots/cfg.snap",.cfg)
         new fileText,curText
         if '$$exists^STDFS(path) quit 0
         set fileText=$$readFile^STDFS(path)
@@ -72,18 +86,22 @@ matches(path,data)      ; Return 1 iff serialize(data) equals the file's content
         quit $select(fileText=curText:1,1:0)
         ;
 asserts(p,f,path,data,desc)     ; STDASSERT-style snapshot assertion.
+        ; doc: @param p       int     pass counter (by-ref; incremented on match)
+        ; doc: @param f       int     fail counter (by-ref; incremented on mismatch)
+        ; doc: @param path    string  filesystem path to the baseline snapshot
+        ; doc: @param data    array   by-ref local; current tree
+        ; doc: @param desc    string  human-readable assertion description
+        ; doc: @raises        U-STDFS-OPEN-FAIL  in update mode if the write fails (propagated from STDFS)
+        ; doc: @example       do asserts^STDSNAP(.pass,.fail,"cfg.snap",.cfg,"config matches baseline")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           do save^STDSNAP, $$matches^STDSNAP
         ; doc: On match: increments p and emits PASS via STDASSERT.
-        ; doc: On mismatch: increments f and emits FAIL with a brief diagnostic
-        ; doc: noting the snapshot path (full diff is the file vs current text;
-        ; doc: caller can shell out to `diff` for the byte-level inspection).
-        ; doc: Example: do asserts^STDSNAP(.pass,.fail,"cfg.snap",.cfg,"config matches baseline")
-        ; doc:
-        ; doc: Update mode: when ^STDLIB($job,"stdsnap","update")=1, asserts()
-        ; doc: writes the current snapshot to `path` (overwriting any existing
-        ; doc: file) and records PASS instead of comparing. Used by m-cli's
-        ; doc: `m test --update-snapshots` to regenerate baselines after an
-        ; doc: intentional change in test output. Update mode never fails —
-        ; doc: a write error still fires the underlying STDFS error trap.
+        ; doc: On mismatch: increments f and emits FAIL with a brief diagnostic.
+        ; doc: Update mode: when ^STDLIB($job,"stdsnap","update")=1, writes the
+        ; doc: current snapshot to `path` and records PASS instead of comparing.
+        ; doc: Used by m-cli's `m test --update-snapshots` to regenerate
+        ; doc: baselines after an intentional change in test output.
         if $get(^STDLIB($job,"stdsnap","update")) do save(path,.data) do recordPass^STDASSERT(.p,desc_" [snapshot updated]") quit
         if $$matches(path,.data) do recordPass^STDASSERT(.p,desc) quit
         do recordFail^STDASSERT(.f,desc,"snapshot at "_path,"current data differs")
@@ -92,18 +110,21 @@ asserts(p,f,path,data,desc)     ; STDASSERT-style snapshot assertion.
         ; ---------- internal: value quoting ----------
         ;
 qval(v) ; M-quote a scalar value: numeric → raw; everything else → "..." with " doubled.
-        ; doc: Internal — driven by serialize().
+        ; doc: @internal
+        ; doc: Driven by serialize().
         if $$isNumeric(v) quit v
         quit """"_$$dq(v)_""""
         ;
 isNumeric(v)    ; True iff v is a non-empty canonical numeric M literal.
-        ; doc: Internal — uses M's own canonical-form rule: +v rendered as a
-        ; doc: string equals v iff v is already in canonical form.
+        ; doc: @internal
+        ; doc: Uses M's own canonical-form rule: +v rendered as a string
+        ; doc: equals v iff v is already in canonical form.
         if v="" quit 0
         quit $select(+v=v:1,1:0)
         ;
 dq(s)   ; Double every " in s — M string-literal escape.
-        ; doc: Internal — same routine as STDCSV's dq but inlined for self-containment.
+        ; doc: @internal
+        ; doc: Same routine as STDCSV's dq but inlined for self-containment.
         new q,n
         set q=""""
         set n=$length(s,q)

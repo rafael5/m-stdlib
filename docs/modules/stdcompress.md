@@ -5,8 +5,8 @@ phase: Phase 3 + post-P4 wave
 stable: stable
 since: v0.4.0
 synopsis: ""
-labels: ['available', 'deflate', 'dispatchC', 'dispatchD', 'gunzip', 'gzip', 'inflate', 'libzLevel', 'preallocBuf', 'zstdCompress', 'zstdDecompress', 'zstdLevel']
-errors: []
+labels: ['available', 'deflate', 'gunzip', 'gzip', 'inflate', 'zstdCompress', 'zstdDecompress']
+errors: ['U-STDCOMPRESS-BAD-LEVEL', 'U-STDCOMPRESS-CALLOUT-MISSING', 'U-STDCOMPRESS-LIBZ-FAIL', 'U-STDCOMPRESS-LIBZSTD-FAIL']
 conformance: []
 see_also: []
 ---

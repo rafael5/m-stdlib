@@ -29,6 +29,101 @@
     ],
     "module": "STDARGS"
   },
+  "U-STDCOMPRESS-BAD-LEVEL": {
+    "labels": [
+      "gzip",
+      "deflate",
+      "zstdCompress"
+    ],
+    "module": "STDCOMPRESS"
+  },
+  "U-STDCOMPRESS-CALLOUT-MISSING": {
+    "labels": [
+      "gzip",
+      "gunzip",
+      "deflate",
+      "inflate",
+      "zstdCompress",
+      "zstdDecompress"
+    ],
+    "module": "STDCOMPRESS"
+  },
+  "U-STDCOMPRESS-LIBZ-FAIL": {
+    "labels": [
+      "gzip",
+      "gunzip",
+      "deflate",
+      "inflate"
+    ],
+    "module": "STDCOMPRESS"
+  },
+  "U-STDCOMPRESS-LIBZSTD-FAIL": {
+    "labels": [
+      "zstdCompress",
+      "zstdDecompress"
+    ],
+    "module": "STDCOMPRESS"
+  },
+  "U-STDCRYPTO-CALLOUT-MISSING": {
+    "labels": [
+      "sha256",
+      "sha384",
+      "sha512",
+      "sha256Bytes",
+      "sha384Bytes",
+      "sha512Bytes",
+      "hmacSha256",
+      "hmacSha384",
+      "hmacSha512",
+      "hmacSha256Bytes",
+      "hmacSha384Bytes",
+      "hmacSha512Bytes"
+    ],
+    "module": "STDCRYPTO"
+  },
+  "U-STDCRYPTO-DIGEST-FAIL": {
+    "labels": [
+      "sha256",
+      "sha384",
+      "sha512",
+      "sha256Bytes",
+      "sha384Bytes",
+      "sha512Bytes"
+    ],
+    "module": "STDCRYPTO"
+  },
+  "U-STDCRYPTO-HMAC-FAIL": {
+    "labels": [
+      "hmacSha256",
+      "hmacSha384",
+      "hmacSha512",
+      "hmacSha256Bytes",
+      "hmacSha384Bytes",
+      "hmacSha512Bytes"
+    ],
+    "module": "STDCRYPTO"
+  },
+  "U-STDCSPRNG-BAD-COUNT": {
+    "labels": [
+      "bytes",
+      "hex",
+      "base64",
+      "token"
+    ],
+    "module": "STDCSPRNG"
+  },
+  "U-STDCSPRNG-BAD-RANGE": {
+    "labels": [
+      "int"
+    ],
+    "module": "STDCSPRNG"
+  },
+  "U-STDCSPRNG-OPEN-FAIL": {
+    "labels": [
+      "bytes"
+    ],
+    "module": "STDCSPRNG"
+  },
   "U-STDCSV-OPEN-FAIL": {
     "labels": [
       "parseFile",
@@ -56,6 +151,19 @@
       "strptime"
     ],
     "module": "STDDATE"
+  },
+  "U-STDFIX-EMPTY-TAG": {
+    "labels": [
+      "with",
+      "register"
+    ],
+    "module": "STDFIX"
+  },
+  "U-STDFIX-UNREGISTERED-TAG": {
+    "labels": [
+      "invoke"
+    ],
+    "module": "STDFIX"
   },
   "U-STDFMT-MISSING-ARG": {
     "labels": [
@@ -85,6 +193,56 @@
     ],
     "module": "STDFMT"
   },
+  "U-STDFS-NOT-WIRED": {
+    "labels": [
+      "writeBytes",
+      "appendBytes",
+      "readBytes"
+    ],
+    "module": "STDFS"
+  },
+  "U-STDFS-OPEN-FAIL": {
+    "labels": [
+      "parseFile",
+      "readFile",
+      "writeFile",
+      "append",
+      "readLines",
+      "writeLines",
+      "writeBytes",
+      "appendBytes",
+      "readBytes",
+      "save",
+      "asserts"
+    ],
+    "module": "STDENV"
+  },
+  "U-STDFS-READ-TRUNCATED": {
+    "labels": [
+      "readBytes"
+    ],
+    "module": "STDFS"
+  },
+  "U-STDFS-REMOVE-FAIL": {
+    "labels": [
+      "remove"
+    ],
+    "module": "STDFS"
+  },
+  "U-STDJSON-ENCODE": {
+    "labels": [
+      "encode",
+      "writeFile"
+    ],
+    "module": "STDJSON"
+  },
+  "U-STDJSON-PARSE": {
+    "labels": [
+      "parse",
+      "parseFile"
+    ],
+    "module": "STDJSON"
+  },
   "U-STDLOG-INVALID-FORMAT": {
     "labels": [
       "FORMAT"
@@ -102,5 +260,64 @@
       "SINK"
     ],
     "module": "STDLOG"
+  },
+  "U-STDREGEX-BAD-PATTERN": {
+    "labels": [
+      "compile"
+    ],
+    "module": "STDREGEX"
+  },
+  "U-STDREGEX-NO-MATCH": {
+    "labels": [
+      "groups"
+    ],
+    "module": "STDREGEX"
+  },
+  "U-STDREGEX-UNSUPPORTED": {
+    "labels": [
+      "compile"
+    ],
+    "module": "STDREGEX"
+  },
+  "U-STDSEED-FILE-NOT-FOUND": {
+    "labels": [
+      "load",
+      "validate"
+    ],
+    "module": "STDSEED"
+  },
+  "U-STDSEED-FILER-ERROR": {
+    "labels": [
+      "load",
+      "loadJson"
+    ],
+    "module": "STDSEED"
+  },
+  "U-STDSEED-INVALID-JSON": {
+    "labels": [
+      "loadJson"
+    ],
+    "module": "STDSEED"
+  },
+  "U-STDSEED-INVALID-MANIFEST": {
+    "labels": [
+      "loadJson"
+    ],
+    "module": "STDSEED"
+  },
+  "U-STDSEED-MISSING-FIELD": {
+    "labels": [
+      "load",
+      "validate"
+    ],
+    "module": "STDSEED"
+  },
+  "U-STDSEED-MISSING-FILE": {
+    "labels": [
+      "load",
+      "validate",
+      "loadJson"
+    ],
+    "module": "STDSEED"
   }
 }

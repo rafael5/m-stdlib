@@ -6,7 +6,7 @@ stable: stable
 since: v0.1.1
 synopsis: 'fixture lifecycle and per-test isolation'
 labels: ['active', 'cleanup', 'invoke', 'register', 'with']
-errors: []
+errors: ['U-STDFIX-EMPTY-TAG', 'U-STDFIX-UNREGISTERED-TAG']
 conformance: []
 see_also: []
 ---

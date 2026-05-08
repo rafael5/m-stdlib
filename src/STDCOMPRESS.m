@@ -50,11 +50,17 @@ STDCOMPRESS     ; m-stdlib — gzip / deflate / zstd via $&stdcompress callouts.
         ; ---------- public API ----------
         ;
 gzip(data,out,level)    ; RFC 1952 gzip-format compress.
-        ; doc: data is treated as a byte string (one M character per byte).
-        ; doc: Sets $ECODE=,U-STDCOMPRESS-BAD-LEVEL, if level outside 1..9;
-        ; doc: ,U-STDCOMPRESS-CALLOUT-MISSING, if the .so is unloaded;
-        ; doc: ,U-STDCOMPRESS-LIBZ-FAIL, on libz failure.
-        ; doc: Example: do gzip^STDCOMPRESS("hello",.buf)
+        ; doc: @param data    byte-string  one M character per byte
+        ; doc: @param out     byte-string  by-ref local; populated with compressed bytes
+        ; doc: @param level   int          compression level 1..9 (default 6)
+        ; doc: @returns       bool         1 on success; 0 with $ECODE on failure
+        ; doc: @raises        U-STDCOMPRESS-BAD-LEVEL       level outside 1..9
+        ; doc: @raises        U-STDCOMPRESS-CALLOUT-MISSING  .so unloaded
+        ; doc: @raises        U-STDCOMPRESS-LIBZ-FAIL        libz reported failure
+        ; doc: @example       do gzip^STDCOMPRESS("hello",.buf)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$gunzip^STDCOMPRESS, $$deflate^STDCOMPRESS
         new lvl,st
         set lvl=$$libzLevel($get(level,6))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
@@ -63,14 +69,32 @@ gzip(data,out,level)    ; RFC 1952 gzip-format compress.
         set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 gunzip(data,out)        ; RFC 1952 gunzip.
-        ; doc: Example: do gunzip^STDCOMPRESS(buf,.raw)
+        ; doc: @param data    byte-string  gzip-format compressed bytes
+        ; doc: @param out     byte-string  by-ref local; populated with raw bytes
+        ; doc: @returns       bool         1 on success; 0 with $ECODE on failure
+        ; doc: @raises        U-STDCOMPRESS-CALLOUT-MISSING  .so unloaded
+        ; doc: @raises        U-STDCOMPRESS-LIBZ-FAIL        libz reported failure
+        ; doc: @example       do gunzip^STDCOMPRESS(buf,.raw)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$gzip^STDCOMPRESS
         new st
         set st=$$dispatchD("gunzip",data,.out)
         if st="" quit 1
         set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 deflate(data,out,level) ; RFC 1951 raw deflate (no header / trailer).
-        ; doc: Example: do deflate^STDCOMPRESS("hello",.buf)
+        ; doc: @param data    byte-string
+        ; doc: @param out     byte-string  by-ref local; populated with deflated bytes
+        ; doc: @param level   int          compression level 1..9 (default 6)
+        ; doc: @returns       bool         1 on success; 0 with $ECODE on failure
+        ; doc: @raises        U-STDCOMPRESS-BAD-LEVEL        level outside 1..9
+        ; doc: @raises        U-STDCOMPRESS-CALLOUT-MISSING  .so unloaded
+        ; doc: @raises        U-STDCOMPRESS-LIBZ-FAIL        libz reported failure
+        ; doc: @example       do deflate^STDCOMPRESS("hello",.buf)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$inflate^STDCOMPRESS, $$gzip^STDCOMPRESS
         new lvl,st
         set lvl=$$libzLevel($get(level,6))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
@@ -79,14 +103,32 @@ deflate(data,out,level) ; RFC 1951 raw deflate (no header / trailer).
         set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 inflate(data,out)       ; RFC 1951 raw inflate.
-        ; doc: Example: do inflate^STDCOMPRESS(buf,.raw)
+        ; doc: @param data    byte-string  raw deflated bytes
+        ; doc: @param out     byte-string  by-ref local; populated with raw bytes
+        ; doc: @returns       bool         1 on success; 0 with $ECODE on failure
+        ; doc: @raises        U-STDCOMPRESS-CALLOUT-MISSING  .so unloaded
+        ; doc: @raises        U-STDCOMPRESS-LIBZ-FAIL        libz reported failure
+        ; doc: @example       do inflate^STDCOMPRESS(buf,.raw)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$deflate^STDCOMPRESS
         new st
         set st=$$dispatchD("inflate",data,.out)
         if st="" quit 1
         set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 zstdCompress(data,out,level)    ; Zstandard (RFC 8478) compress.
-        ; doc: Example: do zstdCompress^STDCOMPRESS("hello",.buf)
+        ; doc: @param data    byte-string
+        ; doc: @param out     byte-string  by-ref local; populated with compressed bytes
+        ; doc: @param level   int          compression level 1..22 (default 3)
+        ; doc: @returns       bool         1 on success; 0 with $ECODE on failure
+        ; doc: @raises        U-STDCOMPRESS-BAD-LEVEL         level outside 1..22
+        ; doc: @raises        U-STDCOMPRESS-CALLOUT-MISSING   .so unloaded
+        ; doc: @raises        U-STDCOMPRESS-LIBZSTD-FAIL      libzstd reported failure
+        ; doc: @example       do zstdCompress^STDCOMPRESS("hello",.buf)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$zstdDecompress^STDCOMPRESS
         new lvl,st
         set lvl=$$zstdLevel($get(level,3))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
@@ -95,14 +137,26 @@ zstdCompress(data,out,level)    ; Zstandard (RFC 8478) compress.
         set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
         ;
 zstdDecompress(data,out)        ; Zstandard decompress.
-        ; doc: Example: do zstdDecompress^STDCOMPRESS(buf,.raw)
+        ; doc: @param data    byte-string  zstd-compressed bytes
+        ; doc: @param out     byte-string  by-ref local; populated with raw bytes
+        ; doc: @returns       bool         1 on success; 0 with $ECODE on failure
+        ; doc: @raises        U-STDCOMPRESS-CALLOUT-MISSING   .so unloaded
+        ; doc: @raises        U-STDCOMPRESS-LIBZSTD-FAIL      libzstd reported failure
+        ; doc: @example       do zstdDecompress^STDCOMPRESS(buf,.raw)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$zstdCompress^STDCOMPRESS
         new st
         set st=$$dispatchD("zstdDecompress",data,.out)
         if st="" quit 1
         set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
         ;
 available()     ; "" iff both libz and libzstd loaded; else missing list.
-        ; doc: Example: if $$available^STDCOMPRESS()'="" w "missing libs",!
+        ; doc: @returns       string  "" if both backends OK; comma-separated names of missing libs otherwise
+        ; doc: @example       if $$available^STDCOMPRESS()'="" w "missing libs",!
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$gzip^STDCOMPRESS, $$zstdCompress^STDCOMPRESS
         ; doc: Probes by attempting an empty round-trip on each backend.
         ; doc: Never raises — clears $ECODE on the way out.
         new gz,zstd,buf,miss
@@ -117,34 +171,33 @@ available()     ; "" iff both libz and libzstd loaded; else missing list.
         ; ---------- internal helpers ----------
         ;
 libzLevel(n)    ; Validate libz compression level — 1..9 valid, else -1.
-        ; doc: Internal — level 0 (no compression) deliberately rejected.
+        ; doc: @internal
+        ; doc: Level 0 (no compression) deliberately rejected.
         if n'=(n+0) quit -1
         if n<1 quit -1
         if n>9 quit -1
         quit n
         ;
 zstdLevel(n)    ; Validate zstd compression level — 1..22 valid, else -1.
-        ; doc: Internal — negative levels (--fast tier) deferred.
+        ; doc: @internal
+        ; doc: Negative levels (--fast tier) deferred.
         if n'=(n+0) quit -1
         if n<1 quit -1
         if n>22 quit -1
         quit n
         ;
 preallocBuf()   ; 1 MiB pre-allocated output buffer for the C side to fill.
-        ; doc: Internal — YDB callouts need the M-side string at full
-        ; doc: capacity before the C side writes into it. $justify("",N)
-        ; doc: allocates N spaces in one O(N) pass; the C side overwrites
-        ; doc: the contents and updates ydb_string_t.length on return.
-        ; doc: Capped at 1 MiB (YDB's max M-string length on r2.02);
-        ; doc: matches the [1048576] declaration in tools/std_compress.xc.
+        ; doc: @internal
+        ; doc: YDB callouts need the M-side string at full capacity before
+        ; doc: the C side writes into it. Capped at 1 MiB (YDB's max
+        ; doc: M-string length on r2.02).
         quit $justify("",1048576)
         ;
 dispatchC(sym,data,out,lvl)     ; Compress dispatch — 3-arg $&. Returns status.
-        ; doc: Internal — XECUTE-wraps $&stdcompress.<sym>(data,.out,lvl)
-        ; doc: so tree-sitter-m doesn't trip on the $&pkg.fn syntax.
+        ; doc: @internal
+        ; doc: XECUTE-wraps $&stdcompress.<sym>(data,.out,lvl).
         ; doc: Returns "" on success, "MISSING" if .so unloaded,
-        ; doc: "FAIL" if libz/libzstd returned non-success. Caller maps
-        ; doc: status to the per-backend $ECODE tag.
+        ; doc: "FAIL" if libz/libzstd returned non-success.
         new $etrap,rc,cmd
         set $etrap="set $ecode="""" set rc=-1 quit ""MISSING"""
         set rc=0
@@ -156,7 +209,8 @@ dispatchC(sym,data,out,lvl)     ; Compress dispatch — 3-arg $&. Returns status
         quit ""
         ;
 dispatchD(sym,data,out)         ; Decompress dispatch — 2-arg $&. Returns status.
-        ; doc: Internal — same XECUTE-wrap rationale as dispatchC.
+        ; doc: @internal
+        ; doc: Same XECUTE-wrap rationale as dispatchC.
         new $etrap,rc,cmd
         set $etrap="set $ecode="""" set rc=-1 quit ""MISSING"""
         set rc=0

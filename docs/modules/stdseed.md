@@ -5,8 +5,8 @@ phase: Phase 1b
 stable: stable
 since: v0.1.3
 synopsis: 'declarative test data loader (v0.1.3)'
-labels: ['clear', 'dispatch', 'dispatchJson', 'fileViaDie', 'load', 'loadJson', 'loaded', 'processRow', 'trim', 'tryOpen', 'validate', 'walk', 'walkJson']
-errors: []
+labels: ['clear', 'load', 'loadJson', 'loaded', 'validate']
+errors: ['U-STDSEED-FILE-NOT-FOUND', 'U-STDSEED-FILER-ERROR', 'U-STDSEED-INVALID-JSON', 'U-STDSEED-INVALID-MANIFEST', 'U-STDSEED-MISSING-FIELD', 'U-STDSEED-MISSING-FILE']
 conformance: []
 see_also: ['STDJSON']
 ---

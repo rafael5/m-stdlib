@@ -59,8 +59,14 @@ STDXML  ; m-stdlib — XML parser (well-formed XML 1.0 subset, in-progress).
         ; ---------- public API ----------
         ;
 parse(text,root)        ; Parse text into root tree; return 1/0.
+        ; doc: @param text    string  XML 1.0 document
+        ; doc: @param root    array   by-ref local; killed before population
+        ; doc: @returns       bool    1 on success; 0 on parse failure
+        ; doc: @example       do  set rc=$$parse^STDXML(text,.tree)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$valid^STDXML, $$lastError^STDXML, $$xpath^STDXML
         ; doc: Sets ^STDLIB($job,"stdxml","err") with a diagnostic on failure.
-        ; doc: Example: do  set rc=$$parse^STDXML(text,.tree)
         kill root
         kill ^STDLIB($job,"stdxml","err")
         new ctx,ok,emptyNs
@@ -75,49 +81,69 @@ parse(text,root)        ; Parse text into root tree; return 1/0.
         quit 1
         ;
 valid(text)     ; Return 1 iff text parses as valid XML; else 0.
-        ; doc: Example: write $$valid^STDXML("<foo/>")
+        ; doc: @param text    string  candidate XML
+        ; doc: @returns       bool    1 iff parseable; 0 otherwise
+        ; doc: @example       write $$valid^STDXML("<foo/>")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$parse^STDXML
         new tmp
         quit $$parse(text,.tmp)
         ;
 rootName(node)  ; Return the element tag name; "" if missing.
-        ; doc: Example: write $$rootName^STDXML(.tree)  ; "foo"
+        ; doc: @param node    node    by-ref tree from $$parse^STDXML
+        ; doc: @returns       string  element tag name
+        ; doc: @example       write $$rootName^STDXML(.tree)  ; "foo"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$ns^STDXML, $$attr^STDXML
         quit $get(node("name"),"")
         ;
 attr(node,name) ; Return attribute value; "" if missing.
-        ; doc: Example: write $$attr^STDXML(.tree,"id")
+        ; doc: @param node    node    by-ref tree
+        ; doc: @param name    string  attribute name
+        ; doc: @returns       string  attribute value; "" if missing
+        ; doc: @example       write $$attr^STDXML(.tree,"id")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$attrNs^STDXML
         quit $get(node("attr",name),"")
         ;
 ns(node)        ; Return the namespace URI for the element; "" if not in any namespace.
-        ; doc: T25 — uses xmlns / xmlns:prefix declarations in scope at the
-        ; doc: element's position. Inherited from the nearest enclosing
-        ; doc: declaration unless shadowed.
-        ; doc: Example: write $$ns^STDXML(.tree)  ; "urn:hl7-org:v3"
+        ; doc: @param node    node    by-ref tree
+        ; doc: @returns       string  namespace URI; "" if element is not in any namespace
+        ; doc: @example       write $$ns^STDXML(.tree)  ; "urn:hl7-org:v3"
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$attrNs^STDXML, $$rootName^STDXML
+        ; doc: T25 — uses xmlns / xmlns:prefix declarations in scope.
         quit $get(node("ns"),"")
         ;
 attrNs(node,name)       ; Return the namespace URI for an attribute; "" if unprefixed or absent.
-        ; doc: T25b — per XML Namespaces 1.0 §6.2, the default xmlns does
-        ; doc: NOT apply to unprefixed attributes; only attributes with an
-        ; doc: explicit prefix carry a namespace URI. The built-in `xml:`
-        ; doc: prefix resolves to `http://www.w3.org/XML/1998/namespace`.
-        ; doc: Example: write $$attrNs^STDXML(.tree,"xsi:type")
+        ; doc: @param node    node    by-ref tree
+        ; doc: @param name    string  attribute name (with or without prefix)
+        ; doc: @returns       string  namespace URI; "" if unprefixed or absent
+        ; doc: @example       write $$attrNs^STDXML(.tree,"xsi:type")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$attr^STDXML, $$ns^STDXML
+        ; doc: Per XML Namespaces 1.0 §6.2, default xmlns does NOT apply to
+        ; doc: unprefixed attributes; only prefixed attrs carry a namespace URI.
         quit $get(node("attrNs",name),"")
         ;
 xpath(tree,expr,results)        ; Run an XPath query; populate results(1..N); return N.
-        ; doc: Supports element paths (`a/b/c`), absolute (`/foo`),
-        ; doc: descendant axis (`//x`), 1-based position predicates
-        ; doc: (`x[1]`), wildcards (`*` and `@*`), and attribute axis
-        ; doc: (`@attr`). Attribute matches surface as result entries
-        ; doc: with `results(i,"text")` set to the attribute value and
-        ; doc: `results(i,"name")` set to the attribute name — so
-        ; doc: `xpathText` returns the attribute value transparently.
-        ; doc: T27b — predicate expressions also accept comparison
-        ; doc: operators (`=`, `!=`, `<`, `>`, `<=`, `>=`) and the
-        ; doc: functions `position()`, `last()`, `name()`, `text()`,
-        ; doc: `count()`, `string-length()`, `normalize-space()`,
-        ; doc: `contains()`, `starts-with()`. Examples: `a[@id='2']`,
-        ; doc: `*[name()='b']`, `book[count(author)>1]`.
-        ; doc: Returns 0 (with results killed) for an unparseable expression.
-        ; doc: Example: do  set n=$$xpath^STDXML(.doc,"/r/items/item[2]",.r)
+        ; doc: @param tree    array   by-ref parsed XML tree
+        ; doc: @param expr    string  XPath 1.0 subset expression
+        ; doc: @param results array   by-ref local; killed then populated as results(1..N)
+        ; doc: @returns       int     match count; 0 for an unparseable expression
+        ; doc: @example       do  set n=$$xpath^STDXML(.doc,"/r/items/item[2]",.r)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$xpathOne^STDXML, $$xpathText^STDXML
+        ; doc: Supports element paths, absolute paths, descendant axis (`//`),
+        ; doc: position predicates, wildcards (`*` / `@*`), attribute axis
+        ; doc: (`@attr`), and predicate expressions with comparison operators
+        ; doc: and functions (position, last, name, text, count, etc.).
         kill results
         new steps,paths,n,pathCount,i
         if '$$parseXPath(expr,.steps) quit 0
@@ -134,8 +160,14 @@ xpath(tree,expr,results)        ; Run an XPath query; populate results(1..N); re
         quit pathCount
         ;
 xpathOne(tree,expr,out) ; First match into .out; return 1/0.
-        ; doc: Convenience wrapper over xpath.
-        ; doc: Example: do  if $$xpathOne^STDXML(.doc,"/r/title",.t) ...
+        ; doc: @param tree    array   by-ref parsed XML tree
+        ; doc: @param expr    string  XPath expression
+        ; doc: @param out     array   by-ref local; merged with first match
+        ; doc: @returns       bool    1 iff at least one match; 0 otherwise
+        ; doc: @example       do  if $$xpathOne^STDXML(.doc,"/r/title",.t) ...
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$xpath^STDXML, $$xpathText^STDXML
         kill out
         new results,n
         set n=$$xpath(.tree,expr,.results)
@@ -144,26 +176,47 @@ xpathOne(tree,expr,out) ; First match into .out; return 1/0.
         quit 1
         ;
 xpathText(tree,expr)    ; Return the direct text of the first match; "" if none.
-        ; doc: Example: write $$xpathText^STDXML(.doc,"/cfg/host")
+        ; doc: @param tree    array   by-ref parsed XML tree
+        ; doc: @param expr    string  XPath expression
+        ; doc: @returns       string  direct text of first match; "" if no match
+        ; doc: @example       write $$xpathText^STDXML(.doc,"/cfg/host")
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$xpath^STDXML, $$xpathOne^STDXML
         new results,n
         set n=$$xpath(.tree,expr,.results)
         if n=0 quit ""
         quit $get(results(1,"text"),"")
         ;
 text(node)      ; Return direct text content; "" if no text.
-        ; doc: Example: write $$text^STDXML(.tree)
+        ; doc: @param node    node    by-ref tree
+        ; doc: @returns       string  direct text content; "" if no text
+        ; doc: @example       write $$text^STDXML(.tree)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$xpathText^STDXML
         quit $get(node("text"),"")
         ;
 childCount(node)        ; Return number of element children; 0 if none.
-        ; doc: Example: write $$childCount^STDXML(.tree)
+        ; doc: @param node    node    by-ref tree
+        ; doc: @returns       int     number of element children
+        ; doc: @example       write $$childCount^STDXML(.tree)
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$childByName^STDXML
         quit $get(node("childCount"),0)
         ;
 childByName(node,name,out)      ; Find first child with `name`; merge into `.out`. 1/0.
+        ; doc: @param node    node    by-ref tree
+        ; doc: @param name    string  child element name
+        ; doc: @param out     array   by-ref local; killed then populated with the child subtree
+        ; doc: @returns       bool    1 iff a matching child exists
+        ; doc: @example       do  if $$childByName^STDXML(.tree,"book",.b) ...
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$childCount^STDXML, $$xpath^STDXML
         ; doc: Pass-by-ref of `.out` allows the caller to receive the child
-        ; doc: subtree without violating YDB's `.x(SUBS)` syntax limit. The
-        ; doc: merge under the hood is what makes recursive descent into a
-        ; doc: parsed XML tree work in YDB.
-        ; doc: Example: do  if $$childByName^STDXML(.tree,"book",.b) ...
+        ; doc: subtree without violating YDB's `.x(SUBS)` syntax limit.
         kill out
         new n,i,found,foundAt
         set n=$get(node("childCount"),0),found=0,foundAt=0
@@ -175,13 +228,18 @@ childByName(node,name,out)      ; Find first child with `name`; merge into `.out
         quit 1
         ;
 lastError()     ; Return the last parse error diagnostic; "" if none / parse succeeded.
-        ; doc: Example: if 'rc write $$lastError^STDXML(),!
+        ; doc: @returns       string  last diagnostic; "" if last parse succeeded
+        ; doc: @example       if 'rc write $$lastError^STDXML(),!
+        ; doc: @since         v0.3.0
+        ; doc: @stable        stable
+        ; doc: @see           $$parse^STDXML
         quit $get(^STDLIB($job,"stdxml","err"),"")
         ;
         ; ---------- internal: parser state ----------
         ;
 initCtx(ctx,text)       ; Initialise the parse context.
-        ; doc: Internal — pos is the 1-based current position.
+        ; doc: @internal
+        ; doc: Pos is the 1-based current position.
         kill ctx
         set ctx("text")=text
         set ctx("len")=$length(text)
@@ -189,21 +247,22 @@ initCtx(ctx,text)       ; Initialise the parse context.
         quit
         ;
 peek(ctx)       ; Return the character at the current position; "" at EOF.
-        ; doc: Internal.
+        ; doc: @internal
         if ctx("pos")>ctx("len") quit ""
         quit $extract(ctx("text"),ctx("pos"))
         ;
 peekN(ctx,n)    ; Return the next n characters from the current position.
-        ; doc: Internal — for matching multi-char tokens like "</".
+        ; doc: @internal
+        ; doc: For matching multi-char tokens like "</".
         quit $extract(ctx("text"),ctx("pos"),ctx("pos")+n-1)
         ;
 advance(ctx,n)  ; Advance the position by n characters.
-        ; doc: Internal.
+        ; doc: @internal
         set ctx("pos")=ctx("pos")+n
         quit
         ;
 skipWs(ctx)     ; Skip space/tab/CR/LF whitespace.
-        ; doc: Internal.
+        ; doc: @internal
         new c
         for  set c=$$peek(.ctx) quit:c=""  quit:'($extract(c,1)?1(1" ",1C))  do advance(.ctx,1)
         quit
@@ -211,7 +270,8 @@ skipWs(ctx)     ; Skip space/tab/CR/LF whitespace.
         ; ---------- internal: element / attrs ----------
         ;
 parseElement(ctx,node,nsIn)     ; Parse one element. nsIn is the inherited namespace map.
-        ; doc: Internal — leaves the context positioned after the element.
+        ; doc: @internal
+        ; doc: Leaves the context positioned after the element.
         ; doc: Threads a per-element namespace map (T25). The parent's `nsIn`
         ; doc: is copied into a local `myNs` before modification, so children
         ; doc: see this element's xmlns declarations but the parent does not.
@@ -250,7 +310,8 @@ parseElement(ctx,node,nsIn)     ; Parse one element. nsIn is the inherited names
         quit 1
         ;
 parseAttrs(ctx,node)    ; Parse zero-or-more attributes onto node.
-        ; doc: Internal — leaves the context at the next non-whitespace
+        ; doc: @internal
+        ; doc: Leaves the context at the next non-whitespace
         ; doc: character (typically `>` or `/>`).
         new c,attrName,quote,value,done,bad
         set done=0,bad=0
@@ -275,14 +336,15 @@ parseAttrs(ctx,node)    ; Parse zero-or-more attributes onto node.
         quit 1
         ;
 parseAttrValue(ctx,quote)       ; Read characters until the matching quote (no escapes — entities decoded later).
-        ; doc: Internal.
+        ; doc: @internal
         new out,c
         set out=""
         for  set c=$$peek(.ctx) quit:c=""  quit:c=quote  set out=out_c do advance(.ctx,1)
         quit out
         ;
 parseContent(ctx,parentName,node,nsIn)  ; Parse element content until </parentName>.
-        ; doc: Internal — populates node("text") and node("child", n, ...).
+        ; doc: @internal
+        ; doc: Populates node("text") and node("child", n, ...).
         ; doc: Dispatches on `<!--` (comment), `<![CDATA[` (literal text),
         ; doc: `<?` (PI, skip), `</` (end of content), and `<name` (child).
         ; doc: nsIn is the inherited namespace map, threaded through to each
@@ -326,7 +388,8 @@ parseContent(ctx,parentName,node,nsIn)  ; Parse element content until </parentNa
         quit 1
         ;
 absorbXmlns(node,nsMap) ; Pull `xmlns` / `xmlns:prefix` attrs out of node into nsMap.
-        ; doc: Internal — driven by parseElement. Walks node("attr",...),
+        ; doc: @internal
+        ; doc: Driven by parseElement. Walks node("attr",...),
         ; doc: collects the namespace declarations into a temporary list,
         ; doc: applies them to nsMap, and kills them from node("attr",...).
         new k,n,i,xkeys,prefix,uri
@@ -345,7 +408,8 @@ absorbXmlns(node,nsMap) ; Pull `xmlns` / `xmlns:prefix` attrs out of node into n
         ; ---------- internal: XPath (T27) ----------
         ;
 parseXPath(expr,steps)  ; Parse XPath expression into steps(1..N) with axis/name/pred/attrName.
-        ; doc: Internal — supports `name`, `name1/name2`, `/name`, `//name`,
+        ; doc: @internal
+        ; doc: Supports `name`, `name1/name2`, `/name`, `//name`,
         ; doc: `name[N]`, the wildcard `*` (T27a), and the attribute axis
         ; doc: `@attrName` / `@*` (T27a). An attribute step is terminal —
         ; doc: nothing may follow it. T27b — predicates may be either a
@@ -418,6 +482,7 @@ parseXPath(expr,steps)  ; Parse XPath expression into steps(1..N) with axis/name
         quit 1
         ;
 applyStep(tree,steps,stepIdx,paths,pathCount,newPaths,newCount)
+        ; doc: @internal
         ; doc: Apply one XPath step to the current candidate set, producing
         ; doc: a new candidate set in newPaths(1..newCount). T27a: when the
         ; doc: step is an attribute axis (`@x`), candidates are sourced per
@@ -455,7 +520,8 @@ applyStep(tree,steps,stepIdx,paths,pathCount,newPaths,newCount)
         quit
         ;
 applyPredicate(newPaths,newCount,pred)  ; Keep only the n-th match (1-based).
-        ; doc: Internal — uses merge so any subnodes (attribute results)
+        ; doc: @internal
+        ; doc: Uses merge so any subnodes (attribute results)
         ; doc: are preserved through the in-place reduction.
         new kept
         if pred>newCount kill newPaths set newCount=0 quit
@@ -466,7 +532,8 @@ applyPredicate(newPaths,newCount,pred)  ; Keep only the n-th match (1-based).
         quit
         ;
 matchName(tree,path,want)       ; 1 if the node at `path` matches `want` (`*` is wildcard).
-        ; doc: Internal — used by axis=absolute and the wildcard-aware
+        ; doc: @internal
+        ; doc: Used by axis=absolute and the wildcard-aware
         ; doc: child / descendant collectors.
         new actual
         set actual=$$nameAtPath(.tree,path)
@@ -475,12 +542,14 @@ matchName(tree,path,want)       ; 1 if the node at `path` matches `want` (`*` is
         quit actual=want
         ;
 nameAtPath(tree,path)   ; Return the name of the node at the given path; "" if none.
-        ; doc: Internal — path is comma-separated list of child indices.
+        ; doc: @internal
+        ; doc: Path is comma-separated list of child indices.
         if path="" quit $get(tree("name"),"")
         quit $get(@$$buildRef(path,"""name"""),"")
         ;
 buildRef(path,suffix)   ; Build an M name reference like `tree("child",1,"child",3,"name")`.
-        ; doc: Internal — `path` is a comma-separated list of child indices
+        ; doc: @internal
+        ; doc: `path` is a comma-separated list of child indices
         ; doc: (or "" for the root). `suffix` is the trailing subscript term
         ; doc: (or "" for none). Produces a single subscript list inside the
         ; doc: outer parens — chaining subscripts is not valid M syntax, so
@@ -496,6 +565,7 @@ buildRef(path,suffix)   ; Build an M name reference like `tree("child",1,"child"
         quit "tree("_subs_","_suffix_")"
         ;
 collectChildren(tree,basePath,name,newPaths,newCount)
+        ; doc: @internal
         ; doc: Append paths to immediate children of basePath whose name
         ; doc: matches. `name="*"` is a wildcard (any element).
         new childCount,i,childPath,actualName
@@ -508,10 +578,9 @@ collectChildren(tree,basePath,name,newPaths,newCount)
         quit
         ;
 collectDescendants(tree,basePath,name,newPaths,newCount)
+        ; doc: @internal
         ; doc: Walk all descendants of basePath; append matches by name.
-        ; doc: `name="*"` is a wildcard (any element). Descendant-only —
-        ; doc: does NOT include the basePath node itself; matches strict
-        ; doc: XPath descendant axis semantics.
+        ; doc: Descendant-only — does NOT include the basePath node itself.
         new childCount,i,childPath,actualName
         set childCount=$get(@$$buildRef(basePath,"""childCount"""),0)
         for i=1:1:childCount do
@@ -523,12 +592,10 @@ collectDescendants(tree,basePath,name,newPaths,newCount)
         quit
         ;
 collectAttribute(tree,basePath,attrName,newPaths,newCount)
+        ; doc: @internal
         ; doc: T27a — attribute axis terminal step. `attrName="*"` matches
         ; doc: every attribute on the element at basePath; otherwise only
-        ; doc: the named attribute (if present). Each match writes
-        ; doc: newPaths(idx) = basePath plus subnodes "attrValue" / "attrName"
-        ; doc: which mergePathToResult lifts into results(idx,"text") /
-        ; doc: results(idx,"name").
+        ; doc: the named attribute (if present).
         new tmp,k
         if basePath="" merge tmp=tree
         else  merge tmp=@$$buildRef(basePath,"")
@@ -547,11 +614,9 @@ collectAttribute(tree,basePath,attrName,newPaths,newCount)
         quit
         ;
 mergePathToResult(tree,paths,idx,results)
+        ; doc: @internal
         ; doc: Lift one path entry into results(idx). Attribute matches
-        ; doc: surface as scalar-like results: results(idx,"text")=value
-        ; doc: and results(idx,"name")=attrName. Element matches merge
-        ; doc: the subtree at paths(idx) so callers walk them like any
-        ; doc: parsed-tree node.
+        ; doc: surface as scalar-like results.
         new path
         set path=paths(idx)
         if $data(paths(idx,"attrValue")) do  quit
@@ -564,6 +629,7 @@ mergePathToResult(tree,paths,idx,results)
         ; ---------- internal: XPath predicate expressions (T27b) ----------
         ;
 applyExprPredicate(tree,newPaths,newCount,exprStr)
+        ; doc: @internal
         ; doc: T27b — for each candidate path, evaluate the predicate
         ; doc: expression and keep the candidate iff the result coerces to
         ; doc: boolean true (XPath 1.0 truthiness: non-empty string,
@@ -586,7 +652,8 @@ applyExprPredicate(tree,newPaths,newCount,exprStr)
         quit
         ;
 parsePredExpr(predStr,ast)      ; Parse a predicate body into an AST.
-        ; doc: Internal — predStr is the content between `[` and `]`.
+        ; doc: @internal
+        ; doc: PredStr is the content between `[` and `]`.
         ; doc: AST shape: ast("kind") ∈ {num, str, attr, attrAll, bareName,
         ; doc: wildcard, call, binop}. Numeric/string carry ("val");
         ; doc: attr/bareName/call carry ("name"); call adds ("argCount") and
@@ -603,7 +670,8 @@ parsePredExpr(predStr,ast)      ; Parse a predicate body into an AST.
         quit 1
         ;
 parseExpr(s,pos,len,ast)        ; Parse `primary (compOp primary)?`.
-        ; doc: Internal — single-level comparison only (no chained `<`).
+        ; doc: @internal
+        ; doc: Single-level comparison only (no chained `<`).
         ; doc: Operators: `=`, `!=`, `<`, `>`, `<=`, `>=`.
         new lhs,rhs,op,c1,c2
         set lhs="",rhs=""
@@ -627,7 +695,8 @@ parseExpr(s,pos,len,ast)        ; Parse `primary (compOp primary)?`.
         quit 1
         ;
 parsePrimary(s,pos,len,ast)     ; Parse one primary expression.
-        ; doc: Internal — string lit / number / `@name` or `@*` / parenthesised
+        ; doc: @internal
+        ; doc: String lit / number / `@name` or `@*` / parenthesised
         ; doc: expression / `*` (wildcard, only meaningful as count() arg) /
         ; doc: bare name (used in count() arg) / function call `name(args)`.
         new c,bad,parsed
@@ -646,7 +715,8 @@ parsePrimary(s,pos,len,ast)     ; Parse one primary expression.
         quit 1
         ;
 parseStringLit(s,pos,len,quote,ast,bad)
-        ; doc: Internal — `quote` is the matched delimiter (`'` or `"`).
+        ; doc: @internal
+        ; doc: `quote` is the matched delimiter (`'` or `"`).
         new str,ch,done
         set str="",pos=pos+1,bad=0,done=0
         for  quit:done  do
@@ -660,7 +730,8 @@ parseStringLit(s,pos,len,quote,ast,bad)
         quit
         ;
 parseNumLit(s,pos,len,ast,bad)
-        ; doc: Internal — integer or decimal (no exponent / sign).
+        ; doc: @internal
+        ; doc: Integer or decimal (no exponent / sign).
         new num,ch,done
         set num="",bad=0,done=0
         for  quit:done  do
@@ -675,7 +746,8 @@ parseNumLit(s,pos,len,ast,bad)
         quit
         ;
 parseAttrRef(s,pos,len,ast,bad)
-        ; doc: Internal — `@name` or `@*`.
+        ; doc: @internal
+        ; doc: `@name` or `@*`.
         new name
         set bad=0,pos=pos+1
         if pos>len set bad=1 quit
@@ -686,7 +758,8 @@ parseAttrRef(s,pos,len,ast,bad)
         quit
         ;
 parseParen(s,pos,len,ast,bad)
-        ; doc: Internal — `(` expr `)`. Sub-expr is parsed via parseExpr so
+        ; doc: @internal
+        ; doc: `(` expr `)`. Sub-expr is parsed via parseExpr so
         ; doc: comparison nesting is allowed inside the group.
         new sub
         set sub="",bad=0,pos=pos+1
@@ -700,7 +773,8 @@ parseParen(s,pos,len,ast,bad)
         quit
         ;
 parseFnOrName(s,pos,len,ast,bad)
-        ; doc: Internal — name optionally followed by `(args)`. Bare name is
+        ; doc: @internal
+        ; doc: Name optionally followed by `(args)`. Bare name is
         ; doc: an XPath relative name reference (used as a count() arg).
         new name,argCount,argA,fdone,c
         set bad=0
@@ -735,7 +809,8 @@ parseFnOrName(s,pos,len,ast,bad)
         quit
         ;
 readNameToken(s,pos,len,name)
-        ; doc: Internal — read a name [A-Za-z_:][A-Za-z0-9_:.-]*. Hyphen is
+        ; doc: @internal
+        ; doc: Read a name [A-Za-z_:][A-Za-z0-9_:.-]*. Hyphen is
         ; doc: included so XPath function names like `string-length` parse.
         new ch,first,rest,done
         set first="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_:"
@@ -754,14 +829,16 @@ readNameToken(s,pos,len,name)
         quit
         ;
 isNameStart(ch)
-        ; doc: Internal — predicate identifier start char.
+        ; doc: @internal
+        ; doc: Predicate identifier start char.
         if ch?1A quit 1
         if ch="_" quit 1
         if ch=":" quit 1
         quit 0
         ;
 skipExprWs(s,pos,len)
-        ; doc: Internal — advance past space / tab / CR / LF.
+        ; doc: @internal
+        ; doc: Advance past space / tab / CR / LF.
         new ch,done
         set done=0
         for  quit:done  do
@@ -772,7 +849,8 @@ skipExprWs(s,pos,len)
         quit
         ;
 evalPredExpr(tree,ctxPath,posInSet,sizeOfSet,ast,outType,outVal)
-        ; doc: Internal — evaluate the AST against the candidate at ctxPath.
+        ; doc: @internal
+        ; doc: Evaluate the AST against the candidate at ctxPath.
         ; doc: Sets outType ∈ {"num","str","bool"} and outVal accordingly.
         new kind,op,lhs,rhs,lT,lV,rT,rV,exists,val,cnt
         set kind=$get(ast("kind"))
@@ -801,7 +879,8 @@ evalPredExpr(tree,ctxPath,posInSet,sizeOfSet,ast,outType,outVal)
         quit
         ;
 evalCall(tree,ctxPath,posInSet,sizeOfSet,ast,outType,outVal)
-        ; doc: Internal — function-call dispatch. Unknown functions return
+        ; doc: @internal
+        ; doc: Function-call dispatch. Unknown functions return
         ; doc: bool 0 (truthiness preserved as falsy).
         new fname,argCount,a1,a2,a1T,a1V,a2T,a2V,s1,s2,argKind,argName
         set fname=ast("name"),argCount=$get(ast("argCount"),0)
@@ -860,7 +939,8 @@ evalCall(tree,ctxPath,posInSet,sizeOfSet,ast,outType,outVal)
         quit
         ;
 evalCountArg(tree,ctxPath,argKind,argName)
-        ; doc: Internal — count() takes a node-set producer. v0 supports a
+        ; doc: @internal
+        ; doc: Count() takes a node-set producer. v0 supports a
         ; doc: single-step relative path: bareName / `*` / `@name` / `@*`.
         if argKind="bareName" quit $$countChildrenByNameAt(.tree,ctxPath,argName)
         if argKind="wildcard" quit $$countAllChildrenAt(.tree,ctxPath)
@@ -869,7 +949,8 @@ evalCountArg(tree,ctxPath,argKind,argName)
         quit 0
         ;
 attrLookupAt(tree,path,attrName,exists,val)
-        ; doc: Internal — set exists/val for an attribute lookup at path.
+        ; doc: @internal
+        ; doc: Set exists/val for an attribute lookup at path.
         new tmp
         set exists=0,val=""
         if path="" merge tmp=tree
@@ -886,7 +967,8 @@ attrExistsAt(tree,path,attrName)
         quit 0
         ;
 textAtPath(tree,path)
-        ; doc: Internal — direct text content at path; "" if absent.
+        ; doc: @internal
+        ; doc: Direct text content at path; "" if absent.
         if path="" quit $get(tree("text"),"")
         quit $get(@$$buildRef(path,"""text"""),"")
         ;
@@ -911,7 +993,8 @@ countAttrsAt(tree,path)
         quit n
         ;
 toBool(type,val)
-        ; doc: Internal — XPath 1.0 boolean coercion.
+        ; doc: @internal
+        ; doc: XPath 1.0 boolean coercion.
         if type="bool" quit $select(val:1,1:0)
         if type="num" quit $select(val=0:0,1:1)
         if type="str" quit $select(val="":0,1:1)
@@ -930,7 +1013,8 @@ toNum(type,val)
         quit 0
         ;
 compareOp(op,lT,lV,rT,rV,outType,outVal)
-        ; doc: Internal — `=`/`!=` use string equality unless both operands
+        ; doc: @internal
+        ; doc: `=`/`!=` use string equality unless both operands
         ; doc: are numeric; `<`/`>`/`<=`/`>=` always coerce both to number.
         new lN,rN,lS,rS
         set outType="bool"
@@ -950,7 +1034,8 @@ compareOp(op,lT,lV,rT,rV,outType,outVal)
         quit
         ;
 normWs(s)
-        ; doc: Internal — XPath normalize-space: trim leading/trailing
+        ; doc: @internal
+        ; doc: XPath normalize-space: trim leading/trailing
         ; doc: whitespace and collapse internal runs to a single space.
         new out,i,n,ch,inWs
         set out="",n=$length(s),inWs=1
@@ -962,7 +1047,8 @@ normWs(s)
         quit out
         ;
 resolveAttrNs(node,nsMap)       ; Resolve namespace URIs for any prefixed attrs on node.
-        ; doc: T25b — internal. Walks node("attr",...); for each attr name
+        ; doc: @internal
+        ; doc: T25b. Walks node("attr",...); for each attr name
         ; doc: containing ":", splits into prefix:local, resolves the prefix
         ; doc: against nsMap (with the built-in `xml:` prefix as a fallback),
         ; doc: and stores the resolved URI at node("attrNs", attrName).
@@ -982,7 +1068,8 @@ resolveAttrNs(node,nsMap)       ; Resolve namespace URIs for any prefixed attrs 
         quit 1
         ;
 splitQName(qname,prefix,localName)      ; Split "x:foo" into prefix="x" / local="foo".
-        ; doc: Internal — handles the no-colon case ("foo" → prefix="" / local="foo").
+        ; doc: @internal
+        ; doc: Handles the no-colon case ("foo" → prefix="" / local="foo").
         ; doc: A trailing colon ("x:") is malformed but treated leniently —
         ; doc: prefix="x", local="" — caller will likely reject downstream.
         new colonAt
@@ -993,7 +1080,8 @@ splitQName(qname,prefix,localName)      ; Split "x:foo" into prefix="x" / local=
         quit
         ;
 parseName(ctx)  ; Read an XML name [A-Za-z_:] [A-Za-z0-9_:.-]*; return "" on failure.
-        ; doc: Internal — XML 1.0 §2.3 Name production (subset).
+        ; doc: @internal
+        ; doc: XML 1.0 §2.3 Name production (subset).
         new c,out,first,rest
         set first="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_:"
         set rest=first_"0123456789.-"
@@ -1007,7 +1095,8 @@ parseName(ctx)  ; Read an XML name [A-Za-z_:] [A-Za-z0-9_:.-]*; return "" on fai
         ; ---------- internal: doc-level skipping (T23) ----------
         ;
 skipDocLevel(ctx)       ; Skip whitespace, comments, PIs, and DOCTYPE at the document level.
-        ; doc: Internal — used before and after the root element. Returns 0
+        ; doc: @internal
+        ; doc: Used before and after the root element. Returns 0
         ; doc: only if a comment / PI / DOCTYPE is malformed (unclosed);
         ; doc: whitespace and a missing item are normal. DOCTYPE handling
         ; doc: populates ctx("entity",name) for any internal `<!ENTITY>`
@@ -1030,7 +1119,8 @@ skipDocLevel(ctx)       ; Skip whitespace, comments, PIs, and DOCTYPE at the doc
         quit 1
         ;
 parseDoctype(ctx)       ; Consume `<!DOCTYPE name [external-id] [internal-subset] >`.
-        ; doc: Internal — T26. External SYSTEM / PUBLIC identifiers are
+        ; doc: @internal
+        ; doc: T26. External SYSTEM / PUBLIC identifiers are
         ; doc: tolerated but ignored; only the internal subset (between
         ; doc: `[` and `]`) is parsed for `<!ENTITY>` decls.
         new c,inQuote,sub,done,bad
@@ -1060,7 +1150,8 @@ parseDoctype(ctx)       ; Consume `<!DOCTYPE name [external-id] [internal-subset
         quit 1
         ;
 parseDoctypeSubset(ctx) ; Inside `[...]` of DOCTYPE — consume markup decls until `]`.
-        ; doc: Internal — T26. Recognised forms: `<!ENTITY>` (kept),
+        ; doc: @internal
+        ; doc: T26. Recognised forms: `<!ENTITY>` (kept),
         ; doc: `<!ELEMENT>` / `<!ATTLIST>` / `<!NOTATION>` (skipped),
         ; doc: `<!--…-->` (skipped), `<?…?>` (skipped). Whitespace
         ; doc: between decls is consumed. Parameter entity references
@@ -1088,7 +1179,8 @@ parseDoctypeSubset(ctx) ; Inside `[...]` of DOCTYPE — consume markup decls unt
         quit 1
         ;
 parseEntityDecl(ctx)    ; Consume `<!ENTITY name "value">` and record in ctx("entity",name).
-        ; doc: Internal — T26. Single- or double-quoted values; entity
+        ; doc: @internal
+        ; doc: T26. Single- or double-quoted values; entity
         ; doc: refs inside the value are NOT recursively expanded in v1
         ; doc: (consumer-driven simplification — modern XML rarely nests
         ; doc: custom-entity definitions).
@@ -1114,7 +1206,8 @@ parseEntityDecl(ctx)    ; Consume `<!ENTITY name "value">` and record in ctx("en
         quit 1
         ;
 skipMarkupDecl(ctx)     ; Skip `<!ELEMENT|ATTLIST|NOTATION ...>`. Quote-aware.
-        ; doc: Internal — T26. v1 does not enforce content models; the
+        ; doc: @internal
+        ; doc: T26. v1 does not enforce content models; the
         ; doc: declaration is consumed verbatim. Inner SYSTEM / PUBLIC
         ; doc: literals are tolerated.
         new c,inQuote
@@ -1132,7 +1225,8 @@ skipMarkupDecl(ctx)     ; Skip `<!ELEMENT|ATTLIST|NOTATION ...>`. Quote-aware.
         quit 1
         ;
 skipComment(ctx)        ; Consume `<!-- ... -->`. Return 1/0 on closure.
-        ; doc: Internal — XML 1.0 §2.5. Comments may not contain `--` per the
+        ; doc: @internal
+        ; doc: XML 1.0 §2.5. Comments may not contain `--` per the
         ; doc: spec, but v0 doesn't enforce that (just searches for `-->`).
         new pos,closeAt
         if $$peekN(.ctx,4)'="<!--" do err("expected <!--") quit 0
@@ -1145,7 +1239,8 @@ skipComment(ctx)        ; Consume `<!-- ... -->`. Return 1/0 on closure.
         quit 1
         ;
 skipPI(ctx)     ; Consume `<? ... ?>`. Return 1/0 on closure.
-        ; doc: Internal — XML 1.0 §2.6. Also handles the `<?xml ... ?>`
+        ; doc: @internal
+        ; doc: XML 1.0 §2.6. Also handles the `<?xml ... ?>`
         ; doc: declaration in the same path (not specially distinguished in v0).
         new closeAt
         if $$peekN(.ctx,2)'="<?" do err("expected <?") quit 0
@@ -1156,7 +1251,8 @@ skipPI(ctx)     ; Consume `<? ... ?>`. Return 1/0 on closure.
         quit 1
         ;
 parseCdata(ctx,text)    ; Consume `<![CDATA[ ... ]]>`. Append literal content to text.
-        ; doc: Internal — XML 1.0 §2.7. CDATA content is not entity-decoded;
+        ; doc: @internal
+        ; doc: XML 1.0 §2.7. CDATA content is not entity-decoded;
         ; doc: `&` and `<` are preserved verbatim. Caller appends `text` to
         ; doc: the element's accumulator.
         new closeAt,startAt
@@ -1174,7 +1270,8 @@ parseCdata(ctx,text)    ; Consume `<![CDATA[ ... ]]>`. Append literal content to
         ; ---------- internal: entity decoding ----------
         ;
 decodeEntities(s,ctx)   ; Decode the 5 standard entities + numeric refs + custom entities in s.
-        ; doc: Internal — &amp; &lt; &gt; &quot; &apos; → & < > " '.
+        ; doc: @internal
+        ; doc: &amp; &lt; &gt; &quot; &apos; → & < > " '.
         ; doc: T24: also &#NNN; (decimal) and &#xHH; (hex), UTF-8-encoded.
         ; doc: T26: any name found in ctx("entity",name) (populated by
         ; doc: parseEntityDecl from the DOCTYPE internal subset) expands
@@ -1203,7 +1300,8 @@ decodeEntities(s,ctx)   ; Decode the 5 standard entities + numeric refs + custom
         quit out
         ;
 decodeNumericRef(name)  ; Parse `#NNN` (decimal) or `#xHH` (hex). Return code point or -1.
-        ; doc: Internal — driven by decodeEntities. `name` excludes the
+        ; doc: @internal
+        ; doc: Driven by decodeEntities. `name` excludes the
         ; doc: leading `&` and trailing `;`.
         new digits,n,i,c,cp,base,allowed
         if $extract(name,1)'="#" quit -1
@@ -1225,14 +1323,16 @@ decodeNumericRef(name)  ; Parse `#NNN` (decimal) or `#xHH` (hex). Return code po
         quit cp
         ;
 hexDigit(c)     ; Return numeric value of a hex digit; -1 if invalid.
-        ; doc: Internal — driven by decodeNumericRef.
+        ; doc: @internal
+        ; doc: Driven by decodeNumericRef.
         if (c?1N) quit c
         if "abcdef"[c quit $find("abcdef",c)+8
         if "ABCDEF"[c quit $find("ABCDEF",c)+8
         quit -1
         ;
 encodeUtf8(cp)  ; Encode a code point as a 1-4-byte UTF-8 string.
-        ; doc: Internal — used after numeric character reference decode.
+        ; doc: @internal
+        ; doc: Used after numeric character reference decode.
         ; doc: U+0000-007F = 1 byte; U+0080-07FF = 2 bytes;
         ; doc: U+0800-FFFF = 3 bytes; U+10000-10FFFF = 4 bytes.
         if cp<128 quit $char(cp)
@@ -1243,6 +1343,6 @@ encodeUtf8(cp)  ; Encode a code point as a 1-4-byte UTF-8 string.
         ; ---------- internal: error reporting ----------
         ;
 err(msg)        ; Stash a diagnostic in ^STDLIB.
-        ; doc: Internal.
+        ; doc: @internal
         set ^STDLIB($job,"stdxml","err")=msg
         quit

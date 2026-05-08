@@ -80,12 +80,14 @@ STDHTTP ; m-stdlib — HTTP/1.1 client (track H3, target tag v0.4.0).
         ; ---------- public API: wire-format helpers ----------
         ;
 parseStatusLine(line,s) ; Split an HTTP/1.1 status line into version/code/reason.
-        ; doc: Sets s("version"), s("code") (numeric), s("reason"),
-        ; doc: s("ok") (1=parsed cleanly, 0=malformed). Tolerates a
-        ; doc: missing reason phrase (RFC 7230 §3.1.2).
-        ; doc: Example:
-        ; doc:   do parseStatusLine^STDHTTP("HTTP/1.1 200 OK",.s)
-        ; doc:   ; s("version")="HTTP/1.1", s("code")=200, s("reason")="OK"
+        ; doc: @param line    string  HTTP/1.1 status line (e.g. "HTTP/1.1 200 OK")
+        ; doc: @param s       array   by-ref local; killed then populated with version/code/reason/ok
+        ; doc: @example       do parseStatusLine^STDHTTP("HTTP/1.1 200 OK",.s)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do parseHeader^STDHTTP, do parseResponse^STDHTTP
+        ; doc: Tolerates a missing reason phrase (RFC 7230 §3.1.2). s("ok")=1 if
+        ; doc: parsed cleanly, 0 if malformed.
         new ver,code,reason
         kill s
         set s("version")="",s("code")="",s("reason")="",s("ok")=0
@@ -102,13 +104,14 @@ parseStatusLine(line,s) ; Split an HTTP/1.1 status line into version/code/reason
         quit
         ;
 parseHeader(line,name,value)    ; Split "Name: value" into (name, value).
-        ; doc: Trims leading SP/HT from value. Header name preserved
-        ; doc: as-given. Splits on the first colon only — colons in
-        ; doc: the value (Date, ETag with port:host pairs, etc.) are
-        ; doc: kept. Returns name="" / value="" if no colon present.
-        ; doc: Example:
-        ; doc:   do parseHeader^STDHTTP("Content-Type: text/plain",.n,.v)
-        ; doc:   ; n="Content-Type", v="text/plain"
+        ; doc: @param line    string  header line
+        ; doc: @param name    string  by-ref out; header name (or "" if no colon)
+        ; doc: @param value   string  by-ref out; header value (or "" if no colon)
+        ; doc: @example       do parseHeader^STDHTTP("Content-Type: text/plain",.n,.v)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do parseStatusLine^STDHTTP, do parseResponse^STDHTTP
+        ; doc: Trims leading SP/HT from value. Splits on the first colon only.
         new pos,raw
         set name="",value=""
         set pos=$find(line,":")
@@ -121,12 +124,14 @@ parseHeader(line,name,value)    ; Split "Name: value" into (name, value).
         quit
         ;
 parseResponse(raw,resp) ; Parse a complete HTTP/1.1 response message.
-        ; doc: Splits raw on the first CRLF-CRLF boundary (or LF-LF if
-        ; doc: the server uses bare LF), walks the status line and
-        ; doc: header block, fills resp("status"), resp("reason"),
-        ; doc: resp("version"), resp("header",lcName), resp("body").
-        ; doc: Multi-value headers join with ", " (RFC 7230 §3.2.2).
-        ; doc: Header keys are lowercased for case-insensitive lookup.
+        ; doc: @param raw     byte-string  full HTTP/1.1 response (headers + body)
+        ; doc: @param resp    array        by-ref local; killed then populated (status/reason/version/header/body)
+        ; doc: @example       do parseResponse^STDHTTP(rawBytes,.resp)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$buildRequest^STDHTTP, $$request^STDHTTP
+        ; doc: Splits raw on the first CRLF-CRLF (or LF-LF) boundary. Header
+        ; doc: keys are lowercased; multi-value headers join with ", " (RFC 7230 §3.2.2).
         new head,body,sep,boundary,crlf,lf,nLines,i,line,sl,name,value,lc,prev
         kill resp
         set resp("status")="",resp("reason")="",resp("version")=""
@@ -167,13 +172,14 @@ parseResponse(raw,resp) ; Parse a complete HTTP/1.1 response message.
         quit
         ;
 buildRequest(req)       ; Assemble an HTTP/1.1 request message from req array.
-        ; doc: Returns the wire-format request string (request line +
-        ; doc: headers + CRLF + body). Synthesises Host: from the URL
-        ; doc: when not provided. Adds Content-Length: when a body is
-        ; doc: present and the header is absent.
-        ; doc: Example:
-        ; doc:   set req("method")="GET",req("url")="http://x.com/a"
-        ; doc:   write $$buildRequest^STDHTTP(.req)
+        ; doc: @param req     array       by-ref local with method/url/header/body subscripts
+        ; doc: @returns       byte-string  full wire-format request (line + headers + CRLF + body)
+        ; doc: @example       set req("method")="GET",req("url")="http://x.com/a"  write $$buildRequest^STDHTTP(.req)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           do parseResponse^STDHTTP, $$formatHeaders^STDHTTP
+        ; doc: Synthesises Host: from the URL when not provided. Adds
+        ; doc: Content-Length: when a body is present and the header is absent.
         new method,url,parts,target,hostHeader,body,wire,sub,flags
         new crlf
         set crlf=$char(13,10)
@@ -219,9 +225,14 @@ scanHeaders(req,flags)  ; Walk req("header",*) and set flags("host") / flags("cl
         quit
         ;
 formatHeaders(headers)  ; Join headers(name)=value into a CRLF-terminated header block.
-        ; doc: Each line emitted as "Name: value\r\n". Walks $order so
-        ; doc: output is subscript-sorted (deterministic). Caller is
-        ; doc: responsible for the final blank-line boundary.
+        ; doc: @param headers array   by-ref local subscripted as headers(name)=value
+        ; doc: @returns       string  CRLF-terminated header block
+        ; doc: @example       set h("X")="1" write $$formatHeaders^STDHTTP(.h)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$buildRequest^STDHTTP
+        ; doc: Walks $order so output is subscript-sorted (deterministic).
+        ; doc: Caller is responsible for the final blank-line boundary.
         new sub,out,crlf
         set crlf=$char(13,10),out="",sub=""
         for  set sub=$order(headers(sub)) quit:sub=""  do
@@ -231,16 +242,29 @@ formatHeaders(headers)  ; Join headers(name)=value into a CRLF-terminated header
         ; ---------- public API: network extrinsics ----------
         ;
 get(url,resp)   ; HTTP GET shortcut. Returns numeric status code, or 0 on error.
-        ; doc: Drives $$request with method=GET. Soft-fails with
-        ; doc:   resp("error")="STDHTTP-NOT-WIRED" and returns 0 if the
-        ; doc:   libcurl callout is unavailable.
+        ; doc: @param url     string  absolute URL
+        ; doc: @param resp    array   by-ref local; populated on return
+        ; doc: @returns       int     HTTP status code; 0 on transport / TLS / not-wired error
+        ; doc: @example       set sc=$$get^STDHTTP("https://example.com",.r)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$post^STDHTTP, $$request^STDHTTP
+        ; doc: Soft-fails with resp("error")="STDHTTP-NOT-WIRED" if the
+        ; doc: libcurl callout is unavailable.
         new req
         set req("method")="GET",req("url")=url
         quit $$request(.req,.resp)
         ;
 post(url,body,resp,contentType) ; HTTP POST shortcut. Defaults Content-Type to application/octet-stream.
-        ; doc: Drives $$request with method=POST. Soft-fails the same
-        ; doc:   way as $$get when the callout is unavailable.
+        ; doc: @param url           string       absolute URL
+        ; doc: @param body          byte-string  request body
+        ; doc: @param resp          array        by-ref local; populated on return
+        ; doc: @param contentType   string       Content-Type header (default "application/octet-stream")
+        ; doc: @returns             int          HTTP status code; 0 on transport / TLS / not-wired error
+        ; doc: @example             set sc=$$post^STDHTTP("https://example.com/api","payload",.r,"application/json")
+        ; doc: @since               v0.4.0
+        ; doc: @stable              stable
+        ; doc: @see                 $$get^STDHTTP, $$request^STDHTTP
         new req
         set req("method")="POST",req("url")=url
         set req("body")=$get(body)
@@ -248,18 +272,15 @@ post(url,body,resp,contentType) ; HTTP POST shortcut. Defaults Content-Type to a
         quit $$request(.req,.resp)
         ;
 request(req,resp)       ; Generic HTTP request. Returns numeric status code, or 0 on error.
-        ; doc: Reads req("method"), req("url"), req("header",name),
-        ; doc:   req("body"), req("timeout") (seconds, default 30),
-        ; doc:   req("followRedirects") (0/1, default 1),
-        ; doc:   req("verifyTls") (0/1, default 1).
-        ; doc: Populates resp("status") (numeric), resp("reason"),
-        ; doc:   resp("version"), resp("header",lcName) (case-insensitive
-        ; doc:   keys), resp("body"), resp("error") ("" on success;
-        ; doc:   libcurl error string or "STDHTTP-NOT-WIRED" otherwise).
-        ; doc: Returns the numeric status code on a completed HTTP
-        ; doc:   exchange (including 4xx / 5xx — the caller decides what
-        ; doc:   to do with non-2xx); returns 0 on transport / TLS / DNS
-        ; doc:   failures or when the callout is unavailable.
+        ; doc: @param req     array   by-ref local with method/url/header/body/timeout/followRedirects/verifyTls
+        ; doc: @param resp    array   by-ref local; populated as documented in the routine header
+        ; doc: @returns       int     HTTP status code; 0 on transport / TLS / DNS failure or callout missing
+        ; doc: @example       set req("method")="DELETE",req("url")="https://x.com/y"  set sc=$$request^STDHTTP(.req,.r)
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$get^STDHTTP, $$post^STDHTTP, $$available^STDHTTP
+        ; doc: 4xx/5xx return their status code (the caller decides what to do
+        ; doc: with non-2xx); 0 means the request did not complete.
         new method,url,headerBlock,body,timeoutMs,follow,verify
         new statusCode,respHeaders,respBody,errMsg,rc
         kill resp
@@ -289,12 +310,12 @@ request(req,resp)       ; Generic HTTP request. Returns numeric status code, or 
         quit +$get(resp("status"))
         ;
 available()     ; 1 iff the libcurl callout is loaded and curl_easy_init() works.
-        ; doc: Returns 0 if the .so is missing, the descriptor is not
-        ; doc:   exported, or libcurl is unavailable on the loader path.
+        ; doc: @returns       bool    1 iff stdhttp.so is loaded and libcurl resolves
+        ; doc: @example       if '$$available^STDHTTP() do warn^MYAPP("HTTP unavailable")
+        ; doc: @since         v0.4.0
+        ; doc: @stable        stable
+        ; doc: @see           $$request^STDHTTP
         ; doc: Never raises — clears $ECODE on the way out.
-        ; doc: Cheap fast path: if $$env^STDOS("ydb_xc_stdhttp") is
-        ; doc:   empty the descriptor isn't deployed — return 0 without
-        ; doc:   paying the XECUTE / $&stdhttp.* round-trip.
         new $etrap,rc,cmd
         if $$env^STDOS("ydb_xc_stdhttp")="" quit 0
         set $etrap="set $ecode="""" set rc=0 quit 0"
@@ -307,18 +328,14 @@ available()     ; 1 iff the libcurl callout is loaded and curl_easy_init() works
         ; ---------- internal helpers ----------
         ;
 lower(s)        ; ASCII-lowercase a header name.
-        ; doc: Header tokens are ASCII per RFC 7230 §3.2.6, so we only
-        ; doc:   need to translate A-Z. Avoids a STDSTR dependency for
-        ; doc:   this one tiny use.
+        ; doc: @internal
+        ; doc: Header tokens are ASCII per RFC 7230 §3.2.6.
         quit $translate(s,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")
         ;
 requestHeaderBlock(req) ; Build CRLF-terminated header block from req("header",*).
-        ; doc: Internal — libcurl's CURLOPT_HTTPHEADER consumes one
-        ; doc:   "Name: value" line per slist entry; the C side parses
-        ; doc:   this block line-by-line. Host: and Content-Length: are
-        ; doc:   left to libcurl (synthesised from CURLOPT_URL and
-        ; doc:   CURLOPT_POSTFIELDSIZE respectively); explicit caller
-        ; doc:   values override libcurl's defaults via slist precedence.
+        ; doc: @internal
+        ; doc: libcurl's CURLOPT_HTTPHEADER consumes one "Name: value"
+        ; doc: line per slist entry; the C side parses this block.
         new sub,out,crlf
         set crlf=$char(13,10),out="",sub=""
         for  set sub=$order(req("header",sub)) quit:sub=""  do
@@ -326,11 +343,9 @@ requestHeaderBlock(req) ; Build CRLF-terminated header block from req("header",*
         quit out
         ;
 parseHeaderStream(stream,resp)  ; Parse libcurl's captured header stream into resp.
-        ; doc: Internal — when CURLOPT_FOLLOWLOCATION is on, libcurl
-        ; doc:   emits headers for every redirect response. We keep the
-        ; doc:   final response's headers (last block before the trailing
-        ; doc:   CRLFCRLF) and feed it to parseResponse with an empty
-        ; doc:   body — the caller installs the real body afterwards.
+        ; doc: @internal
+        ; doc: When CURLOPT_FOLLOWLOCATION is on, libcurl emits headers
+        ; doc: for every redirect. We keep the final response's headers.
         new finalHeaders,n,crlfcrlf,raw
         set crlfcrlf=$char(13,10,13,10)
         if $length(stream)=0 quit
@@ -344,20 +359,15 @@ parseHeaderStream(stream,resp)  ; Parse libcurl's captured header stream into re
         quit
         ;
 preallocBuf(n)  ; Allocate an n-byte M string for $ZF output capture.
-        ; doc: Internal — YDB callouts need the M-side string at full
-        ; doc:   capacity before the C side writes into it. $justify
-        ; doc:   allocates n spaces in one O(n) pass; the C side
-        ; doc:   overwrites and updates ydb_string_t.length on return.
+        ; doc: @internal
+        ; doc: YDB callouts need the M-side string at full capacity
+        ; doc: before the C side writes into it.
         quit $justify("",n)
         ;
 dispatchPerform(method,url,headerBlock,body,timeoutMs,follow,verify,statusCode,respHeaders,respBody,errMsg)      ; Invoke $&stdhttp.http_perform(...).
-        ; doc: Internal — XECUTE-wraps the namespaced $&pkg.fn call so
-        ; doc:   tree-sitter-m doesn't trip on the syntax. Returns the
-        ; doc:   C-side rc on success, -99 if the callout is unavailable.
-        ; doc: Fast path: if $$env^STDOS("ydb_xc_stdhttp") is empty the
-        ; doc:   descriptor isn't deployed — return -99 immediately so
-        ; doc:   request() can flip to "STDHTTP-NOT-WIRED" without
-        ; doc:   triggering XECUTE compilation.
+        ; doc: @internal
+        ; doc: XECUTE-wraps the namespaced $&pkg.fn call. Returns the
+        ; doc: C-side rc on success, -99 if the callout is unavailable.
         new $etrap,rc,cmd
         if $$env^STDOS("ydb_xc_stdhttp")="" quit -99
         set $etrap="set $ecode="""" set rc=-99 quit -99"

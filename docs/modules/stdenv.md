@@ -5,8 +5,8 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: '.env file loader with typed accessors'
-labels: ['decodeDqString', 'decodeValue', 'get', 'getBool', 'getFloat', 'getInt', 'has', 'isNumeric', 'lower', 'parse', 'parseFile', 'parsePair', 'trimWs', 'valid', 'validKey']
-errors: []
+labels: ['get', 'getBool', 'getFloat', 'getInt', 'has', 'parse', 'parseFile', 'valid']
+errors: ['U-STDFS-OPEN-FAIL']
 conformance: []
 see_also: ['STDFS']
 ---

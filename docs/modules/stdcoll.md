@@ -5,7 +5,7 @@ phase: Phase 2
 stable: stable
 since: v0.2.0
 synopsis: 'collections (Set, Map, Stack, Queue, Deque, Heap, OrderedDict)'
-labels: ['dequeClear', 'dequePeekBack', 'dequePeekFront', 'dequePopBack', 'dequePopFront', 'dequePushBack', 'dequePushFront', 'dequeSize', 'heapClear', 'heapPeek', 'heapPeekKey', 'heapPop', 'heapPopKey', 'heapPush', 'heapRemoveTop', 'heapSize', 'mapClear', 'mapGet', 'mapHas', 'mapNext', 'mapPut', 'mapRemove', 'mapSize', 'odictClear', 'odictFirst', 'odictGet', 'odictHas', 'odictLast', 'odictNext', 'odictPrev', 'odictPut', 'odictRemove', 'odictSize', 'queueClear', 'queuePeek', 'queuePop', 'queuePush', 'queueSize', 'setAdd', 'setClear', 'setHas', 'setNext', 'setRemove', 'setSize', 'siftdown', 'siftup', 'stackClear', 'stackPeek', 'stackPop', 'stackPush', 'stackSize']
+labels: ['dequeClear', 'dequePeekBack', 'dequePeekFront', 'dequePopBack', 'dequePopFront', 'dequePushBack', 'dequePushFront', 'dequeSize', 'heapClear', 'heapPeek', 'heapPeekKey', 'heapPop', 'heapPopKey', 'heapPush', 'heapSize', 'mapClear', 'mapGet', 'mapHas', 'mapNext', 'mapPut', 'mapRemove', 'mapSize', 'odictClear', 'odictFirst', 'odictGet', 'odictHas', 'odictLast', 'odictNext', 'odictPrev', 'odictPut', 'odictRemove', 'odictSize', 'queueClear', 'queuePeek', 'queuePop', 'queuePush', 'queueSize', 'setAdd', 'setClear', 'setHas', 'setNext', 'setRemove', 'setSize', 'stackClear', 'stackPeek', 'stackPop', 'stackPush', 'stackSize']
 errors: []
 conformance: []
 see_also: []

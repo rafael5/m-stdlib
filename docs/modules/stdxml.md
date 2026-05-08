@@ -5,7 +5,7 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'XML parser (well-formed XML 1.0 subset, in-progress)'
-labels: ['absorbXmlns', 'advance', 'applyExprPredicate', 'applyPredicate', 'applyStep', 'attr', 'attrLookupAt', 'attrNs', 'buildRef', 'childByName', 'childCount', 'collectAttribute', 'collectChildren', 'collectDescendants', 'compareOp', 'decodeEntities', 'decodeNumericRef', 'encodeUtf8', 'err', 'evalCall', 'evalCountArg', 'evalPredExpr', 'hexDigit', 'initCtx', 'isNameStart', 'lastError', 'matchName', 'mergePathToResult', 'nameAtPath', 'normWs', 'ns', 'parse', 'parseAttrRef', 'parseAttrValue', 'parseAttrs', 'parseCdata', 'parseContent', 'parseDoctype', 'parseDoctypeSubset', 'parseElement', 'parseEntityDecl', 'parseExpr', 'parseFnOrName', 'parseName', 'parseNumLit', 'parseParen', 'parsePredExpr', 'parsePrimary', 'parseStringLit', 'parseXPath', 'peek', 'peekN', 'readNameToken', 'resolveAttrNs', 'rootName', 'skipComment', 'skipDocLevel', 'skipExprWs', 'skipMarkupDecl', 'skipPI', 'skipWs', 'splitQName', 'text', 'textAtPath', 'toBool', 'valid', 'xpath', 'xpathOne', 'xpathText']
+labels: ['attr', 'attrNs', 'childByName', 'childCount', 'lastError', 'ns', 'parse', 'rootName', 'text', 'valid', 'xpath', 'xpathOne', 'xpathText']
 errors: []
 conformance: []
 see_also: []

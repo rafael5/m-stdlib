@@ -5,8 +5,8 @@ phase: Phase 2
 stable: stable
 since: v0.2.0
 synopsis: 'regular expressions (track L12, v0.2.0)'
-labels: ['attempt', 'attemptCap', 'bld', 'bldConcat', 'bldRange', 'buildNfa', 'checkLazyPoss', 'classEscape', 'classItem', 'classRangeHi', 'compile', 'concatStops', 'epsClose', 'epsCloseCap', 'expand', 'find', 'findall', 'free', 'groups', 'isDigit', 'klassMatch', 'match', 'newSt', 'nextId', 'pAlt', 'pAtom', 'pAtomQuant', 'pClass', 'pConcat', 'pEscape', 'pGroup', 'pRange', 'parse', 'predMatch', 'raise', 'replace', 'search', 'split', 'step', 'stepCap', 'valid']
-errors: []
+labels: ['compile', 'find', 'findall', 'free', 'groups', 'match', 'replace', 'search', 'split', 'valid']
+errors: ['U-STDREGEX-BAD-PATTERN', 'U-STDREGEX-NO-MATCH', 'U-STDREGEX-UNSUPPORTED']
 conformance: []
 see_also: []
 ---
