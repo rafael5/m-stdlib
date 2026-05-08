@@ -54,7 +54,7 @@ parallelism — are these eight edges:
 | STDLOG JSON-line output | STDJSON (v0.2.0) | Hard | STDLOG add-on lands in M4 |
 | STDSEED `LOADJSON` | STDJSON (v0.2.0) | Hard | STDSEED add-on lands in M4 |
 | STDHTTP | STDURL (v0.2.0) + `scripts/seed-callouts.sh` | Hard | All shipped; STDHTTP iter 1 + iter 2 landed; T29 closed 2026-05-07 (68/68 green on engine); iter 3 IRIS arm queued |
-| STDCRYPTO / STDCOMPRESS | `scripts/seed-callouts.sh` | Hard | Both engine-green 2026-05-07; T28 closed (STDCRYPTO 23/23, STDCOMPRESS 55/57 — 2 latent `$ECODE` asserts pending T30) |
+| STDCRYPTO / STDCOMPRESS | `scripts/seed-callouts.sh` | Hard | Both engine-green; T28 closed (STDCRYPTO 23/23 2026-05-07); STDCOMPRESS 59/59 2026-05-08 (T30 closed via dispatch-status-string redesign) |
 
 Everything else is independent.
 
@@ -157,7 +157,7 @@ wrapper under `src/STDxxx.m`.
 | Track | Tag | Module | Independent of | Notes |
 |---|---|---|---|---|
 | **H1** | v0.3.x (**green on engine 2026-05-07**) | STDCRYPTO | STDB64 (test-time hex via STDHEX) | ✅ **Engine-green** as the Phase 3 lead per T11. SHA-256/384/512 + HMAC-SHA-256/384/512 via `$&stdcrypto.<fn> → libcrypto` (OpenSSL EVP_Digest + HMAC). Public surface: `sha256` / `sha384` / `sha512` (hex) + `*Bytes` raw forms + `hmacSha{256,384,512}` + `*Bytes` + `available`. C source at `src/callouts/std_crypto.c` (argc-prepended ABI); YDB descriptor at `tools/std_crypto.xc` (short alphanumeric LHS names paired with `ydb_xc_stdcrypto`). 22 RFC-anchored tests in `STDCRYPTOTST.m` (FIPS 180-4 SHA + RFC 4231 HMAC vectors); **STDCRYPTOTST 23/23 green; 17/17 = 100% label coverage; lint 0E.** T28 closed via `scripts/seed-callouts.sh`. Module doc at `docs/modules/stdcrypto.md`. |
-| **H2** | v0.3.x (**engine-deployed 2026-05-07**; 55/57 green) | STDCOMPRESS | A6; T28 ✅ | gzip / deflate / zstd via `$&stdcompress.<sym> → libz + libzstd`. Migrated from `$ZF` to `$&` per same engine constraints STDCRYPTO hit. **STDCOMPRESSTST 55/57 green** — all happy-path round-trips, magic-byte assertions, default-level sentinel, corrupt-input-rejection-falsy. **Remaining 2** are `$ECODE tagged LIBZ/LIBZSTD-FAIL` contains-asserts; tracked under T30. Module doc at `docs/modules/stdcompress.md`. |
+| **H2** | v0.3.x (**green on engine 2026-05-08**; 59/59) | STDCOMPRESS | A6; T28 ✅; T30 ✅ | gzip / deflate / zstd via `$&stdcompress.<sym> → libz + libzstd`. Migrated from `$ZF` to `$&` per same engine constraints STDCRYPTO hit. **T30 closed 2026-05-08:** `dispatchC/D` return a status string ("" / "MISSING" / "FAIL") and the public extrinsics map to `$ECODE` *after* the local `$etrap` is out of scope; six tests migrated to `raises^STDASSERT` idiom. **STDCOMPRESSTST 59/59 green; 100% label coverage; lint 0E.** Module doc at `docs/modules/stdcompress.md`. |
 | **H3** | v0.4.0 (**green on engine 2026-05-07**) | STDHTTP | STDURL; A6; T29 ✅ | HTTP/1.1 client. **Iter 1 landed:** pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`). **Iter 2 landed (T29 close):** `src/callouts/http.c` libcurl shim with `http_perform` + `http_available` smoke probe; `tools/std_http.xc`; M-side `$$request` / `$$get` / `$$post` driven via XECUTE-wrapped `$&stdhttp.http_perform(…)`; soft-fail to `resp("error")="STDHTTP-NOT-WIRED"` when `ydb_xc_stdhttp` unset. **STDHTTPTST 68/68 green; 94.1% label coverage; lint 0E/0W.** Iter 3 (IRIS `%Net.HttpRequest` arm) queued. Module doc at `docs/modules/stdhttp.md`; tests in `STDHTTPTST.m`. |
 
 ### 3.4 m-cli companion tracks
