@@ -132,7 +132,7 @@ the work without further orientation.
 | WA5 | done | WA | 5 | stdlib | CI gate: regenerate manifest in CI, fail on diff against committed `dist/stdlib-manifest.json` | WA4 | 0.5d | CI workflow runs `make manifest-check`; passes today, fails if a label changes without manifest re-gen. | § 3.2 (acceptance gate) | `.github/workflows/ci.yml` (step add), `Makefile` (already had `manifest-check`) |
 | WA6 | done | WA | 6 | stdlib | Add YAML frontmatter (module / tag / phase / stable / since / synopsis / errors / labels / conformance / see_also) to every `docs/modules/stdXXX.md` | — | 0.5d | Every per-module markdown has frontmatter parsing cleanly as YAML. Field values agree with the manifest where overlapping (verified by a small check script, not gated yet). | § 3.3 | `docs/modules/std*.md`, `tools/write-module-frontmatter.py` (new), `Makefile` (`frontmatter` target) |
 | WA7 | done | WA | 7 | stdlib | Generate `dist/errors.json` (inverted index of `U-STD*` codes → producing module + labels) as a derivative of the manifest | WA4 | 0.25d | `make manifest` also writes `dist/errors.json` containing every `U-STD*` code with its origin module + labels. | § 3.5 | `tools/gen-manifest.py` (covers WA7 too), `dist/errors.json` (generated) |
-| WA8 | not-started | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA2, WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md`, `docs/modules/index.md`, git tag |
+| WA8 | in-progress | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md` (Unreleased section landed), `docs/modules/index.md` (Machine-readable surface section landed), git tag (pending user decision on version + timing) |
 | WB1 | not-started | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` (new) |
 | WB2 | not-started | WB | 2 | m-cli | `m doc --json` and `m doc --short` flags | WB1 | 0.5d | `--json` emits the raw manifest entry; `--short` emits one-line synopsis. Both stable for scripting. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` |
 | WB3 | not-started | WB | 3 | m-cli | `m search <query>` — full-text fuzzy search over manifest synopsis + description + example | WA4 | 0.5–1d | `m search "json parse"` returns ranked `module.label — synopsis` lines; matches against case-insensitive substrings in synopsis, description, examples. | § 4.2 | `~/projects/m-cli/src/cmd/search.m` (new) |
@@ -337,7 +337,7 @@ planning; expand them as work happens. The format is:
 
 #### WA8 — Wave A release
 
-**Status.** not-started.
+**Status.** in-progress (prep landed 2026-05-08; tag cut pending user decision).
 
 **Goal.** Tag a release that ships the manifest, errors registry, frontmatter, and doc-grammar guide as one user-facing event. Update `docs/modules/index.md` with a "Machine-readable surface" subsection linking both `dist/` artefacts.
 
@@ -351,7 +351,20 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Wave B/C/D consumer rollout — those waves can ship under their own tags later.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08 (prep)** — All non-tag-cut prep work landed:
+  - `CHANGELOG.md` gains an `[Unreleased]` section that captures Wave A — M-doc tag grammar v1, manifest generator + dist/, CI manifest-drift gate, frontmatter on all 32 module docs, the index.md machine-readable surface section. Frames the release as doc + tooling only (no `src/STD*.m` runtime behaviour change). Calls out WA2 + WA3 as the high-leverage Wave-A follow-ons.
+  - `docs/modules/index.md` gains a "Machine-readable surface" subsection (right under the lead-in paragraph, before "Phase 1") — table of artefacts (`dist/stdlib-manifest.json`, `dist/errors.json`, `docs/guides/m-doc-grammar.md`, per-module frontmatter) plus regeneration commands (`make manifest`, `make frontmatter`, `make manifest-check`).
+  - Pre-flight fix to `tools/gen-manifest.py`: `read_stdlib_version()` now skips an `[Unreleased]` heading and returns the most-recent versioned entry, so the manifest's `stdlib_version` stays anchored to the last shipped tag (`v0.4.0` today) until WA8's tag is cut. Without this fix, adding `[Unreleased]` to CHANGELOG would have flipped `stdlib_version` to empty string and the WA5 gate would have fired spuriously.
+- **Pending — user decision points:**
+  - **Version number.** `v0.5.0` (SemVer minor-bump for new tooling surface) vs `v0.4.1` (treat the docs/tooling delta as a patch). Recommendation: `v0.5.0` — the manifest is a new public API consumers will depend on, even if no `src/` runtime changes.
+  - **Timing.** Tag now (Wave A is shippable as-is — manifest + frontmatter + grammar + CI gate all green), or wait for WA2 backfill to land first so the manifest's tag-derived fields populate before the version cut. Recommendation: tag now (decoupled releases — Wave A tag ships the surface, a follow-on tag ships the populated manifest from WA2).
+  - **Coordination with module-level work.** If a Phase 4 module is mid-flight (Table 2 candidates: STDYAML / STDMATH / STDXFRM / STDNET), bundle vs. solo-cut. The current `module-tracker.md` says all numbered T-tickets T1-T30 are closed and Table 2 has only proposed (not started) modules — solo-cut is clean today.
+- **Action when user gives the go-ahead:**
+  1. Edit `[Unreleased]` heading in CHANGELOG.md → `[v0.5.0] — 2026-MM-DD` (or chosen version + date).
+  2. `make manifest` to regenerate `stdlib_version` to the new tag.
+  3. Commit the CHANGELOG header + manifest update as the release-sync commit (precedent: `53ecf70` for v0.4.0).
+  4. `git tag -a v0.5.0 -m "<release annotation>"`. Decide whether to push (`git push origin v0.5.0`) per project policy.
+  5. Flip this row to `done`.
 
 ---
 

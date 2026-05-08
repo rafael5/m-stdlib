@@ -6,6 +6,62 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 Pre-1.0 minor versions may include breaking changes.
 
+## [Unreleased]
+
+**Discoverability & tooling — Wave A.** The first wave of the
+discoverability and tooling plan
+([`docs/plans/discoverability-and-tooling-plan.md`](docs/plans/discoverability-and-tooling-plan.md))
+lands the structured-tag grammar, the machine-readable manifest, and
+its CI gate. The work item set is tracked in
+[`docs/tracking/discoverability-tracker.md`](docs/tracking/discoverability-tracker.md);
+WA1, WA4, WA5, WA6, WA7 are all closed. WA2 (src/ tag backfill across
+all public labels) and WA3 (`M-DOC-001` lint rule in m-cli) remain
+the cross-cutting follow-ons; WA8 — this release tag — is the close-
+out.
+
+- **M-doc tag grammar v1.** New
+  [`docs/guides/m-doc-grammar.md`](docs/guides/m-doc-grammar.md)
+  specifies the nine-tag extension to the existing `; doc:`
+  convention (`@param` / `@returns` / `@raises` / `@example` /
+  `@since` / `@stable` / `@see` / `@deprecated` / `@internal`),
+  the synopsis-line rule, the lexical model (indent-based
+  continuation), and the parsing contract every downstream tool
+  must agree on. Every existing prose-only `; doc:` block remains
+  valid — the grammar is purely additive.
+- **Manifest generator + machine-readable surface.**
+  `tools/gen-manifest.py` walks `src/STD*.m` and emits
+  `dist/stdlib-manifest.json` (the canonical machine-readable
+  index of every public module + label, with signatures, source
+  file/line, synopsis, description, and tag-derived fields) plus
+  `dist/errors.json` (inverted `U-STD*` → producing-module index;
+  empty until WA2 backfills `@raises`). New `make manifest` and
+  `make manifest-check` Makefile targets. Manifest is the source
+  of truth that downstream consumers (m-cli `m doc`, the planned
+  VS Code extension, the planned AI skill) read at runtime.
+- **CI manifest-drift gate.** `.github/workflows/ci.yml` runs
+  `make manifest-check` on every push / PR — drift against the
+  committed `dist/*.json` fails the build, mirroring the existing
+  `make fmt-check` model.
+- **YAML frontmatter on all 32 module docs.**
+  `tools/write-module-frontmatter.py` (idempotent backfill;
+  `make frontmatter`) prepends a structured frontmatter block to
+  every `docs/modules/std*.md` carrying module / tag / phase /
+  stable / since / synopsis / labels / errors / conformance /
+  see_also. Drives the searchable index a future docs site (D1
+  in the deferred tracker) would consume.
+- **`docs/modules/index.md` machine-readable surface section.**
+  New "Machine-readable surface" subsection points readers at the
+  manifest, the errors registry, the doc-comment grammar, and the
+  generator scripts.
+
+This release is doc + tooling only — no `src/STD*.m` runtime
+behaviour changes. Tagging this is a coordination point, not a
+new-feature one. After this tag, WA2 (src/ tag backfill, ~3-4d) is
+the next high-leverage Wave-A follow-on; it lights up the manifest's
+`@param` / `@returns` / `@raises` / `@example` fields, populates
+`dist/errors.json`, and unlocks the `M-DOC-001` lint rule (WA3) and
+the m-cli `m doc` family (Wave B).
+
 ## [v0.4.0] — 2026-05-08
 
 **Phase 3 close + post-v0.3.0 P4 wave + STDXML T26 + tooling

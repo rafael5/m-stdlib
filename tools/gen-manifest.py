@@ -398,7 +398,12 @@ def build_label_entry(
 
 
 def read_stdlib_version() -> str:
-    """Read the current stdlib version from CHANGELOG.md (top heading)."""
+    """Read the most-recent versioned entry from CHANGELOG.md.
+
+    Skips an `[Unreleased]` heading if present so the manifest's
+    stdlib_version stays anchored to the last shipped tag while
+    work accumulates against the next one.
+    """
     changelog = REPO_ROOT / "CHANGELOG.md"
     if not changelog.exists():
         return ""
@@ -406,7 +411,9 @@ def read_stdlib_version() -> str:
         m = re.match(r"^##\s*\[([^\]]+)\]", line)
         if m:
             v = m.group(1).strip()
-            return v if v.lower() != "unreleased" else ""
+            if v.lower() == "unreleased":
+                continue
+            return v
     return ""
 
 
