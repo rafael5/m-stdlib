@@ -35,6 +35,17 @@ STDFSTST        ; Test suite for STDFS (v0.2.x — Pri 2, Phase 4).
         do tSizeMatchesContentLength(.pass,.fail)
         do tSizeOfMissingIsMinusOne(.pass,.fail)
         ;
+        ; ---- callout-backed binary I/O (T13 + T14) ----
+        do tAvailableReturnsBoolean(.pass,.fail)
+        do tWriteBytesByteFaithful(.pass,.fail)
+        do tWriteBytesEmpty(.pass,.fail)
+        do tReadBytesPreservesAllBytes(.pass,.fail)
+        do tReadBytesPreservesEmbeddedCR(.pass,.fail)
+        do tReadBytesMissingRaises(.pass,.fail)
+        do tAppendBytesAtomic(.pass,.fail)
+        do tAppendBytesCreatesIfMissing(.pass,.fail)
+        do tNotWiredSoftFail(.pass,.fail)
+        ;
         do report^STDASSERT(pass,fail)
         quit
         ;
@@ -245,4 +256,116 @@ tSizeOfMissingIsMinusOne(pass,fail)     ;@TEST "size() of a missing path returns
         set path=$$sandboxPath("size-missing")
         if $$exists^STDFS(path) do remove^STDFS(path)
         do eq^STDASSERT(.pass,.fail,$$size^STDFS(path),-1,"missing path size is -1")
+        quit
+        ;
+        ; ---- callout-backed binary I/O (T13 native append + T14 byte-faithful) ----
+        ;
+        ; Each test gates on $$available^STDFS() so the suite stays green in
+        ; environments without the libc callout deployed (the .so is built by
+        ; tools/build-callouts.sh and loaded via $STDLIB_LIB + ydb_xc_std_fs).
+        ; The non-applicable branch fires a sentinel assertion to keep the
+        ; assertion count stable across environments — same convention as
+        ; STDHTTPTST.
+        ;
+tAvailableReturnsBoolean(pass,fail)     ;@TEST "$$available^STDFS returns exactly 0 or 1"
+        new v
+        set v=$$available^STDFS()
+        do true^STDASSERT(.pass,.fail,(v=0)!(v=1),"0 or 1")
+        quit
+        ;
+tWriteBytesByteFaithful(pass,fail)      ;@TEST "writeBytes does NOT add a trailing LF; on-disk size = $length(data)"
+        new path,data
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("wbytes")
+        set data="no-trailing-newline"  ; 19 bytes; no LF terminator
+        do writeBytes^STDFS(path,data)
+        do eq^STDASSERT(.pass,.fail,$$size^STDFS(path),$length(data),"on-disk size matches input bytes (no LF added)")
+        do eq^STDASSERT(.pass,.fail,$$readBytes^STDFS(path),data,"round-trip byte-faithful")
+        do remove^STDFS(path)
+        quit
+        ;
+tWriteBytesEmpty(pass,fail)     ;@TEST "writeBytes('') creates a zero-byte file"
+        new path
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("wbytes-empty")
+        do writeBytes^STDFS(path,"")
+        do eq^STDASSERT(.pass,.fail,$$size^STDFS(path),0,"empty writeBytes is zero-byte file")
+        do eq^STDASSERT(.pass,.fail,$$readBytes^STDFS(path),"","empty readBytes is empty string")
+        do remove^STDFS(path)
+        quit
+        ;
+tReadBytesPreservesAllBytes(pass,fail)  ;@TEST "readBytes preserves binary payload (incl. embedded LF without normalisation)"
+        new path,data,got
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("rbytes-bin")
+        set data="head"_$char(10)_"mid"_$char(10)_"tail"
+        do writeBytes^STDFS(path,data)
+        set got=$$readBytes^STDFS(path)
+        do eq^STDASSERT(.pass,.fail,got,data,"binary round-trip preserves embedded LF")
+        do eq^STDASSERT(.pass,.fail,$length(got),$length(data),"length identical")
+        do remove^STDFS(path)
+        quit
+        ;
+tReadBytesPreservesEmbeddedCR(pass,fail)        ;@TEST "readBytes does NOT strip CR (CRLF normalisation is text-mode only)"
+        new path,data,got
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("rbytes-cr")
+        set data="dos"_$char(13,10)_"line"_$char(13,10)_"end"
+        do writeBytes^STDFS(path,data)
+        set got=$$readBytes^STDFS(path)
+        do eq^STDASSERT(.pass,.fail,got,data,"CR preserved in binary mode")
+        do eq^STDASSERT(.pass,.fail,$length(got),$length(data),"length identical (no CR strip)")
+        do remove^STDFS(path)
+        quit
+        ;
+tReadBytesMissingRaises(pass,fail)      ;@TEST "readBytes of a missing path sets $ECODE=,U-STDFS-OPEN-FAIL,"
+        new path,code
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("rbytes-missing")
+        if $$exists^STDFS(path) do remove^STDFS(path)
+        set code="set x=$$readBytes^STDFS("""_path_""")"
+        do raises^STDASSERT(.pass,.fail,code,"U-STDFS-OPEN-FAIL","readBytes missing-file open fails")
+        quit
+        ;
+tAppendBytesAtomic(pass,fail)   ;@TEST "appendBytes lands data at EOF (no byte-0 quirk) and is byte-faithful"
+        new path,got
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("abytes")
+        do writeBytes^STDFS(path,"head")
+        do appendBytes^STDFS(path,"-tail")
+        set got=$$readBytes^STDFS(path)
+        do eq^STDASSERT(.pass,.fail,got,"head-tail","appendBytes lands at EOF")
+        do eq^STDASSERT(.pass,.fail,$$size^STDFS(path),9,"9 bytes; no implicit LF added")
+        do remove^STDFS(path)
+        quit
+        ;
+tAppendBytesCreatesIfMissing(pass,fail) ;@TEST "appendBytes creates the file when it does not exist"
+        new path,got
+        if '$$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),0,"sentinel: available()")
+        set path=$$sandboxPath("abytes-create")
+        if $$exists^STDFS(path) do remove^STDFS(path)
+        do appendBytes^STDFS(path,"only")
+        set got=$$readBytes^STDFS(path)
+        do eq^STDASSERT(.pass,.fail,got,"only","appendBytes creates new file")
+        do remove^STDFS(path)
+        quit
+        ;
+tNotWiredSoftFail(pass,fail)    ;@TEST "readBytes / writeBytes / appendBytes set $ECODE=,U-STDFS-NOT-WIRED, when stdfs.so is unavailable"
+        new path,code
+        if $$available^STDFS() do  quit
+        . do eq^STDASSERT(.pass,.fail,$$available^STDFS(),1,"sentinel: available()")
+        set path=$$sandboxPath("notwired")
+        set code="do writeBytes^STDFS("""_path_""",""x"")"
+        do raises^STDASSERT(.pass,.fail,code,"U-STDFS-NOT-WIRED","writeBytes soft-fails when callout missing")
+        set code="set x=$$readBytes^STDFS("""_path_""")"
+        do raises^STDASSERT(.pass,.fail,code,"U-STDFS-NOT-WIRED","readBytes soft-fails when callout missing")
+        set code="do appendBytes^STDFS("""_path_""",""x"")"
+        do raises^STDASSERT(.pass,.fail,code,"U-STDFS-NOT-WIRED","appendBytes soft-fails when callout missing")
         quit

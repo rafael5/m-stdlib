@@ -9,6 +9,8 @@ re-derive the deviceparam combinations or work around the
 
 ## Public API
 
+### Text I/O + path manipulation (pure-M, YDB SEQ device)
+
 | Extrinsic | Signature | Returns |
 |---|---|---|
 | `readFile` | `$$readFile^STDFS(path)` | File content as a string (lines joined by `$C(10)`). |
@@ -22,6 +24,15 @@ re-derive the deviceparam combinations or work around the
 | `basename` | `$$basename^STDFS(path)` | Last path component. |
 | `dirname` | `$$dirname^STDFS(path)` | Parent path. |
 | `join` | `$$join^STDFS(left, right)` | POSIX path join (absolute right wins). |
+
+### Byte-faithful I/O (`$ZF` → libc `read(2)` / `write(2)`)
+
+| Extrinsic | Signature | Returns |
+|---|---|---|
+| `readBytes` | `$$readBytes^STDFS(path)` | File content as a byte string — no LF stripping, no CRLF normalisation. |
+| `writeBytes` | `do writeBytes^STDFS(path, data)` | Writes `data` verbatim — **no trailing LF added**. |
+| `appendBytes` | `do appendBytes^STDFS(path, data)` | Atomic append via `O_APPEND`; creates the file if missing. |
+| `available` | `$$available^STDFS()` | `1` iff `stdfs.so` is loaded and reachable; else `0`. |
 
 ## Examples
 
@@ -59,25 +70,58 @@ device's stream-mode close finalisation. Practical consequences:
   is `$LENGTH(data) + 1` if `data` did not already end in LF, and
   `$LENGTH(data)` otherwise. Use this for "what does `ls -l`
   show", not for "how many bytes did I pass to writeFile".
-- A binary-safe path (no implicit LF; raw byte round-trip) is
-  reserved for a follow-on `readBytes` / `writeBytes` pair that
-  arrives alongside the `$ZF→read(2)/write(2)` callout backend.
+- For binary payloads (no implicit LF, exact byte round-trip),
+  use `$$readBytes^STDFS` / `do writeBytes^STDFS` — these go
+  through the libc `read(2)` / `write(2)` callout instead of the
+  YDB SEQ device.
+
+## Byte-faithful I/O (T13 + T14)
+
+`$$readBytes^STDFS(path)` and `do writeBytes^STDFS(path, data)`
+preserve every byte exactly. Unlike `readFile` / `writeFile`,
+they do not strip CR, do not collapse line endings, and do not
+add a trailing LF. The on-disk byte count after `writeBytes` is
+exactly `$LENGTH(data)`. This makes them the right tool for:
+
+- gzipped / zstd-compressed payloads
+- signed binary blobs (where any added byte invalidates the signature)
+- captured HTTP response bodies that need bit-exact replay
+- snapshot fixtures that include CR / NUL / high-bit bytes
+
+Backend: `$ZF → libc open(2) / read(2) / write(2) / close(2)`,
+sourced from `src/callouts/stdfs.c` and described by
+`tools/std_fs.xc`. Built by `tools/build-callouts.sh`. When the
+`.so` is missing, the byte-faithful entries set
+`$ECODE=,U-STDFS-NOT-WIRED,` — the text-I/O entries continue to
+work because they use the YDB SEQ device.
+
+The 16 MiB per-call output cap is declared in the `.xc`
+descriptor. If a `readBytes` call would exceed it, `$ECODE` is
+set to `,U-STDFS-READ-TRUNCATED,` (no silent truncation —
+truncation would corrupt downstream consumers expecting
+byte-faithful round-trip semantics). For larger files a
+streaming `open` / `write` / `close` triplet is the natural
+follow-on; not yet scheduled.
 
 ## Append semantics
 
-`$$append^STDFS(path, data)` is implemented as **read-then-rewrite**:
-the function reads the existing file, concatenates `data`, and
-writes the result back via `writeFile`. This avoids a YDB SEQ
-device quirk where the first `WRITE` after `OPEN dev:(append)`
-sometimes lands at byte 0 instead of EOF. The native append path
-will return when the `$ZF→write(2)` callout backend is wired up;
-the public API will not change.
+`$$append^STDFS(path, data)` is a **text-mode** operation: it reads the
+existing file via `readFile` (LF-stripped reconstruction), concatenates
+`data`, and writes the result back via `writeFile` (which always emits
+exactly one trailing LF on disk). Cost is `O(file size)` per call.
 
-For very large files, the read-then-rewrite cost is `O(file size)`
-per call. If you need many appends to one growing file, a future
-`$$open^STDFS(path,mode)` / `$$write^STDFS(handle,data)` /
-`$$close^STDFS(handle)` triplet (handle-style streaming I/O) is
-the natural extension. Open issue.
+This implementation is deliberate, not a workaround for the missing
+callout. The native `O_APPEND` path would leave an interior LF in the
+file whenever the previous content already ended with one — readFile
+would then round-trip to `"head\n-tail"` instead of the documented
+`"head-tail"`. Keeping append() at read-then-rewrite preserves the
+contract that `readFile` after `append` equals `readFile(old) + data`.
+
+For byte-faithful append at EOF (no LF normalisation, single `write(2)`
+syscall, atomic under concurrent writers), use `do appendBytes^STDFS`
+directly. That entry lands data verbatim and is the right tool for
+binary log streams, append-only data files, and structured payloads
+where each chunk already carries its own framing.
 
 ## `exists` and the YDB `$ZSEARCH` cache
 
@@ -128,18 +172,39 @@ process-local search cache.
 
 | `$ECODE` | Raised by | Meaning |
 |---|---|---|
-| `,U-STDFS-OPEN-FAIL,` | `readFile`, `readLines`, `writeFile`, `writeLines`, `append` | Path missing or unopenable (read paths pre-check via `exists`; write paths surface YDB's OPEN failure verbatim through `else`). |
+| `,U-STDFS-OPEN-FAIL,` | `readFile`, `readLines`, `writeFile`, `writeLines`, `append`, `readBytes`, `writeBytes`, `appendBytes` | Path missing or unopenable. Text-I/O surfaces YDB's OPEN failure; byte-I/O surfaces libc `open(2)` failure (full errno text in `stdfs_lasterror`). |
 | `,U-STDFS-REMOVE-FAIL,` | `remove` | OPEN-with-DELETE failed for a reason other than "file already absent" (typically a permission or busy-fd issue). |
+| `,U-STDFS-NOT-WIRED,` | `readBytes`, `writeBytes`, `appendBytes` | `stdfs.so` not loaded (`$ZTRNLNM("ydb_xc_std_fs")` empty, descriptor missing, or `dlopen` failed). The text-I/O entries are unaffected. |
+| `,U-STDFS-READ-TRUNCATED,` | `readBytes` | File exceeds the 16 MiB per-call buffer cap declared in `tools/std_fs.xc`. No silent truncation. |
+
+## Deployment
+
+The byte-faithful API depends on `stdfs.so`. To deploy:
+
+```bash
+tools/build-callouts.sh                     # produces so/<plat>/stdfs.so
+export STDLIB_LIB=$(pwd)/so/linux-x86_64    # or whichever platform
+export ydb_xc_std_fs=$(pwd)/tools/std_fs.xc
+```
+
+Verify with `$$available^STDFS()` from any M shell — `1` means
+the descriptor is exported and `open(2)` works on `/dev/null`.
+
+When the `.so` is absent the rest of STDFS still works, and
+`append()` automatically falls back to read-then-rewrite — see
+the "Append semantics" section.
 
 ## Engine portability
 
 YDB on Linux is the supported configuration. The path-manipulation
 labels (`basename` / `dirname` / `join`) are pure-M and run
-unchanged on IRIS today. The I/O labels rely on YDB's `OPEN`/`USE`/
-`READ #n`/`CLOSE` semantics and the `$ZEOF` / `$ZLEVEL` extensions —
-the IRIS arm lands when STDFS gets its `$ZF→stat`/`read`/`write`
-callout backend (queued; the `tools/build-callouts.sh` harness
-already ships).
+unchanged on IRIS today. The text-I/O labels rely on YDB's
+`OPEN`/`USE`/`READ #n`/`CLOSE` semantics and the `$ZEOF` /
+`$ZLEVEL` extensions; the byte-I/O labels rely on the `$ZF`
+host-call ABI which YDB exposes via `ydb_xc_*` and IRIS exposes
+via `$ZF(-2,...)` / `^%ZSTART` glue. The IRIS arm of the byte-I/O
+path lands once a real consumer drives it; the public M API will
+not change.
 
 ## See also
 
