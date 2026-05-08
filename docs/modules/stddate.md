@@ -127,7 +127,7 @@ malformed input must wrap the call under `$ETRAP` and inspect
 expected error codes per input shape; they are present in the file
 but are **not currently dispatched** because `STDASSERT.raises`
 cannot handle `$ECODE` raised inside an extrinsic chain. Re-enable
-once that is fixed (see `TOOLCHAIN-FINDINGS.md`).
+once that is fixed (see [`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md)).
 
 ## Engine portability
 

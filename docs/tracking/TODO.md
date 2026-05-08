@@ -13,7 +13,7 @@ STDFS T13/T14 closed (byte-faithful I/O); STDCSPRNG T12 closed
 ## Live work board
 
 The single source of truth for in-flight + proposed work is
-[`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md).
+[`module-tracker.md`](module-tracker.md).
 This TODO is a thin pointer; do not duplicate state here.
 
 - **Table 1** — 32 shipped modules with Tag / Effort / ToDo /
@@ -24,17 +24,17 @@ This TODO is a thin pointer; do not duplicate state here.
 
 For dispatch view across all parallel tracks (L1–L27, H1–H3, m-cli
 companion C-tracks, conformance-corpus A-tracks):
-[`docs/tracking/parallel-tracks.md`](docs/tracking/parallel-tracks.md).
+[`parallel-tracks.md`](parallel-tracks.md).
 
 ## Three living docs
 
-- [`docs/plans/m-stdlib-implementation-plan.md`](docs/plans/m-stdlib-implementation-plan.md)
+- [`../plans/m-stdlib-implementation-plan.md`](../plans/m-stdlib-implementation-plan.md)
   — per-module work plan (authoritative for v0.0.1 → v0.4.0 specs).
-- [`docs/plans/tdd-orchestration-plan.md`](docs/plans/tdd-orchestration-plan.md)
+- [`../plans/tdd-orchestration-plan.md`](../plans/tdd-orchestration-plan.md)
   — m-stdlib ↔ m-cli joint milestones; M0–M5 fully realised.
   Operational follow-up is
-  [`docs/guides/m-tdd-guide.md`](docs/guides/m-tdd-guide.md).
-- [`docs/tracking/parallel-tracks.md`](docs/tracking/parallel-tracks.md)
+  [`../guides/m-tdd-guide.md`](../guides/m-tdd-guide.md).
+- [`parallel-tracks.md`](parallel-tracks.md)
   — dispatch view; current execution status.
 
 ## Open work — optional add-ons
@@ -78,10 +78,10 @@ remaining toolchain items gate any m-stdlib suite at v0.4.0.
 
 ## Cross-references
 
-- [`README.md`](README.md) — public-facing overview; mirrors
-  `docs/guides/users-guide.md` §§ 1–4 + 6–7.
-- [`CHANGELOG.md`](CHANGELOG.md) — release history.
-- [`docs/guides/users-guide.md`](docs/guides/users-guide.md) — full
+- [`../../README.md`](../../README.md) — public-facing overview;
+  mirrors `../guides/users-guide.md` §§ 1–4 + 6–7.
+- [`../../CHANGELOG.md`](../../CHANGELOG.md) — release history.
+- [`../guides/users-guide.md`](../guides/users-guide.md) — full
   user's guide including § 5 per-module reference.
-- [`docs/modules/index.md`](docs/modules/index.md) — canonical
+- [`../modules/index.md`](../modules/index.md) — canonical
   module inventory; one row per shipped module.

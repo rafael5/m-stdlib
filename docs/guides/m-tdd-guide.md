@@ -493,7 +493,7 @@ local correctness.
 firing inside an extrinsic must `quit` *with an argument*. Either
 move the etrap into a procedure-level frame, or end the body with
 `quit -1` (or another sentinel). See
-[`TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md) for the open
+[`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) for the open
 issues; STDASSERT.raises has been hardened twice for the
 extrinsic-context-unwind case.
 
@@ -527,5 +527,5 @@ m coverage --routines src/ --tests tests/ --min-percent=85
 - [`m-stdlib-implementation-plan.md`](../plans/m-stdlib-implementation-plan.md) — per-module specs (§8) and the §9 acceptance gate.
 - [`module-tracker.md`](../tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board.
 - [`modules/index.md`](../modules/index.md) — canonical module inventory; per-module reference + cross-module dependency map.
-- [`../TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
+- [`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
 - [`../../m-cli/CLAUDE.md`](../../CLAUDE.md) — m-cli's project context; runner / lint / lsp conventions.

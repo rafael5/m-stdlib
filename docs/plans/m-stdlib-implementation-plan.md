@@ -127,7 +127,6 @@ m-stdlib/
 ├── README.md
 ├── LICENSE                       # AGPL-3.0
 ├── CHANGELOG.md
-├── TODO.md                       # resume-here pointer
 ├── Makefile
 ├── .m-cli.toml                   # fmt + lint + lsp config
 ├── .pre-commit-config.yaml       # repo: local — invokes locally-installed m
@@ -848,7 +847,7 @@ non-breaking changes are fine.
 
 ## 14. Toolchain feedback loop
 
-Maintain `TOOLCHAIN-FINDINGS.md` in the repo root. For every
+Maintain `docs/tracking/TOOLCHAIN-FINDINGS.md`. For every
 toolchain weakness (m-cli, tree-sitter-m, m-standard) that m-stdlib
 development surfaces, add an entry: date, module, finding, link to
 upstream issue.

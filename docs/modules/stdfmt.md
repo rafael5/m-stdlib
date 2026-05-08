@@ -133,7 +133,7 @@ have no error-path assertions today; STDASSERT's own raises-tests
 trigger errors via `set x=1/0` in procedure-form context.
 
 This is a **toolchain limitation in STDASSERT.raises**, not a STDFMT
-bug, and is filed in [`TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md).
+bug, and is filed in [`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md).
 The fix (use `ZGOTO`-based unwind in the trap, or document a separate
 extrinsic-aware variant `raisesx`) is a v0.0.5-or-later change.
 Production code that wants to catch STDFMT errors uses `$ETRAP` with

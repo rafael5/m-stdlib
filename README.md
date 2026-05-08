@@ -257,8 +257,8 @@ corpus pointers, cross-module dependency map) is at
 Live work — proposed modules, in-flight extensions, deferred ToDos —
 is tracked in [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md). Open
 toolchain bugs that block or limit m-stdlib work live in
-[`TOOLCHAIN-FINDINGS.md`](TOOLCHAIN-FINDINGS.md). Release history
-is in [`CHANGELOG.md`](CHANGELOG.md).
+[`docs/tracking/TOOLCHAIN-FINDINGS.md`](docs/tracking/TOOLCHAIN-FINDINGS.md).
+Release history is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## 7. Cross-references
 
@@ -267,8 +267,7 @@ The `docs/` tree is organised into five subfolders by purpose:
 authoritative API docs + conformance-corpus pointers),
 **plans/** (forward-looking specs + roadmaps), **testing/**
 (corpus-validation reports), and **tracking/** (live work boards).
-Repo-root docs (`TOOLCHAIN-FINDINGS.md`, `CHANGELOG.md`) sit
-alongside this README.
+Repo-root docs (`CHANGELOG.md`) sit alongside this README.
 
 ### `docs/guides/` — long-form orientation
 
@@ -296,10 +295,11 @@ alongside this README.
 
 - [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board (T1–T30) with per-module history archaeology.
 - [`docs/tracking/parallel-tracks.md`](docs/tracking/parallel-tracks.md) — dispatch view; current execution status across L1–L27 / H1–H3 / m-cli companion tracks.
+- [`docs/tracking/TODO.md`](docs/tracking/TODO.md) — resume-here pointer; thin index over the tracker boards.
+- [`docs/tracking/TOOLCHAIN-FINDINGS.md`](docs/tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
 
 ### Repo-root
 
-- [`TOOLCHAIN-FINDINGS.md`](TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
 - [`CHANGELOG.md`](CHANGELOG.md) — release history.
 
 ## License

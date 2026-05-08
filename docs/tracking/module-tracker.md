@@ -1614,11 +1614,11 @@ Per `docs/parallel-tracks.md` §7:
   m-stdlib ↔ m-cli milestone narrative (M0 – M5).
 - [modules/index.md](../modules/index.md) — released-module canonical
   index (Phase 1 only at present; regenerated each release).
-- [../TOOLCHAIN-FINDINGS.md](../../TOOLCHAIN-FINDINGS.md) — open
+- [TOOLCHAIN-FINDINGS.md](TOOLCHAIN-FINDINGS.md) — open
   toolchain bugs.
-- [../CHANGELOG.md](../../CHANGELOG.md) — release history.
-- [../TODO.md](../../TODO.md) — resume-here pointer.
-- [../CLAUDE.md](../../CLAUDE.md) — project status banner +
+- [../../CHANGELOG.md](../../CHANGELOG.md) — release history.
+- [TODO.md](TODO.md) — resume-here pointer.
+- [../../CLAUDE.md](../../CLAUDE.md) — project context +
   architectural rule.
 - [../../m-cli/TODO.md](../../../m-cli/TODO.md) — m-cli's own track
   list.

@@ -2,7 +2,7 @@
 # Machine-readable project descriptor — schema v1 (2026-05-05).
 name: m-stdlib
 kind: [m-library, library]
-status: active                             # v0.1.0 shipped 2026-05-05; v0.2.0 fully landed on main awaiting tag
+status: active                             # see CHANGELOG.md for release history
 languages: [mumps]
 
 runtime:
@@ -20,15 +20,9 @@ distribution:
 location: ~/projects/m-stdlib
 
 exposes:
-  m_routines:
-    - "STDASSERT.m (assertions; v0.0.1)"
-    - "STDUUID.m (UUID gen; v0.0.1)"
-    - "STDB64.m, STDHEX.m, STDFMT.m, STDLOG.m, STDDATE.m, STDCSV.m, STDARGS.m (v0.1.0)"
-    - "STDFIX.m (v0.1.1), STDMOCK.m (v0.1.2), STDSEED.m (v0.1.3) — Phase 1b TDD primitives"
-    - "STDJSON.m, STDREGEX.m, STDCOLL.m, STDURL.m (v0.2.0; landed on main)"
-  planned_routines:
-    - "STDCRYPTO, STDCOMPRESS via $ZF (v0.4.0); STDHTTP iter 3 IRIS arm via %Net.HttpRequest"
-    - "STDHTTP via $ZF→libcurl (iter 1 + iter 2 landed on main, awaiting v0.4.0 tag)"
+  # Canonical per-module inventory: docs/modules/index.md.
+  # Per-version landing details: CHANGELOG.md.
+  m_routines: "see docs/modules/index.md"
   formats_produced: []                     # runtime library, no file outputs
 
 consumes:
@@ -51,9 +45,13 @@ incompatibilities:
 
 docs:
   primary: README.md
-  implementation_plan: docs/m-stdlib-implementation-plan.md
-  tdd_orchestration: docs/tdd-orchestration-plan.md   # m-stdlib ↔ m-cli joint milestones; Phase 1b TDD primitives (STDFIX/STDMOCK/STDSEED)
-  parallel_tracks: docs/parallel-tracks.md            # dispatch view: 31 zero-interdep tracks ready for parallel pickup
+  changelog: CHANGELOG.md
+  implementation_plan: docs/plans/m-stdlib-implementation-plan.md
+  tdd_orchestration: docs/plans/tdd-orchestration-plan.md   # m-stdlib ↔ m-cli joint milestones
+  module_tracker: docs/tracking/module-tracker.md           # single-source-of-truth tracker for shipped/in-flight/proposed modules
+  parallel_tracks: docs/tracking/parallel-tracks.md         # dispatch view across all parallel tracks
+  todo: docs/tracking/TODO.md                               # resume-here pointer
+  toolchain_findings: docs/tracking/TOOLCHAIN-FINDINGS.md   # open toolchain bugs against m-cli / tree-sitter-m / YDB
 ---
 
 # m-stdlib
@@ -63,33 +61,14 @@ highest-impact gaps in M's standard library. Sibling project to m-cli,
 m-standard, and tree-sitter-m. YottaDB-first; IRIS-portable where
 reasonable.
 
-See [README.md](README.md) for the phase plan.
-
-## Status (2026-05-05)
-
-- v0.0.1 shipped 2026-04-30: STDASSERT (full) + STDUUID.
-- **v0.1.0 shipped 2026-05-05** (Phase 1 release tag — commit `3cf84f2`).
-  Rolls up tracks L1–L7 + L4b: STDB64, STDHEX, STDFMT, STDLOG, STDDATE,
-  STDCSV, STDARGS — all green, all 100% label coverage, 0 lint.
-- v0.1.1 (STDFIX), v0.1.2 (STDMOCK), v0.1.3 (STDSEED): Phase 1b TDD
-  primitives — labelled commits on `main`, awaiting batch tag.
-- **Phase 2 fully landed on `main`, awaiting `v0.2.0` tag**: STDJSON
-  (L11), STDREGEX (L12), STDCOLL (L13), STDURL (L14), plus STDLOG L4
-  add-on (`FORMAT(kv|json)`) and STDSEED L10 add-on (`loadJson`). All
-  implementations green; some `raises`-path test bodies parked pending
-  the open STDASSERT.raises P1 fix in TOOLCHAIN-FINDINGS (not a v0.2.0
-  blocker).
-- **Phase 3 H3 / STDHTTP iter 1 + iter 2 on `main`** (2026-05-07):
-  pure-M wire-format helpers + `$ZF→libcurl` wiring (`$$get`, `$$post`,
-  `$$request`, `$$available`). Soft-fails to `STDHTTP-NOT-WIRED` when
-  the .so is unloaded. Deployment: `tools/build-callouts.sh` →
-  `STDLIB_LIB` → `ydb_xc_std_http`. IRIS arm (iter 3) queued.
-- m-cli companion tracks C1–C5 + W/X/Y all shipped; M1 closed.
-- STDASSERT migrations V1/V2/V3 verified no-op 2026-05-05 — none of
-  m-cli, tree-sitter-m, m-standard ship M-side test suites; m-tools
-  is the de-facto STDASSERT consumer.
-
-See `docs/parallel-tracks.md` for the live dispatch board.
+See [README.md](README.md) for the phase plan and
+[CHANGELOG.md](CHANGELOG.md) for release history (current state, what
+landed in each tag, and the per-module / per-track narrative). The
+live work board is
+[docs/tracking/module-tracker.md](docs/tracking/module-tracker.md);
+[docs/tracking/parallel-tracks.md](docs/tracking/parallel-tracks.md)
+is the dispatch view. Open toolchain bugs are tracked in
+[docs/tracking/TOOLCHAIN-FINDINGS.md](docs/tracking/TOOLCHAIN-FINDINGS.md).
 
 ## Architectural rule
 

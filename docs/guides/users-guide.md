@@ -932,7 +932,7 @@ arm via `%Net.HttpRequest` (iter 3) is queued; the M-side
 Live work — proposed modules, in-flight extensions, deferred ToDos —
 is tracked in [`module-tracker.md`](../tracking/module-tracker.md). Open
 toolchain bugs that block or limit m-stdlib work live in
-[`../TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md). Release history
+[`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md). Release history
 is in [`../CHANGELOG.md`](../../CHANGELOG.md).
 
 ## 7. Cross-references
@@ -943,5 +943,5 @@ is in [`../CHANGELOG.md`](../../CHANGELOG.md).
 - [m-stdlib-implementation-plan.md](../plans/m-stdlib-implementation-plan.md) — per-module specs (§8) and §9 acceptance gate.
 - [tdd-orchestration-plan.md](../plans/tdd-orchestration-plan.md) — historical cross-project TDD-orchestration plan (M0 → M5). Now fully realised; `m-tdd-guide.md` is the operational follow-up.
 - [parallel-tracks.md](../tracking/parallel-tracks.md) — dispatch view; current execution status.
-- [../TOOLCHAIN-FINDINGS.md](../../TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
+- [TOOLCHAIN-FINDINGS.md](../tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
 - [../CHANGELOG.md](../../CHANGELOG.md) — release history.

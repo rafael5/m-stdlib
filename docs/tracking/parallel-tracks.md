@@ -426,6 +426,6 @@ So multiple tracks can land without stomping each other:
 
 - [tdd-orchestration-plan.md](../plans/tdd-orchestration-plan.md) — joint milestone narrative; this doc is the dispatch view.
 - [m-stdlib-implementation-plan.md](../plans/m-stdlib-implementation-plan.md) — per-module specs and §9 acceptance gate; this doc references them by track.
-- [TOOLCHAIN-FINDINGS.md](../../TOOLCHAIN-FINDINGS.md) — open m-cli / tree-sitter-m issues; track C1 closes the P1.
+- [TOOLCHAIN-FINDINGS.md](TOOLCHAIN-FINDINGS.md) — open m-cli / tree-sitter-m issues; track C1 closes the P1.
 - [../../m-cli/TODO.md](../../../m-cli/TODO.md) — m-cli's own track list (C1–C5 land here as work begins).
 - [../../vista-meta/docs/vista-orchestration-plan.md](../../../vista-meta/docs/vista-orchestration-plan.md) — parent plan; tracks P1–P3 belong to its scope.
