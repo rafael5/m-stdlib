@@ -5,7 +5,7 @@ phase: Phase 1
 stable: stable
 since: v0.0.2
 synopsis: 'RFC-4648 §8 hex encoding (lowercase by default)'
-labels: ['alpha', 'alphaU', 'decode', 'encode', 'encodeImpl', 'encodeu', 'valid']
+labels: ['decode', 'encode', 'encodeu', 'valid']
 errors: []
 conformance: []
 see_also: ['STDCSPRNG']

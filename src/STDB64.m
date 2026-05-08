@@ -23,32 +23,58 @@ STDB64  ; m-stdlib — RFC-4648 Base64 (standard + URL-safe).
         ; ---------- public API ----------
         ;
 encode(data)    ; Standard base64 (RFC-4648 §4) with padding.
+        ; doc: @param data    string  byte string to encode (one M char per byte)
+        ; doc: @returns       string  base64 with '=' padding; "" for empty input
+        ; doc: @example       write $$encode^STDB64("foobar")  ; "Zm9vYmFy"
+        ; doc: @since         v0.0.2
+        ; doc: @stable        stable
+        ; doc: @see           $$decode^STDB64, $$urlencode^STDB64, $$valid^STDB64
         ; doc: Returns the empty string for empty input.
-        ; doc: Example: write $$encode^STDB64("foobar")  ; "Zm9vYmFy"
         quit $$encodeImpl(data,$$alpha(),1)
         ;
 decode(text)    ; Inverse of encode(); accepts standard alphabet + '=' padding.
+        ; doc: @param text    string  base64-encoded text (standard alphabet, with padding)
+        ; doc: @returns       string  decoded byte string; "" for empty input
+        ; doc: @example       write $$decode^STDB64("Zm9vYmFy")  ; "foobar"
+        ; doc: @since         v0.0.2
+        ; doc: @stable        stable
+        ; doc: @see           $$encode^STDB64, $$valid^STDB64
         ; doc: Returns the empty string for empty input.
-        ; doc: Example: write $$decode^STDB64("Zm9vYmFy")  ; "foobar"
         quit $$decodeImpl(text,$$alpha())
         ;
 urlencode(data) ; URL-safe base64 (RFC-4648 §5) without padding.
+        ; doc: @param data    string  byte string to encode
+        ; doc: @returns       string  URL-safe base64 ('-' / '_' alphabet, no padding)
+        ; doc: @example       write $$urlencode^STDB64("f")  ; "Zg" (no padding)
+        ; doc: @since         v0.0.2
+        ; doc: @stable        stable
+        ; doc: @see           $$urldecode^STDB64, $$encode^STDB64
         ; doc: Uses '-' / '_' instead of '+' / '/'; drops trailing '=' (JWT
         ; doc: convention). Use urldecode() to invert.
-        ; doc: Example: write $$urlencode^STDB64("f")  ; "Zg" (no padding)
         quit $$encodeImpl(data,$$urlAlpha(),0)
         ;
 urldecode(text) ; Decode URL-safe base64; padding may be present or omitted.
+        ; doc: @param text    string  URL-safe base64 (padding optional)
+        ; doc: @returns       string  decoded byte string; "" for empty input
+        ; doc: @example       write $$urldecode^STDB64("Zg")  ; "f"
+        ; doc: @since         v0.0.2
+        ; doc: @stable        stable
+        ; doc: @see           $$urlencode^STDB64, $$decode^STDB64
         ; doc: Trailing '=' is stripped before decoding so input from JWT
         ; doc: producers (no padding) and Python's urlsafe_b64encode (padded)
         ; doc: both work.
         quit $$decodeImpl(text,$$urlAlpha())
         ;
 valid(text)     ; True iff text is well-formed standard base64 with padding.
+        ; doc: @param text    string  candidate base64 text
+        ; doc: @returns       bool    1 iff well-formed; 0 otherwise
+        ; doc: @example       write $$valid^STDB64("Zg==")  ; 1
+        ; doc: @since         v0.0.2
+        ; doc: @stable        stable
+        ; doc: @see           $$decode^STDB64, $$urldecode^STDB64
         ; doc: Length must be a multiple of 4. Padding ('=') only at the end,
         ; doc: at most two characters. Body characters must all be in the
         ; doc: standard alphabet. Empty string is valid.
-        ; doc: Example: write $$valid^STDB64("Zg==")  ; 1
         new n,padlen,body
         set n=$length(text)
         if n=0 quit 1
@@ -63,15 +89,18 @@ valid(text)     ; True iff text is well-formed standard base64 with padding.
         ; ---------- internal helpers ----------
         ;
 alpha() ; Standard base64 alphabet (RFC-4648 §4 Table 1).
-        ; doc: Internal — index 1..64 maps to 6-bit values 0..63.
+        ; doc: @internal
+        ; doc: Index 1..64 maps to 6-bit values 0..63.
         quit "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
         ;
 urlAlpha()      ; URL-safe alphabet (RFC-4648 §5 Table 2).
-        ; doc: Internal — same as alpha() but with '-' / '_' replacing '+' / '/'.
+        ; doc: @internal
+        ; doc: Same as alpha() but with '-' / '_' replacing '+' / '/'.
         quit "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
         ;
 encodeImpl(data,alpha,pad)      ; Encode data using the supplied alphabet.
-        ; doc: Internal — pad=1 emits '=' padding; pad=0 omits it.
+        ; doc: @internal
+        ; doc: pad=1 emits '=' padding; pad=0 omits it.
         new out,i,n,b1,b2,b3,c1,c2,c3,c4
         set out=""
         set n=$length(data)
@@ -91,8 +120,9 @@ encodeImpl(data,alpha,pad)      ; Encode data using the supplied alphabet.
         quit out
         ;
 decodeImpl(text,alpha)  ; Decode text using the supplied alphabet.
-        ; doc: Internal — strips '=' padding before processing. Tolerates
-        ; doc: input lengths not a multiple of 4 (drops trailing partial group).
+        ; doc: @internal
+        ; doc: Strips '=' padding before processing. Tolerates input lengths
+        ; doc: not a multiple of 4 (drops trailing partial group).
         new clean,n,out,i,c1,c2,c3,c4,b1,b2,b3,rem
         set clean=$translate(text,"=","")
         set n=$length(clean)

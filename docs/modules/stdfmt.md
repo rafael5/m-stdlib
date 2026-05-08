@@ -5,8 +5,8 @@ phase: Phase 1
 stable: stable
 since: v0.0.3
 synopsis: 'printf-style formatter (subset of Python str.format)'
-labels: ['apply', 'convert', 'expand', 'f', 'fn', 'lookup', 'pad', 'parseSpec', 'raise', 'render', 'repeat', 'toBase']
-errors: []
+labels: ['f', 'fn']
+errors: ['U-STDFMT-MISSING-ARG', 'U-STDFMT-UNCLOSED-BRACE', 'U-STDFMT-UNESCAPED-RBRACE', 'U-STDFMT-UNKNOWN-TYPE']
 conformance: []
 see_also: []
 ---

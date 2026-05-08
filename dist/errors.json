@@ -1,1 +1,30 @@
-{}
+{
+  "U-STDFMT-MISSING-ARG": {
+    "labels": [
+      "f",
+      "fn"
+    ],
+    "module": "STDFMT"
+  },
+  "U-STDFMT-UNCLOSED-BRACE": {
+    "labels": [
+      "f",
+      "fn"
+    ],
+    "module": "STDFMT"
+  },
+  "U-STDFMT-UNESCAPED-RBRACE": {
+    "labels": [
+      "f",
+      "fn"
+    ],
+    "module": "STDFMT"
+  },
+  "U-STDFMT-UNKNOWN-TYPE": {
+    "labels": [
+      "f",
+      "fn"
+    ],
+    "module": "STDFMT"
+  }
+}

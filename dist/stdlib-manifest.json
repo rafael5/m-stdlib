@@ -602,16 +602,31 @@
           "form": "extrinsic",
           "signature": "$$encode^STDB64(data)",
           "synopsis": "Standard base64 (RFC-4648 §4) with padding.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "data",
+              "type": "string",
+              "doc": "byte string to encode (one M char per byte)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "base64 with '=' padding; \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$encode^STDB64(\"foobar\")  ; \"Zm9vYmFy\""
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$decode^STDB64",
+            "$$urlencode^STDB64",
+            "$$valid^STDB64"
+          ],
           "deprecated": "",
-          "description": "Returns the empty string for empty input.\nExample: write $$encode^STDB64(\"foobar\")  ; \"Zm9vYmFy\"",
+          "description": "Returns the empty string for empty input.",
           "source": {
             "file": "src/STDB64.m",
             "line": 25
@@ -621,152 +636,132 @@
           "form": "extrinsic",
           "signature": "$$decode^STDB64(text)",
           "synopsis": "Inverse of encode(); accepts standard alphabet + '=' padding.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "base64-encoded text (standard alphabet, with padding)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "decoded byte string; \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$decode^STDB64(\"Zm9vYmFy\")  ; \"foobar\""
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$encode^STDB64",
+            "$$valid^STDB64"
+          ],
           "deprecated": "",
-          "description": "Returns the empty string for empty input.\nExample: write $$decode^STDB64(\"Zm9vYmFy\")  ; \"foobar\"",
+          "description": "Returns the empty string for empty input.",
           "source": {
             "file": "src/STDB64.m",
-            "line": 30
+            "line": 35
           }
         },
         "urlencode": {
           "form": "extrinsic",
           "signature": "$$urlencode^STDB64(data)",
           "synopsis": "URL-safe base64 (RFC-4648 §5) without padding.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "data",
+              "type": "string",
+              "doc": "byte string to encode"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "URL-safe base64 ('-' / '_' alphabet, no padding)"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$urlencode^STDB64(\"f\")  ; \"Zg\" (no padding)"
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$urldecode^STDB64",
+            "$$encode^STDB64"
+          ],
           "deprecated": "",
-          "description": "Uses '-' / '_' instead of '+' / '/'; drops trailing '=' (JWT\nconvention). Use urldecode() to invert.\nExample: write $$urlencode^STDB64(\"f\")  ; \"Zg\" (no padding)",
+          "description": "Uses '-' / '_' instead of '+' / '/'; drops trailing '=' (JWT\nconvention). Use urldecode() to invert.",
           "source": {
             "file": "src/STDB64.m",
-            "line": 35
+            "line": 45
           }
         },
         "urldecode": {
           "form": "extrinsic",
           "signature": "$$urldecode^STDB64(text)",
           "synopsis": "Decode URL-safe base64; padding may be present or omitted.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "URL-safe base64 (padding optional)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "decoded byte string; \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$urldecode^STDB64(\"Zg\")  ; \"f\""
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$urlencode^STDB64",
+            "$$decode^STDB64"
+          ],
           "deprecated": "",
           "description": "Trailing '=' is stripped before decoding so input from JWT\nproducers (no padding) and Python's urlsafe_b64encode (padded)\nboth work.",
           "source": {
             "file": "src/STDB64.m",
-            "line": 41
+            "line": 56
           }
         },
         "valid": {
           "form": "extrinsic",
           "signature": "$$valid^STDB64(text)",
           "synopsis": "True iff text is well-formed standard base64 with padding.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "candidate base64 text"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff well-formed; 0 otherwise"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$valid^STDB64(\"Zg==\")  ; 1"
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$decode^STDB64",
+            "$$urldecode^STDB64"
+          ],
           "deprecated": "",
-          "description": "Length must be a multiple of 4. Padding ('=') only at the end,\nat most two characters. Body characters must all be in the\nstandard alphabet. Empty string is valid.\nExample: write $$valid^STDB64(\"Zg==\")  ; 1",
+          "description": "Length must be a multiple of 4. Padding ('=') only at the end,\nat most two characters. Body characters must all be in the\nstandard alphabet. Empty string is valid.",
           "source": {
             "file": "src/STDB64.m",
-            "line": 47
-          }
-        },
-        "alpha": {
-          "form": "extrinsic",
-          "signature": "$$alpha^STDB64()",
-          "synopsis": "Standard base64 alphabet (RFC-4648 §4 Table 1).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — index 1..64 maps to 6-bit values 0..63.",
-          "source": {
-            "file": "src/STDB64.m",
-            "line": 65
-          }
-        },
-        "urlAlpha": {
-          "form": "extrinsic",
-          "signature": "$$urlAlpha^STDB64()",
-          "synopsis": "URL-safe alphabet (RFC-4648 §5 Table 2).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — same as alpha() but with '-' / '_' replacing '+' / '/'.",
-          "source": {
-            "file": "src/STDB64.m",
-            "line": 69
-          }
-        },
-        "encodeImpl": {
-          "form": "extrinsic",
-          "signature": "$$encodeImpl^STDB64(data, alpha, pad)",
-          "synopsis": "Encode data using the supplied alphabet.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — pad=1 emits '=' padding; pad=0 omits it.",
-          "source": {
-            "file": "src/STDB64.m",
-            "line": 73
-          }
-        },
-        "decodeImpl": {
-          "form": "extrinsic",
-          "signature": "$$decodeImpl^STDB64(text, alpha)",
-          "synopsis": "Decode text using the supplied alphabet.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — strips '=' padding before processing. Tolerates\ninput lengths not a multiple of 4 (drops trailing partial group).",
-          "source": {
-            "file": "src/STDB64.m",
-            "line": 93
+            "line": 68
           }
         }
       },
@@ -3572,22 +3567,102 @@
     "STDFMT": {
       "synopsis": "m-stdlib — printf-style formatter (subset of Python str.format).",
       "description": "Two public extrinsics:\n  $$f^STDFMT(template,a1,a2,...,a9)   — up to 9 positional\n  $$fn^STDFMT(template,.args)         — keyed via local array\n\nFormat spec — a subset of Python str.format:\n  {} / {N} / {name}                  — field reference\n  {:s} {:d} {:f} {:x} {:X} {:o} {:b} — type\n  {:>10} {:<10} {:^10}               — alignment + width\n  {:*>10}                            — fill char with align\n  {:.3f} {:.4s}                      — precision (rounding for f,\n                                       truncate for s)\n  {{ }}                              — literal { and }\n\nType defaults:\n  no type / s   — string, default left-align\n  d f x X o b   — numeric, default right-align\n  f             — default precision 6 (matches Python)\n\nErrors set $ECODE to one of:\n  ,U-STDFMT-MISSING-ARG,\n  ,U-STDFMT-UNCLOSED-BRACE,\n  ,U-STDFMT-UNESCAPED-RBRACE,\n  ,U-STDFMT-UNKNOWN-TYPE,",
-      "errors": [],
+      "errors": [
+        "U-STDFMT-MISSING-ARG",
+        "U-STDFMT-UNCLOSED-BRACE",
+        "U-STDFMT-UNESCAPED-RBRACE",
+        "U-STDFMT-UNKNOWN-TYPE"
+      ],
       "labels": {
         "f": {
           "form": "extrinsic",
           "signature": "$$f^STDFMT(template, a1, a2, a3, a4, a5, a6, a7, a8, a9)",
           "synopsis": "Positional formatter (up to 9 args).",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "template",
+              "type": "string",
+              "doc": "format template ({}, {N}, {:fmt}, {{, }})"
+            },
+            {
+              "name": "a1",
+              "type": "string",
+              "doc": "positional arg 0 (optional)"
+            },
+            {
+              "name": "a2",
+              "type": "string",
+              "doc": "positional arg 1 (optional)"
+            },
+            {
+              "name": "a3",
+              "type": "string",
+              "doc": "positional arg 2 (optional)"
+            },
+            {
+              "name": "a4",
+              "type": "string",
+              "doc": "positional arg 3 (optional)"
+            },
+            {
+              "name": "a5",
+              "type": "string",
+              "doc": "positional arg 4 (optional)"
+            },
+            {
+              "name": "a6",
+              "type": "string",
+              "doc": "positional arg 5 (optional)"
+            },
+            {
+              "name": "a7",
+              "type": "string",
+              "doc": "positional arg 6 (optional)"
+            },
+            {
+              "name": "a8",
+              "type": "string",
+              "doc": "positional arg 7 (optional)"
+            },
+            {
+              "name": "a9",
+              "type": "string",
+              "doc": "positional arg 8 (optional)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "the rendered template"
+          },
+          "raises": [
+            {
+              "code": "U-STDFMT-MISSING-ARG",
+              "doc": "referenced position has no supplied value"
+            },
+            {
+              "code": "U-STDFMT-UNCLOSED-BRACE",
+              "doc": "`{` without matching `}` in the template"
+            },
+            {
+              "code": "U-STDFMT-UNESCAPED-RBRACE",
+              "doc": "bare `}` outside a placeholder"
+            },
+            {
+              "code": "U-STDFMT-UNKNOWN-TYPE",
+              "doc": "`:type` is not one of s/d/f/x/X/o/b"
+            }
+          ],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$f^STDFMT(\"hi {}\",\"world\")  ; \"hi world\""
+          ],
+          "since": "v0.0.3",
+          "stable": "stable",
+          "see_also": [
+            "$$fn^STDFMT"
+          ],
           "deprecated": "",
-          "description": "Returns the rendered template. Supplied args fill positions\n0..N-1; unsupplied positions raise $ECODE on lookup.\nExample: write $$f^STDFMT(\"hi {}\",\"world\")  ; \"hi world\"",
+          "description": "Supplied args fill positions 0..N-1; unsupplied positions raise\n$ECODE on lookup. The 9-arg cap is M's per-extrinsic limit; for\nmore arguments use fn() with a local array.",
           "source": {
             "file": "src/STDFMT.m",
             "line": 31
@@ -3597,209 +3672,54 @@
           "form": "extrinsic",
           "signature": "$$fn^STDFMT(template, args)",
           "synopsis": "Named formatter (lookups in the passed array).",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "template",
+              "type": "string",
+              "doc": "format template ({}, {N}, {name}, {:fmt})"
+            },
+            {
+              "name": "args",
+              "type": "array",
+              "doc": "by-ref local; lookups go to args(name) or args(N)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "the rendered template"
+          },
+          "raises": [
+            {
+              "code": "U-STDFMT-MISSING-ARG",
+              "doc": "referenced field has no entry in args"
+            },
+            {
+              "code": "U-STDFMT-UNCLOSED-BRACE",
+              "doc": "`{` without matching `}` in the template"
+            },
+            {
+              "code": "U-STDFMT-UNESCAPED-RBRACE",
+              "doc": "bare `}` outside a placeholder"
+            },
+            {
+              "code": "U-STDFMT-UNKNOWN-TYPE",
+              "doc": "`:type` is not one of s/d/f/x/X/o/b"
+            }
+          ],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set a(\"n\")=\"x\"  write $$fn^STDFMT(\"{n}\",.a)  ; \"x\""
+          ],
+          "since": "v0.0.3",
+          "stable": "stable",
+          "see_also": [
+            "$$f^STDFMT"
+          ],
           "deprecated": "",
-          "description": "Returns the rendered template. Lookups go to args(name).\nExample: set a(\"n\")=\"x\"  write $$fn^STDFMT(\"{n}\",.a)  ; \"x\"",
+          "description": "",
           "source": {
             "file": "src/STDFMT.m",
-            "line": 47
-          }
-        },
-        "render": {
-          "form": "extrinsic",
-          "signature": "$$render^STDFMT(template, args)",
-          "synopsis": "Walk template; expand placeholders.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — handles {{, }}, and {...} placeholders. Sets\n$ECODE on malformed templates.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 54
-          }
-        },
-        "expand": {
-          "form": "extrinsic",
-          "signature": "$$expand^STDFMT(spec, args, autoIdx)",
-          "synopsis": "Expand a single {...} body to a string.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — splits spec on the first \":\", resolves the field\nto a value, applies the format spec to that value.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 84
-          }
-        },
-        "lookup": {
-          "form": "extrinsic",
-          "signature": "$$lookup^STDFMT(args, field, autoIdx)",
-          "synopsis": "Resolve field to argument value.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — empty field auto-numbers; digits is positional\nindex; otherwise treated as a name.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 94
-          }
-        },
-        "apply": {
-          "form": "extrinsic",
-          "signature": "$$apply^STDFMT(val, fmt)",
-          "synopsis": "Apply a format spec to val.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — fmt is the substring after \":\" (empty if none).",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 107
-          }
-        },
-        "parseSpec": {
-          "form": "procedure",
-          "signature": "do parseSpec^STDFMT(fmt, parsed)",
-          "synopsis": "Parse a format spec into parsed(\"...\") subscripts.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — fmt is the substring after \":\" (no leading colon).\nSets fill / align / width / precision / type subscripts.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 119
-          }
-        },
-        "convert": {
-          "form": "extrinsic",
-          "signature": "$$convert^STDFMT(val, type, precision)",
-          "synopsis": "Convert val to its rendered string per type.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — pre-padding. Sets $ECODE on unknown type.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 152
-          }
-        },
-        "toBase": {
-          "form": "extrinsic",
-          "signature": "$$toBase^STDFMT(n, base, alpha)",
-          "synopsis": "Convert integer n to a string in base via alpha.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — handles negatives via leading '-'.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 165
-          }
-        },
-        "pad": {
-          "form": "extrinsic",
-          "signature": "$$pad^STDFMT(s, width, align, fill)",
-          "synopsis": "Apply width/align/fill to s.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — when |s| >= width, returns s unchanged.",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 178
-          }
-        },
-        "repeat": {
-          "form": "extrinsic",
-          "signature": "$$repeat^STDFMT(c, n)",
-          "synopsis": "Return char c repeated n times.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — simple loop; works for any char (not just space).",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 193
-          }
-        },
-        "raise": {
-          "form": "procedure",
-          "signature": "do raise^STDFMT(err)",
-          "synopsis": "Raise a U-STDFMT-<err> error code via a fresh frame.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — fires the caller's $ETRAP from a nested frame\nso the trap's QUIT-with-empty-$ECODE resumes execution at\na known safe point in the caller (a guarded quit), not in\nthe middle of post-error cleanup. Same pattern as\nSTDREGEX.raise (added in L12 Pass B).",
-          "source": {
-            "file": "src/STDFMT.m",
-            "line": 200
+            "line": 66
           }
         }
       },
@@ -4227,16 +4147,31 @@
           "form": "extrinsic",
           "signature": "$$encode^STDHEX(data)",
           "synopsis": "Lowercase hex (RFC-4648 §8 default form).",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "data",
+              "type": "string",
+              "doc": "byte string to encode (one M char per byte)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "lowercase hex (a..f); \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$encode^STDHEX(\"foo\")  ; \"666f6f\""
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$encodeu^STDHEX",
+            "$$decode^STDHEX",
+            "$$valid^STDHEX"
+          ],
           "deprecated": "",
-          "description": "Returns the empty string for empty input.\nExample: write $$encode^STDHEX(\"foo\")  ; \"666f6f\"",
+          "description": "Returns the empty string for empty input.",
           "source": {
             "file": "src/STDHEX.m",
             "line": 22
@@ -4246,114 +4181,99 @@
           "form": "extrinsic",
           "signature": "$$encodeu^STDHEX(data)",
           "synopsis": "Uppercase hex.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "data",
+              "type": "string",
+              "doc": "byte string to encode"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "uppercase hex (A..F); \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$encodeu^STDHEX(\"foo\")  ; \"666F6F\""
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$encode^STDHEX",
+            "$$decode^STDHEX"
+          ],
           "deprecated": "",
-          "description": "Returns the empty string for empty input.\nExample: write $$encodeu^STDHEX(\"foo\")  ; \"666F6F\"",
+          "description": "Returns the empty string for empty input.",
           "source": {
             "file": "src/STDHEX.m",
-            "line": 27
+            "line": 32
           }
         },
         "decode": {
           "form": "extrinsic",
           "signature": "$$decode^STDHEX(text)",
           "synopsis": "Case-insensitive hex → bytes.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "hex text (any case; even or odd length)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "decoded byte string; \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$decode^STDHEX(\"DeAdBeEf\")  ; 4 bytes"
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$encode^STDHEX",
+            "$$encodeu^STDHEX",
+            "$$valid^STDHEX"
+          ],
           "deprecated": "",
-          "description": "Tolerates uppercase, lowercase, and mixed-case input.\nOdd-length input drops the trailing nibble silently — call\nvalid() first if strict validation is required.\nExample: write $$decode^STDHEX(\"DeAdBeEf\")  ; 4 bytes",
+          "description": "Tolerates uppercase, lowercase, and mixed-case input.\nOdd-length input drops the trailing nibble silently — call\nvalid() first if strict validation is required.",
           "source": {
             "file": "src/STDHEX.m",
-            "line": 32
+            "line": 42
           }
         },
         "valid": {
           "form": "extrinsic",
           "signature": "$$valid^STDHEX(text)",
           "synopsis": "True iff text is well-formed hex (any case).",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "candidate hex text"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff well-formed; 0 otherwise"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$valid^STDHEX(\"DeAdBeEf\")  ; 1"
+          ],
+          "since": "v0.0.2",
+          "stable": "stable",
+          "see_also": [
+            "$$decode^STDHEX"
+          ],
           "deprecated": "",
-          "description": "Length must be even; every character must be 0-9, a-f, or A-F.\nEmpty string is valid.\nExample: write $$valid^STDHEX(\"DeAdBeEf\")  ; 1",
+          "description": "Length must be even; every character must be 0-9, a-f, or A-F.\nEmpty string is valid.",
           "source": {
             "file": "src/STDHEX.m",
-            "line": 49
-          }
-        },
-        "alpha": {
-          "form": "extrinsic",
-          "signature": "$$alpha^STDHEX()",
-          "synopsis": "Lowercase hex alphabet (RFC-4648 §8 Table 5, lowercase form).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — index 1..16 maps to nibble values 0..15.",
-          "source": {
-            "file": "src/STDHEX.m",
-            "line": 62
-          }
-        },
-        "alphaU": {
-          "form": "extrinsic",
-          "signature": "$$alphaU^STDHEX()",
-          "synopsis": "Uppercase hex alphabet.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — same as alpha() with A..F instead of a..f.",
-          "source": {
-            "file": "src/STDHEX.m",
-            "line": 66
-          }
-        },
-        "encodeImpl": {
-          "form": "extrinsic",
-          "signature": "$$encodeImpl^STDHEX(data, alpha)",
-          "synopsis": "Encode data using the supplied alphabet.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — alpha must be a 16-character hex alphabet.",
-          "source": {
-            "file": "src/STDHEX.m",
-            "line": 70
+            "line": 64
           }
         }
       },
@@ -10321,5 +10241,34 @@
       }
     }
   },
-  "errors": {}
+  "errors": {
+    "U-STDFMT-MISSING-ARG": {
+      "module": "STDFMT",
+      "labels": [
+        "f",
+        "fn"
+      ]
+    },
+    "U-STDFMT-UNCLOSED-BRACE": {
+      "module": "STDFMT",
+      "labels": [
+        "f",
+        "fn"
+      ]
+    },
+    "U-STDFMT-UNESCAPED-RBRACE": {
+      "module": "STDFMT",
+      "labels": [
+        "f",
+        "fn"
+      ]
+    },
+    "U-STDFMT-UNKNOWN-TYPE": {
+      "module": "STDFMT",
+      "labels": [
+        "f",
+        "fn"
+      ]
+    }
+  }
 }

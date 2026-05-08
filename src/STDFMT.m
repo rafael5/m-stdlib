@@ -29,9 +29,28 @@ STDFMT  ; m-stdlib — printf-style formatter (subset of Python str.format).
         ; ---------- public API ----------
         ;
 f(template,a1,a2,a3,a4,a5,a6,a7,a8,a9)  ; Positional formatter (up to 9 args).
-        ; doc: Returns the rendered template. Supplied args fill positions
-        ; doc: 0..N-1; unsupplied positions raise $ECODE on lookup.
-        ; doc: Example: write $$f^STDFMT("hi {}","world")  ; "hi world"
+        ; doc: @param template   string   format template ({}, {N}, {:fmt}, {{, }})
+        ; doc: @param a1         string   positional arg 0 (optional)
+        ; doc: @param a2         string   positional arg 1 (optional)
+        ; doc: @param a3         string   positional arg 2 (optional)
+        ; doc: @param a4         string   positional arg 3 (optional)
+        ; doc: @param a5         string   positional arg 4 (optional)
+        ; doc: @param a6         string   positional arg 5 (optional)
+        ; doc: @param a7         string   positional arg 6 (optional)
+        ; doc: @param a8         string   positional arg 7 (optional)
+        ; doc: @param a9         string   positional arg 8 (optional)
+        ; doc: @returns          string   the rendered template
+        ; doc: @raises           U-STDFMT-MISSING-ARG       referenced position has no supplied value
+        ; doc: @raises           U-STDFMT-UNCLOSED-BRACE    `{` without matching `}` in the template
+        ; doc: @raises           U-STDFMT-UNESCAPED-RBRACE  bare `}` outside a placeholder
+        ; doc: @raises           U-STDFMT-UNKNOWN-TYPE      `:type` is not one of s/d/f/x/X/o/b
+        ; doc: @example          write $$f^STDFMT("hi {}","world")  ; "hi world"
+        ; doc: @since            v0.0.3
+        ; doc: @stable           stable
+        ; doc: @see              $$fn^STDFMT
+        ; doc: Supplied args fill positions 0..N-1; unsupplied positions raise
+        ; doc: $ECODE on lookup. The 9-arg cap is M's per-extrinsic limit; for
+        ; doc: more arguments use fn() with a local array.
         new args
         if $data(a1) set args(0)=a1
         if $data(a2) set args(1)=a2
@@ -45,15 +64,25 @@ f(template,a1,a2,a3,a4,a5,a6,a7,a8,a9)  ; Positional formatter (up to 9 args).
         quit $$render(template,.args)
         ;
 fn(template,args)       ; Named formatter (lookups in the passed array).
-        ; doc: Returns the rendered template. Lookups go to args(name).
-        ; doc: Example: set a("n")="x"  write $$fn^STDFMT("{n}",.a)  ; "x"
+        ; doc: @param template   string   format template ({}, {N}, {name}, {:fmt})
+        ; doc: @param args       array    by-ref local; lookups go to args(name) or args(N)
+        ; doc: @returns          string   the rendered template
+        ; doc: @raises           U-STDFMT-MISSING-ARG       referenced field has no entry in args
+        ; doc: @raises           U-STDFMT-UNCLOSED-BRACE    `{` without matching `}` in the template
+        ; doc: @raises           U-STDFMT-UNESCAPED-RBRACE  bare `}` outside a placeholder
+        ; doc: @raises           U-STDFMT-UNKNOWN-TYPE      `:type` is not one of s/d/f/x/X/o/b
+        ; doc: @example          set a("n")="x"  write $$fn^STDFMT("{n}",.a)  ; "x"
+        ; doc: @since            v0.0.3
+        ; doc: @stable           stable
+        ; doc: @see              $$f^STDFMT
         quit $$render(template,.args)
         ;
         ; ---------- internal: template walker ----------
         ;
 render(template,args)   ; Walk template; expand placeholders.
-        ; doc: Internal — handles {{, }}, and {...} placeholders. Sets
-        ; doc: $ECODE on malformed templates.
+        ; doc: @internal
+        ; doc: Handles {{, }}, and {...} placeholders. Sets $ECODE on
+        ; doc: malformed templates.
         new out,n,i,c,j,depth,spec,autoIdx
         set out=""
         set autoIdx=0
@@ -82,8 +111,9 @@ render(template,args)   ; Walk template; expand placeholders.
         quit out
         ;
 expand(spec,args,autoIdx)       ; Expand a single {...} body to a string.
-        ; doc: Internal — splits spec on the first ":", resolves the field
-        ; doc: to a value, applies the format spec to that value.
+        ; doc: @internal
+        ; doc: Splits spec on the first ":", resolves the field to a value,
+        ; doc: applies the format spec to that value.
         new colon,field,fmt,val
         set colon=$find(spec,":")
         if colon=0 set field=spec,fmt=""
@@ -92,8 +122,9 @@ expand(spec,args,autoIdx)       ; Expand a single {...} body to a string.
         quit $$apply(val,fmt)
         ;
 lookup(args,field,autoIdx)      ; Resolve field to argument value.
-        ; doc: Internal — empty field auto-numbers; digits is positional
-        ; doc: index; otherwise treated as a name.
+        ; doc: @internal
+        ; doc: Empty field auto-numbers; digits is positional index;
+        ; doc: otherwise treated as a name.
         new key
         if field="" set key=autoIdx,autoIdx=autoIdx+1
         else  if field?1.N set key=+field
@@ -105,7 +136,8 @@ lookup(args,field,autoIdx)      ; Resolve field to argument value.
         ; ---------- internal: format spec ----------
         ;
 apply(val,fmt)  ; Apply a format spec to val.
-        ; doc: Internal — fmt is the substring after ":" (empty if none).
+        ; doc: @internal
+        ; doc: fmt is the substring after ":" (empty if none).
         new parsed,s,defaultAlign
         do parseSpec(fmt,.parsed)
         set s=$$convert(val,parsed("type"),parsed("precision"))
@@ -117,8 +149,9 @@ apply(val,fmt)  ; Apply a format spec to val.
         quit $$pad(s,parsed("width"),parsed("align"),parsed("fill"))
         ;
 parseSpec(fmt,parsed)   ; Parse a format spec into parsed("...") subscripts.
-        ; doc: Internal — fmt is the substring after ":" (no leading colon).
-        ; doc: Sets fill / align / width / precision / type subscripts.
+        ; doc: @internal
+        ; doc: fmt is the substring after ":" (no leading colon). Sets
+        ; doc: fill / align / width / precision / type subscripts.
         new pos,n,c
         set parsed("fill")=" ",parsed("align")=""
         set parsed("width")="",parsed("precision")="",parsed("type")=""
@@ -150,7 +183,8 @@ parseSpec(fmt,parsed)   ; Parse a format spec into parsed("...") subscripts.
         quit
         ;
 convert(val,type,precision)     ; Convert val to its rendered string per type.
-        ; doc: Internal — pre-padding. Sets $ECODE on unknown type.
+        ; doc: @internal
+        ; doc: Pre-padding. Sets $ECODE on unknown type.
         if type="" quit val
         if type="s" quit val
         if type="d" quit val\1
@@ -163,7 +197,8 @@ convert(val,type,precision)     ; Convert val to its rendered string per type.
         quit ""
         ;
 toBase(n,base,alpha)    ; Convert integer n to a string in base via alpha.
-        ; doc: Internal — handles negatives via leading '-'.
+        ; doc: @internal
+        ; doc: Handles negatives via leading '-'.
         new sign,abs,digits,d
         if n=0 quit "0"
         set sign=$select(n<0:"-",1:"")
@@ -176,7 +211,8 @@ toBase(n,base,alpha)    ; Convert integer n to a string in base via alpha.
         quit sign_digits
         ;
 pad(s,width,align,fill) ; Apply width/align/fill to s.
-        ; doc: Internal — when |s| >= width, returns s unchanged.
+        ; doc: @internal
+        ; doc: When |s| >= width, returns s unchanged.
         new w,sLen,padding,lpad,rpad
         if width="" quit s
         set w=+width
@@ -191,18 +227,20 @@ pad(s,width,align,fill) ; Apply width/align/fill to s.
         quit $$repeat(fill,lpad)_s_$$repeat(fill,rpad)
         ;
 repeat(c,n)     ; Return char c repeated n times.
-        ; doc: Internal — simple loop; works for any char (not just space).
+        ; doc: @internal
+        ; doc: Simple loop; works for any char (not just space).
         new out,i
         set out=""
         for i=1:1:n set out=out_c
         quit out
         ;
 raise(err)      ; Raise a U-STDFMT-<err> error code via a fresh frame.
-        ; doc: Internal — fires the caller's $ETRAP from a nested frame
-        ; doc: so the trap's QUIT-with-empty-$ECODE resumes execution at
-        ; doc: a known safe point in the caller (a guarded quit), not in
-        ; doc: the middle of post-error cleanup. Same pattern as
-        ; doc: STDREGEX.raise (added in L12 Pass B).
+        ; doc: @internal
+        ; doc: Fires the caller's $ETRAP from a nested frame so the trap's
+        ; doc: QUIT-with-empty-$ECODE resumes execution at a known safe
+        ; doc: point in the caller (a guarded quit), not in the middle
+        ; doc: of post-error cleanup. Same pattern as STDREGEX.raise
+        ; doc: (added in L12 Pass B).
         set $ecode=",U-STDFMT-"_err_","
         quit
         ;
