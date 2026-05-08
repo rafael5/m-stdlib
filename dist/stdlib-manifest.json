@@ -6639,7 +6639,52 @@
             {
               "name": "k1",
               "type": "string",
-              "doc": "key 1 (optional; same shape through k5/v5)"
+              "doc": "key 1 (optional)"
+            },
+            {
+              "name": "v1",
+              "type": "string",
+              "doc": "value 1 (optional)"
+            },
+            {
+              "name": "k2",
+              "type": "string",
+              "doc": "key 2 (optional)"
+            },
+            {
+              "name": "v2",
+              "type": "string",
+              "doc": "value 2 (optional)"
+            },
+            {
+              "name": "k3",
+              "type": "string",
+              "doc": "key 3 (optional)"
+            },
+            {
+              "name": "v3",
+              "type": "string",
+              "doc": "value 3 (optional)"
+            },
+            {
+              "name": "k4",
+              "type": "string",
+              "doc": "key 4 (optional)"
+            },
+            {
+              "name": "v4",
+              "type": "string",
+              "doc": "value 4 (optional)"
+            },
+            {
+              "name": "k5",
+              "type": "string",
+              "doc": "key 5 (optional)"
+            },
+            {
+              "name": "v5",
+              "type": "string",
+              "doc": "value 5 (optional)"
             }
           ],
           "returns": null,
@@ -6676,7 +6721,52 @@
             {
               "name": "k1",
               "type": "string",
-              "doc": "key 1 (optional; same shape through k5/v5)"
+              "doc": "key 1 (optional)"
+            },
+            {
+              "name": "v1",
+              "type": "string",
+              "doc": "value 1 (optional)"
+            },
+            {
+              "name": "k2",
+              "type": "string",
+              "doc": "key 2 (optional)"
+            },
+            {
+              "name": "v2",
+              "type": "string",
+              "doc": "value 2 (optional)"
+            },
+            {
+              "name": "k3",
+              "type": "string",
+              "doc": "key 3 (optional)"
+            },
+            {
+              "name": "v3",
+              "type": "string",
+              "doc": "value 3 (optional)"
+            },
+            {
+              "name": "k4",
+              "type": "string",
+              "doc": "key 4 (optional)"
+            },
+            {
+              "name": "v4",
+              "type": "string",
+              "doc": "value 4 (optional)"
+            },
+            {
+              "name": "k5",
+              "type": "string",
+              "doc": "key 5 (optional)"
+            },
+            {
+              "name": "v5",
+              "type": "string",
+              "doc": "value 5 (optional)"
             }
           ],
           "returns": null,
@@ -6695,7 +6785,7 @@
           "description": "Suppressed when threshold is ERROR or higher.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 79
+            "line": 88
           }
         },
         "ERROR": {
@@ -6711,7 +6801,52 @@
             {
               "name": "k1",
               "type": "string",
-              "doc": "key 1 (optional; same shape through k5/v5)"
+              "doc": "key 1 (optional)"
+            },
+            {
+              "name": "v1",
+              "type": "string",
+              "doc": "value 1 (optional)"
+            },
+            {
+              "name": "k2",
+              "type": "string",
+              "doc": "key 2 (optional)"
+            },
+            {
+              "name": "v2",
+              "type": "string",
+              "doc": "value 2 (optional)"
+            },
+            {
+              "name": "k3",
+              "type": "string",
+              "doc": "key 3 (optional)"
+            },
+            {
+              "name": "v3",
+              "type": "string",
+              "doc": "value 3 (optional)"
+            },
+            {
+              "name": "k4",
+              "type": "string",
+              "doc": "key 4 (optional)"
+            },
+            {
+              "name": "v4",
+              "type": "string",
+              "doc": "value 4 (optional)"
+            },
+            {
+              "name": "k5",
+              "type": "string",
+              "doc": "key 5 (optional)"
+            },
+            {
+              "name": "v5",
+              "type": "string",
+              "doc": "value 5 (optional)"
             }
           ],
           "returns": null,
@@ -6730,7 +6865,7 @@
           "description": "Suppressed when threshold is FATAL.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 91
+            "line": 109
           }
         },
         "FATAL": {
@@ -6746,7 +6881,52 @@
             {
               "name": "k1",
               "type": "string",
-              "doc": "key 1 (optional; same shape through k5/v5)"
+              "doc": "key 1 (optional)"
+            },
+            {
+              "name": "v1",
+              "type": "string",
+              "doc": "value 1 (optional)"
+            },
+            {
+              "name": "k2",
+              "type": "string",
+              "doc": "key 2 (optional)"
+            },
+            {
+              "name": "v2",
+              "type": "string",
+              "doc": "value 2 (optional)"
+            },
+            {
+              "name": "k3",
+              "type": "string",
+              "doc": "key 3 (optional)"
+            },
+            {
+              "name": "v3",
+              "type": "string",
+              "doc": "value 3 (optional)"
+            },
+            {
+              "name": "k4",
+              "type": "string",
+              "doc": "key 4 (optional)"
+            },
+            {
+              "name": "v4",
+              "type": "string",
+              "doc": "value 4 (optional)"
+            },
+            {
+              "name": "k5",
+              "type": "string",
+              "doc": "key 5 (optional)"
+            },
+            {
+              "name": "v5",
+              "type": "string",
+              "doc": "value 5 (optional)"
             }
           ],
           "returns": null,
@@ -6764,7 +6944,7 @@
           "description": "Always emitted (threshold cannot be set above FATAL).",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 103
+            "line": 130
           }
         },
         "LEVEL": {
@@ -6801,7 +6981,7 @@
           "description": "Numeric ranks: DEBUG=10, INFO=20, WARN=30, ERROR=40, FATAL=50.\nAn emitter at rank n is suppressed when threshold > n.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 115
+            "line": 151
           }
         },
         "SINK": {
@@ -6838,7 +7018,7 @@
           "description": "\"stderr\" / \"stdout\" — write to /dev/stderr or current device.\n\"global\" — write to ^STDLIB($job,\"stdlog\",\"buf\",N).\n\"global:^FOO\" — write to ^FOO(N) using $increment for N.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 130
+            "line": 166
           }
         },
         "FORMAT": {
@@ -6876,7 +7056,7 @@
           "description": "kv format: <ts> level=<NAME> event=<event> k=v k=v ...\njson format: {\"ts\":...,\"level\":...,\"event\":...,\"k\":\"v\",...}\nJSON output uses $$encode^STDJSON internally so every line\nround-trips through $$parse^STDJSON without loss. All kv values\nrender as JSON strings (matches the kv-line semantic that\nvalues are opaque text); callers wanting typed JSON should\nbuild a tree directly and call $$encode^STDJSON themselves.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 148
+            "line": 184
           }
         }
       },

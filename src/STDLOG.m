@@ -66,7 +66,16 @@ DEBUG(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)      ; Emit a DEBUG line.
         ;
 INFO(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)       ; Emit an INFO line (default level).
         ; doc: @param event   string  short event name
-        ; doc: @param k1      string  key 1 (optional; same shape through k5/v5)
+        ; doc: @param k1      string  key 1 (optional)
+        ; doc: @param v1      string  value 1 (optional)
+        ; doc: @param k2      string  key 2 (optional)
+        ; doc: @param v2      string  value 2 (optional)
+        ; doc: @param k3      string  key 3 (optional)
+        ; doc: @param v3      string  value 3 (optional)
+        ; doc: @param k4      string  key 4 (optional)
+        ; doc: @param v4      string  value 4 (optional)
+        ; doc: @param k5      string  key 5 (optional)
+        ; doc: @param v5      string  value 5 (optional)
         ; doc: @example       do INFO^STDLOG("login","user","alice","ip","1.2.3.4")
         ; doc: @since         v0.0.4
         ; doc: @stable        stable
@@ -78,7 +87,16 @@ INFO(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)       ; Emit an INFO line (default lev
         ;
 WARN(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)       ; Emit a WARN line.
         ; doc: @param event   string  short event name
-        ; doc: @param k1      string  key 1 (optional; same shape through k5/v5)
+        ; doc: @param k1      string  key 1 (optional)
+        ; doc: @param v1      string  value 1 (optional)
+        ; doc: @param k2      string  key 2 (optional)
+        ; doc: @param v2      string  value 2 (optional)
+        ; doc: @param k3      string  key 3 (optional)
+        ; doc: @param v3      string  value 3 (optional)
+        ; doc: @param k4      string  key 4 (optional)
+        ; doc: @param v4      string  value 4 (optional)
+        ; doc: @param k5      string  key 5 (optional)
+        ; doc: @param v5      string  value 5 (optional)
         ; doc: @example       do WARN^STDLOG("retry","attempt","3")
         ; doc: @since         v0.0.4
         ; doc: @stable        stable
@@ -90,7 +108,16 @@ WARN(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)       ; Emit a WARN line.
         ;
 ERROR(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)      ; Emit an ERROR line.
         ; doc: @param event   string  short event name
-        ; doc: @param k1      string  key 1 (optional; same shape through k5/v5)
+        ; doc: @param k1      string  key 1 (optional)
+        ; doc: @param v1      string  value 1 (optional)
+        ; doc: @param k2      string  key 2 (optional)
+        ; doc: @param v2      string  value 2 (optional)
+        ; doc: @param k3      string  key 3 (optional)
+        ; doc: @param v3      string  value 3 (optional)
+        ; doc: @param k4      string  key 4 (optional)
+        ; doc: @param v4      string  value 4 (optional)
+        ; doc: @param k5      string  key 5 (optional)
+        ; doc: @param v5      string  value 5 (optional)
         ; doc: @example       do ERROR^STDLOG("db_failed","sqlcode","-803")
         ; doc: @since         v0.0.4
         ; doc: @stable        stable
@@ -102,7 +129,16 @@ ERROR(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)      ; Emit an ERROR line.
         ;
 FATAL(event,k1,v1,k2,v2,k3,v3,k4,v4,k5,v5)      ; Emit a FATAL line.
         ; doc: @param event   string  short event name
-        ; doc: @param k1      string  key 1 (optional; same shape through k5/v5)
+        ; doc: @param k1      string  key 1 (optional)
+        ; doc: @param v1      string  value 1 (optional)
+        ; doc: @param k2      string  key 2 (optional)
+        ; doc: @param v2      string  value 2 (optional)
+        ; doc: @param k3      string  key 3 (optional)
+        ; doc: @param v3      string  value 3 (optional)
+        ; doc: @param k4      string  key 4 (optional)
+        ; doc: @param v4      string  value 4 (optional)
+        ; doc: @param k5      string  key 5 (optional)
+        ; doc: @param v5      string  value 5 (optional)
         ; doc: @example       do FATAL^STDLOG("crash","reason","oom")
         ; doc: @since         v0.0.4
         ; doc: @stable        stable
