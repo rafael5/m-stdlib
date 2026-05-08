@@ -5,8 +5,8 @@ phase: Phase 1
 stable: stable
 since: v0.0.7
 synopsis: 'argparse (v0.0.7)'
-labels: ['addflag', 'addpos', 'addsub', 'assignPositional', 'checkPositionals', 'free', 'handleLong', 'handleShort', 'help', 'initDefaults', 'new', 'parse', 'raise', 'tokenize', 'walk']
-errors: []
+labels: ['addflag', 'addpos', 'addsub', 'free', 'help', 'new', 'parse']
+errors: ['U-STDARGS-MISSING-POSITIONAL', 'U-STDARGS-MISSING-VALUE', 'U-STDARGS-UNKNOWN-ACTION', 'U-STDARGS-UNKNOWN-FLAG', 'U-STDARGS-UNKNOWN-SUBCOMMAND']
 conformance: []
 see_also: []
 ---

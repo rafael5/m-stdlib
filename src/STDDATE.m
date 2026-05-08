@@ -29,8 +29,12 @@ STDDATE ; m-stdlib — ISO-8601 datetime + arithmetic (v0.0.5).
         ; ---------- public API ----------
         ;
 now()   ; Return current time as ISO-8601 UTC with millisecond precision.
-        ; doc: Format: "YYYY-MM-DDTHH:MM:SS.sssZ". Always trailing Z.
-        ; doc: Example: write $$now^STDDATE()  ; "2026-05-05T17:42:31.123Z"
+        ; doc: @returns       string  ISO-8601 UTC: "YYYY-MM-DDTHH:MM:SS.sssZ"
+        ; doc: @example       write $$now^STDDATE()  ; "2026-05-05T17:42:31.123Z"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$fromh^STDDATE, $$strftime^STDDATE
+        ; doc: Always trailing Z. Source: $ZHOROLOG (microsecond + tz pieces).
         new dh,d,s,u,t,utcD,utcS,y,m,dd,hh,mm,ss,ms
         ; m-lint: disable-next-line=M-MOD-022
         set dh=$zhorolog
@@ -46,10 +50,16 @@ now()   ; Return current time as ISO-8601 UTC with millisecond precision.
         quit $$padL(y,4,"0")_"-"_$$padL(m,2,"0")_"-"_$$padL(dd,2,"0")_"T"_$$padL(hh,2,"0")_":"_$$padL(mm,2,"0")_":"_$$padL(ss,2,"0")_"."_$$padL(ms,3,"0")_"Z"
         ;
 fromh(h)        ; Format a $HOROLOG (2/3/4-piece) as ISO-8601.
+        ; doc: @param h       horolog  comma-piece form: D,S | D,S,U | D,S,U,T
+        ; doc: @returns       string   ISO-8601 rendering (precision matches piece-count)
+        ; doc: @raises        U-STDDATE-BAD-HOROLOG  `h` is not a 2/3/4-piece comma string
+        ; doc: @example       write $$fromh^STDDATE("47117,0")  ; "1970-01-01T00:00:00"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$toh^STDDATE, $$strftime^STDDATE
         ; doc: 2-piece D,S        -> "YYYY-MM-DDTHH:MM:SS"
         ; doc: 3-piece D,S,U      -> "...HH:MM:SS.uuuuuu" when U>0
         ; doc: 4-piece D,S,U,T    -> "..." + "Z" or "+HH:MM" / "-HH:MM"
-        ; doc: Example: write $$fromh^STDDATE("47117,0")  ; "1970-01-01T00:00:00"
         new np,d,s,u,t,iso
         set np=$length(h,",")
         if (np<2)!(np>4) set $ecode=",U-STDDATE-BAD-HOROLOG," quit ""
@@ -61,10 +71,16 @@ fromh(h)        ; Format a $HOROLOG (2/3/4-piece) as ISO-8601.
         quit iso
         ;
 toh(iso)        ; Parse an ISO-8601 string into $HOROLOG form.
+        ; doc: @param iso     string   ISO-8601: date, date+time, or date+time+tz
+        ; doc: @returns       horolog  2/3/4-piece comma string; "" on parse failure
+        ; doc: @raises        U-STDDATE-BAD-ISO  malformed input or invalid date
+        ; doc: @example       write $$toh^STDDATE("1970-01-01")  ; "47117,0"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$fromh^STDDATE, $$strptime^STDDATE
         ; doc: 2-piece D,S for date or date+time without subsec/tz;
         ; doc: 3-piece D,S,U if subseconds present; 4-piece D,S,U,T if tz.
         ; doc: "Z" -> tzoff=0. "+HH:MM"/"-HH:MM" -> tzoff in seconds.
-        ; doc: Example: write $$toh^STDDATE("1970-01-01")  ; "47117,0"
         new len,y,m,d,hh,mm,ss,us,tz,rest,horolog,sec
         set len=$length(iso)
         if len<10 set $ecode=",U-STDDATE-BAD-ISO," quit ""
@@ -87,7 +103,8 @@ toh(iso)        ; Parse an ISO-8601 string into $HOROLOG form.
         quit horolog_","_sec_","_us_","_tz
         ;
 parseFrac(rest,us)      ; Parse leading ".ddd..." in rest into us. Mutates rest.
-        ; doc: Internal — moves rest past the fractional. Up to 6 digits kept.
+        ; doc: @internal
+        ; doc: Moves rest past the fractional. Up to 6 digits kept.
         new fe,frac
         set fe=2
         for  quit:fe>$length(rest)  quit:'($extract(rest,fe)?1N)  set fe=fe+1
@@ -98,7 +115,8 @@ parseFrac(rest,us)      ; Parse leading ".ddd..." in rest into us. Mutates rest.
         quit
         ;
 parseTz(rest,tz)        ; Parse a +HH:MM / -HH:MM suffix into tz seconds.
-        ; doc: Internal — sets $ECODE on malformed offset.
+        ; doc: @internal
+        ; doc: Sets $ECODE on malformed offset.
         new sgn,th,tm
         set sgn=$extract(rest,1)
         if (sgn'="+")&(sgn'="-") set $ecode=",U-STDDATE-BAD-ISO," quit
@@ -110,9 +128,16 @@ parseTz(rest,tz)        ; Parse a +HH:MM / -HH:MM suffix into tz seconds.
         quit
         ;
 strftime(h,fmt) ; Format a horolog per a strftime-style format string.
-        ; doc: Supports %Y %m %d %H %M %S %j %z %%; unknown -> "%X" passthrough.
-        ; doc: %z emits +HHMM/-HHMM (no colon) or "" if h has no tz piece.
-        ; doc: Example: write $$strftime^STDDATE("47117,0","%Y-%m-%d")  ; "1970-01-01"
+        ; doc: @param h       horolog  comma-piece form: D,S | D,S,U | D,S,U,T
+        ; doc: @param fmt     string   format string with %Y %m %d %H %M %S %j %z %% directives
+        ; doc: @returns       string   the rendered date/time
+        ; doc: @raises        U-STDDATE-BAD-HOROLOG  `h` is not a 2/3/4-piece comma string
+        ; doc: @example       write $$strftime^STDDATE("47117,0","%Y-%m-%d")  ; "1970-01-01"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$strptime^STDDATE, $$fromh^STDDATE
+        ; doc: Unknown directives pass through as "%X". %z emits +HHMM/-HHMM
+        ; doc: (no colon) or "" if h has no tz piece.
         new np,d,s,u,t,y,m,dd,hh,mm,ss,out,i,c,nc
         set np=$length(h,",")
         if (np<2)!(np>4) set $ecode=",U-STDDATE-BAD-HOROLOG," quit ""
@@ -137,9 +162,16 @@ strftime(h,fmt) ; Format a horolog per a strftime-style format string.
         quit out
         ;
 strptime(text,fmt)      ; Parse text per format string into a horolog.
-        ; doc: Supports %Y %m %d %H %M %S; literal chars must match exactly.
-        ; doc: Sets $ECODE U-STDDATE-BAD-ISO if parse fails or date invalid.
-        ; doc: Example: write $$strptime^STDDATE("1970-01-01","%Y-%m-%d")  ; "47117,0"
+        ; doc: @param text    string   the input text to parse
+        ; doc: @param fmt     string   format string with %Y %m %d %H %M %S directives
+        ; doc: @returns       horolog  2-piece D,S; "" on parse failure
+        ; doc: @raises        U-STDDATE-BAD-ISO  parse mismatch or invalid date components
+        ; doc: @example       write $$strptime^STDDATE("1970-01-01","%Y-%m-%d")  ; "47117,0"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$strftime^STDDATE, $$toh^STDDATE
+        ; doc: Literal characters in fmt must match `text` exactly; only the
+        ; doc: documented directives are honoured.
         new ti,fi,c,nc,n,wid,y,m,d,hh,mm,ss
         set y=1970,m=1,d=1,hh=0,mm=0,ss=0
         set ti=1,fi=1
@@ -166,9 +198,17 @@ strptime(text,fmt)      ; Parse text per format string into a horolog.
         quit ($$civilToDays(y,m,d)+47117)_","_((hh*3600)+(mm*60)+ss)
         ;
 add(h,dur)      ; Add an ISO-8601 duration to a horolog. Negative prefix "-P..." accepted.
+        ; doc: @param h       horolog  comma-piece form: D,S | D,S,U | D,S,U,T
+        ; doc: @param dur     string   ISO-8601 duration ("P1Y", "PT2H30M", "-P1D", etc.)
+        ; doc: @returns       horolog  2-piece D,S after addition; "" on error
+        ; doc: @raises        U-STDDATE-BAD-DUR      `dur` is not a valid ISO-8601 duration
+        ; doc: @raises        U-STDDATE-BAD-HOROLOG  `h` is not a 2/3/4-piece comma string
+        ; doc: @example       write $$add^STDDATE("47117,0","P1DT2H30M")  ; "47118,9000"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$diff^STDDATE
         ; doc: Calendar arithmetic for Y/M (with day-clamp on shorter months);
         ; doc: raw day arithmetic for W/D; second-arithmetic for H/M/S.
-        ; doc: Example: write $$add^STDDATE("47117,0","P1DT2H30M")  ; "47118,9000"
         new neg,p,years,months,weeks,days,hours,mins,secs,inT,num,i,c
         new np,d,s,y,m,dd,sec,dim
         set neg=0,p=dur
@@ -210,9 +250,15 @@ add(h,dur)      ; Add an ISO-8601 duration to a horolog. Negative prefix "-P..."
         quit d_","_sec
         ;
 diff(h1,h2)     ; Return h2 - h1 as an ISO-8601 duration.
+        ; doc: @param h1      horolog  start time (2-piece D,S minimum)
+        ; doc: @param h2      horolog  end time (2-piece D,S minimum)
+        ; doc: @returns       string   ISO-8601 duration; "PT0S" if zero; "-P..." if h2 < h1
+        ; doc: @example       write $$diff^STDDATE("47117,0","47118,0")  ; "P1D"
+        ; doc: @since         v0.0.5
+        ; doc: @stable        stable
+        ; doc: @see           $$add^STDDATE
         ; doc: Days carry into hours/minutes/seconds; never emits Y or M
-        ; doc: (variable-length). Zero -> "PT0S". Negative -> "-P..." prefix.
-        ; doc: Example: write $$diff^STDDATE("47117,0","47118,0")  ; "P1D"
+        ; doc: (variable-length).
         new d1,s1,d2,s2,total,neg,days,hours,mins,secs,out
         set d1=+$piece(h1,",",1),s1=+$piece(h1,",",2)
         set d2=+$piece(h2,",",1),s2=+$piece(h2,",",2)
@@ -236,7 +282,8 @@ diff(h1,h2)     ; Return h2 - h1 as an ISO-8601 duration.
         ; ---------- internal helpers ----------
         ;
 civilFromDays(z,y,m,d)  ; Howard Hinnant: days since 1970-01-01 -> (y,m,d).
-        ; doc: Internal — proleptic Gregorian conversion. y,m,d returned by-ref.
+        ; doc: @internal
+        ; doc: Proleptic Gregorian conversion. y,m,d returned by-ref.
         new era,doe,yoe,doy,mp
         set z=z+719468
         set era=z\146097
@@ -253,7 +300,8 @@ civilFromDays(z,y,m,d)  ; Howard Hinnant: days since 1970-01-01 -> (y,m,d).
         quit
         ;
 civilToDays(y,m,d)      ; Howard Hinnant inverse: (y,m,d) -> days since 1970-01-01.
-        ; doc: Internal — does not validate input. Pair with $$validDate first.
+        ; doc: @internal
+        ; doc: Does not validate input. Pair with $$validDate first.
         new yy,era,yoe,doy,doe
         set yy=$select(m<3:y-1,1:y)
         set era=yy\400
@@ -265,43 +313,50 @@ civilToDays(y,m,d)      ; Howard Hinnant inverse: (y,m,d) -> days since 1970-01-
         quit (era*146097)+doe-719468
         ;
 isLeap(y)       ; Return 1 if y is a leap year in the proleptic Gregorian calendar.
-        ; doc: Internal — div-4-not-100-or-400 rule.
+        ; doc: @internal
+        ; doc: Div-4-not-100-or-400 rule.
         if (y#400)=0 quit 1
         if (y#100)=0 quit 0
         if (y#4)=0 quit 1
         quit 0
         ;
 daysInMonth(y,m)        ; Return the number of days in (y,m).
-        ; doc: Internal — Apr/Jun/Sep/Nov=30; Feb=28 or 29; else 31.
+        ; doc: @internal
+        ; doc: Apr/Jun/Sep/Nov=30; Feb=28 or 29; else 31.
         if (m=4)!(m=6)!(m=9)!(m=11) quit 30
         if m=2 quit $select($$isLeap(y):29,1:28)
         quit 31
         ;
 validDate(y,m,d)        ; Return 1 if (y,m,d) is a valid civil date; else 0.
-        ; doc: Internal — month 1..12 and day 1..daysInMonth.
+        ; doc: @internal
+        ; doc: Month 1..12 and day 1..daysInMonth.
         if (m<1)!(m>12) quit 0
         if (d<1)!(d>$$daysInMonth(y,m)) quit 0
         quit 1
         ;
 dayOfYear(y,m,d)        ; Return the day-of-year (1..366) for (y,m,d).
-        ; doc: Internal — used by strftime %j.
+        ; doc: @internal
+        ; doc: Used by strftime %j.
         new t,mi
         set t=d
         for mi=1:1:m-1 set t=t+$$daysInMonth(y,mi)
         quit t
         ;
 fmtDate(d)      ; Format horolog days as YYYY-MM-DD.
-        ; doc: Internal — d is days since 1840-12-31 (M $HOROLOG epoch).
+        ; doc: @internal
+        ; doc: d is days since 1840-12-31 (M $HOROLOG epoch).
         new y,mo,da
         do civilFromDays(d-47117,.y,.mo,.da)
         quit $$padL(y,4,"0")_"-"_$$padL(mo,2,"0")_"-"_$$padL(da,2,"0")
         ;
 fmtTime(s)      ; Format seconds-into-day as HH:MM:SS.
-        ; doc: Internal — s in 0..86399.
+        ; doc: @internal
+        ; doc: s in 0..86399.
         quit $$padL(s\3600,2,"0")_":"_$$padL((s#3600)\60,2,"0")_":"_$$padL(s#60,2,"0")
         ;
 fmtTzColon(t)   ; Format tz offset (seconds) as Z / +HH:MM / -HH:MM.
-        ; doc: Internal — used by fromh's 4-piece path.
+        ; doc: @internal
+        ; doc: Used by fromh's 4-piece path.
         new sgn,a
         if t=0 quit "Z"
         set sgn=$select(t<0:"-",1:"+")
@@ -309,14 +364,16 @@ fmtTzColon(t)   ; Format tz offset (seconds) as Z / +HH:MM / -HH:MM.
         quit sgn_$$padL(a\3600,2,"0")_":"_$$padL((a\60)#60,2,"0")
         ;
 fmtTzCompact(t) ; Format tz offset as +HHMM / -HHMM (no colon, no Z).
-        ; doc: Internal — used by strftime %z (POSIX-compatible).
+        ; doc: @internal
+        ; doc: Used by strftime %z (POSIX-compatible).
         new sgn,a
         set sgn=$select(t<0:"-",1:"+")
         set a=$select(t<0:-t,1:t)
         quit sgn_$$padL(a\3600,2,"0")_$$padL((a\60)#60,2,"0")
         ;
 padL(s,n,ch)    ; Left-pad string s with ch up to length n.
-        ; doc: Internal — used everywhere zero-padding is needed.
+        ; doc: @internal
+        ; doc: Used everywhere zero-padding is needed.
         new r set r=s
         for  quit:$length(r)'<n  set r=ch_r
         quit r

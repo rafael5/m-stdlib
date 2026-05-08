@@ -1,4 +1,55 @@
 {
+  "U-STDARGS-MISSING-POSITIONAL": {
+    "labels": [
+      "parse"
+    ],
+    "module": "STDARGS"
+  },
+  "U-STDARGS-MISSING-VALUE": {
+    "labels": [
+      "parse"
+    ],
+    "module": "STDARGS"
+  },
+  "U-STDARGS-UNKNOWN-ACTION": {
+    "labels": [
+      "addflag"
+    ],
+    "module": "STDARGS"
+  },
+  "U-STDARGS-UNKNOWN-FLAG": {
+    "labels": [
+      "parse"
+    ],
+    "module": "STDARGS"
+  },
+  "U-STDARGS-UNKNOWN-SUBCOMMAND": {
+    "labels": [
+      "parse"
+    ],
+    "module": "STDARGS"
+  },
+  "U-STDDATE-BAD-DUR": {
+    "labels": [
+      "add"
+    ],
+    "module": "STDDATE"
+  },
+  "U-STDDATE-BAD-HOROLOG": {
+    "labels": [
+      "fromh",
+      "strftime",
+      "add"
+    ],
+    "module": "STDDATE"
+  },
+  "U-STDDATE-BAD-ISO": {
+    "labels": [
+      "toh",
+      "strptime"
+    ],
+    "module": "STDDATE"
+  },
   "U-STDFMT-MISSING-ARG": {
     "labels": [
       "f",

@@ -5,8 +5,8 @@ phase: Phase 1
 stable: stable
 since: v0.0.5
 synopsis: 'ISO-8601 datetime + arithmetic (v0.0.5)'
-labels: ['add', 'civilFromDays', 'civilToDays', 'dayOfYear', 'daysInMonth', 'diff', 'fmtDate', 'fmtTime', 'fmtTzColon', 'fmtTzCompact', 'fromh', 'isLeap', 'now', 'padL', 'parseFrac', 'parseTz', 'strftime', 'strptime', 'toh', 'validDate']
-errors: []
+labels: ['add', 'diff', 'fromh', 'now', 'strftime', 'strptime', 'toh']
+errors: ['U-STDDATE-BAD-DUR', 'U-STDDATE-BAD-HOROLOG', 'U-STDDATE-BAD-ISO']
 conformance: []
 see_also: ['STDLOG']
 ---

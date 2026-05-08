@@ -39,8 +39,13 @@ STDARGS ; m-stdlib — argparse (v0.0.7).
         ; ---------- public API ----------
         ;
 new(prog,desc)  ; Allocate a fresh parser handle.
-        ; doc: Returns a positive integer; pass to addflag/addpos/addsub/parse/help/free.
-        ; doc: Example: set p=$$new^STDARGS("widget","frob the widget")
+        ; doc: @param prog    string  program name (rendered into the help banner)
+        ; doc: @param desc    string  one-line description (rendered into the help banner)
+        ; doc: @returns       int     positive parser handle; pass to addflag / addpos / addsub / parse / help / free
+        ; doc: @example       set p=$$new^STDARGS("widget","frob the widget")
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           do free^STDARGS, do addflag^STDARGS, do addpos^STDARGS, do parse^STDARGS
         new p
         set p=$increment(^STDLIB($job,"stdargs"))
         set ^STDLIB($job,"stdargs",p,"prog")=$get(prog)
@@ -48,15 +53,26 @@ new(prog,desc)  ; Allocate a fresh parser handle.
         quit p
         ;
 free(p) ; Release a parser's state.
+        ; doc: @param p       int     parser handle from new()
+        ; doc: @example       do free^STDARGS(p)
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           $$new^STDARGS
         ; doc: Idempotent. The handle must not be reused after free().
-        ; doc: Example: do free^STDARGS(p)
         kill ^STDLIB($job,"stdargs",p)
         quit
         ;
 addflag(p,long,short,action,dest)       ; Register a flag.
-        ; doc: action ∈ {store_true, store, count, append}. Unknown action
-        ; doc: sets $ECODE to ,U-STDARGS-UNKNOWN-ACTION,. short may be empty.
-        ; doc: Example: do addflag^STDARGS(p,"--verbose","-v","store_true","verbose")
+        ; doc: @param p       int     parser handle from new()
+        ; doc: @param long    string  long form including "--" prefix (e.g. "--verbose")
+        ; doc: @param short   string  short form including "-" prefix; "" if no short
+        ; doc: @param action  string  one of: store_true, store, count, append
+        ; doc: @param dest    string  ns(dest) subscript that the parsed value lands in
+        ; doc: @raises        U-STDARGS-UNKNOWN-ACTION  `action` is not one of the four documented values
+        ; doc: @example       do addflag^STDARGS(p,"--verbose","-v","store_true","verbose")
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           do addpos^STDARGS, do addsub^STDARGS
         new n
         if action'="store_true",action'="store",action'="count",action'="append" do raise("UNKNOWN-ACTION") quit
         set ^STDLIB($job,"stdargs",p,"flag",long,"short")=$get(short)
@@ -68,8 +84,14 @@ addflag(p,long,short,action,dest)       ; Register a flag.
         quit
         ;
 addpos(p,name,dest)     ; Register a positional argument.
+        ; doc: @param p       int     parser handle from new()
+        ; doc: @param name    string  positional's display name (rendered into help)
+        ; doc: @param dest    string  ns(dest) subscript that the value lands in
+        ; doc: @example       do addpos^STDARGS(p,"path","path")
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           do addflag^STDARGS, do parse^STDARGS
         ; doc: Positionals are filled in addpos() declaration order.
-        ; doc: Example: do addpos^STDARGS(p,"path","path")
         new n
         set n=$increment(^STDLIB($job,"stdargs",p,"posN"))
         set ^STDLIB($job,"stdargs",p,"pos",n,"name")=name
@@ -77,24 +99,45 @@ addpos(p,name,dest)     ; Register a positional argument.
         quit
         ;
 addsub(p,name,sub)      ; Register a sub-command -> sub-parser handle.
+        ; doc: @param p       int     parser handle from new()
+        ; doc: @param name    string  sub-command name (matched against the first non-flag token)
+        ; doc: @param sub     int     parser handle from a separate new() call — the sub-parser
+        ; doc: @example       do addsub^STDARGS(p,"add",subHandle)
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           do parse^STDARGS
         ; doc: When a parser has any sub-commands, the first non-flag token
-        ; doc: must name one (or $ECODE U-STDARGS-UNKNOWN-SUBCOMMAND fires).
-        ; doc: Example: do addsub^STDARGS(p,"add",subHandle)
+        ; doc: must name one — `parse` raises U-STDARGS-UNKNOWN-SUBCOMMAND otherwise.
         set ^STDLIB($job,"stdargs",p,"sub",name)=sub
         quit
         ;
 parse(p,argline,ns)     ; Parse argline; populate ns(dest)=value.
+        ; doc: @param p       int     parser handle from new()
+        ; doc: @param argline string  the raw command line (e.g. $ZCMDLINE on YDB)
+        ; doc: @param ns      array   by-ref local; populated as ns(dest)=value
+        ; doc: @raises        U-STDARGS-UNKNOWN-FLAG        token starts with "-" but isn't a registered flag
+        ; doc: @raises        U-STDARGS-UNKNOWN-SUBCOMMAND  first non-flag token doesn't match any addsub() name
+        ; doc: @raises        U-STDARGS-MISSING-VALUE       a `store` / `append` flag has no value token after it
+        ; doc: @raises        U-STDARGS-MISSING-POSITIONAL  a registered positional was not supplied
+        ; doc: @example       do parse^STDARGS(p,$zcmdline,.ns)
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           $$help^STDARGS
         ; doc: ns is by-reference. On parse error sets $ECODE to one of the
         ; doc: documented codes; otherwise returns silently.
-        ; doc: Example: do parse^STDARGS(p,$zcmdline,.ns)
         do initDefaults(p,.ns)
         do walk(p,$get(argline),.ns)
         do checkPositionals(p,.ns)
         quit
         ;
 help(p) ; Return formatted help text.
+        ; doc: @param p       int     parser handle from new()
+        ; doc: @returns       string  multi-line help banner — usage line, description, flags, positionals, commands
+        ; doc: @example       write $$help^STDARGS(p)
+        ; doc: @since         v0.0.7
+        ; doc: @stable        stable
+        ; doc: @see           $$new^STDARGS, do parse^STDARGS
         ; doc: Lists usage line, description, then flags, positionals, commands.
-        ; doc: Example: write $$help^STDARGS(p)
         new out,prog,desc,n,long,short,name,sub
         set prog=$get(^STDLIB($job,"stdargs",p,"prog"))
         set desc=$get(^STDLIB($job,"stdargs",p,"desc"))
@@ -125,7 +168,8 @@ help(p) ; Return formatted help text.
         ; ---------- internal: defaults / positionals ----------
         ;
 initDefaults(p,ns)      ; Pre-fill ns(dest) for store_true and count flags.
-        ; doc: Internal — so absent flags are observable as 0 rather than undef.
+        ; doc: @internal
+        ; doc: Absent flags are observable as 0 rather than undef.
         new n,long,action,dest
         set n=0
         for  set n=$order(^STDLIB($job,"stdargs",p,"flagOrder",n)) quit:n=""  do
@@ -137,7 +181,8 @@ initDefaults(p,ns)      ; Pre-fill ns(dest) for store_true and count flags.
         quit
         ;
 checkPositionals(p,ns)  ; Confirm every registered positional was filled.
-        ; doc: Internal — sets $ECODE on first missing positional.
+        ; doc: @internal
+        ; doc: Sets $ECODE on first missing positional.
         new n,dest
         set n=0
         for  set n=$order(^STDLIB($job,"stdargs",p,"pos",n)) quit:n=""  do
@@ -148,7 +193,8 @@ checkPositionals(p,ns)  ; Confirm every registered positional was filled.
         ; ---------- internal: walker ----------
         ;
 walk(p,argline,ns)      ; Walk tokens of argline; dispatch flags / positionals / sub.
-        ; doc: Internal — handles "--" terminator, sub-commands, grouped shorts.
+        ; doc: @internal
+        ; doc: Handles "--" terminator, sub-commands, grouped shorts.
         new tokens,n,i,tok,terminator,posIdx,subname,subRest,subP,j
         do tokenize(argline,.tokens,.n)
         ; Sub-command dispatch: any sub registered → first token must match.
@@ -173,7 +219,8 @@ walk(p,argline,ns)      ; Walk tokens of argline; dispatch flags / positionals /
         quit
         ;
 tokenize(argline,tokens,n)      ; Split argline on whitespace; populate tokens(1..n).
-        ; doc: Internal — runs of whitespace collapse; leading/trailing trim.
+        ; doc: @internal
+        ; doc: Runs of whitespace collapse; leading/trailing trim.
         new pos,len,c,buf
         set n=0,buf="",pos=1,len=$length(argline)
         for  quit:pos>len  do
@@ -185,7 +232,8 @@ tokenize(argline,tokens,n)      ; Split argline on whitespace; populate tokens(1
         quit
         ;
 handleLong(p,tok,ns,tokens,i,n) ; Process a "--name" token.
-        ; doc: Internal — dispatches by action; advances i for store/append.
+        ; doc: @internal
+        ; doc: Dispatches by action; advances i for store/append.
         new long,action,dest,k
         set long=tok
         if '$data(^STDLIB($job,"stdargs",p,"flag",long,"action")) do raise("UNKNOWN-FLAG") quit
@@ -204,8 +252,9 @@ handleLong(p,tok,ns,tokens,i,n) ; Process a "--name" token.
         quit
         ;
 handleShort(p,tok,ns,tokens,i,n)        ; Process a "-x" or grouped "-xyz" token.
-        ; doc: Internal — single char dispatches by action; multi-char body
-        ; doc: requires every char to map to a count flag (-vvv form).
+        ; doc: @internal
+        ; doc: Single char dispatches by action; multi-char body requires
+        ; doc: every char to map to a count flag (-vvv form).
         new body,len,j,short,long,action,dest,k
         set body=$extract(tok,2,$length(tok)),len=$length(body)
         if len=1 do  quit
@@ -235,8 +284,9 @@ handleShort(p,tok,ns,tokens,i,n)        ; Process a "-x" or grouped "-xyz" token
         quit
         ;
 assignPositional(p,posIdx,tok,ns)       ; Assign tok to the posIdx-th positional.
-        ; doc: Internal — extra tokens past the last declared positional are
-        ; doc: silently ignored at v0.0.7 (no varargs / nargs+ yet).
+        ; doc: @internal
+        ; doc: Extra tokens past the last declared positional are silently
+        ; doc: ignored at v0.0.7 (no varargs / nargs+ yet).
         new dest
         if '$data(^STDLIB($job,"stdargs",p,"pos",posIdx,"dest")) quit
         set dest=^STDLIB($job,"stdargs",p,"pos",posIdx,"dest")
@@ -244,11 +294,11 @@ assignPositional(p,posIdx,tok,ns)       ; Assign tok to the posIdx-th positional
         quit
         ;
 raise(err)      ; Raise a U-STDARGS-<err> error code via a fresh frame.
-        ; doc: Internal — fires the caller's $ETRAP from a nested frame
-        ; doc: so the trap's QUIT-with-empty-$ECODE resumes execution at
-        ; doc: a known safe point in the caller, not in the middle of
-        ; doc: post-error cleanup. Same pattern as STDREGEX.raise (added
-        ; doc: in L12 Pass B).
+        ; doc: @internal
+        ; doc: Fires the caller's $ETRAP from a nested frame so the trap's
+        ; doc: QUIT-with-empty-$ECODE resumes execution at a known safe
+        ; doc: point in the caller, not in the middle of post-error
+        ; doc: cleanup. Same pattern as STDREGEX.raise (added in L12 Pass B).
         set $ecode=",U-STDARGS-"_err_","
         quit
         ;

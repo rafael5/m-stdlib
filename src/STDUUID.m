@@ -19,8 +19,14 @@ STDUUID ; m-stdlib — UUID v4 + v7 (RFC 4122 / RFC 9562).
         ; ---------- public API ----------
         ;
 v4()    ; Return a new RFC-4122 v4 UUID.
+        ; doc: @returns       string  canonical 36-char hex UUID v4 (lowercase, hyphenated)
+        ; doc: @example       set id=$$v4^STDUUID()  ; "550e8400-e29b-41d4-a716-446655440000"
+        ; doc: @since         v0.0.1
+        ; doc: @stable        stable
+        ; doc: @see           $$v7^STDUUID, $$valid^STDUUID, $$version^STDUUID
         ; doc: 122 bits of randomness; version nibble='4'; variant nibble in 8/9/a/b.
-        ; doc: Example: set id=$$v4^STDUUID()  ; "550e8400-e29b-41d4-a716-446655440000"
+        ; doc: Randomness is from $RANDOM (Mersenne Twister) — adequate for distributed
+        ; doc: primary keys; not cryptographically strong (do not use for tokens).
         new b1,b2,b3,b4,b5
         set b1=$$randomHex(8)
         set b2=$$randomHex(4)
@@ -30,9 +36,13 @@ v4()    ; Return a new RFC-4122 v4 UUID.
         quit b1_"-"_b2_"-"_b3_"-"_b4_"-"_b5
         ;
 v7()    ; Return a new RFC-9562 v7 UUID (time-ordered).
+        ; doc: @returns       string  canonical 36-char hex UUID v7; byte-wise sort = generation order
+        ; doc: @example       set id=$$v7^STDUUID()  ; sorts in generation order
+        ; doc: @since         v0.0.1
+        ; doc: @stable        stable
+        ; doc: @see           $$v4^STDUUID, $$valid^STDUUID
         ; doc: First 48 bits = ms-since-Unix-epoch (sortable). 12-bit rand_a,
         ; doc: variant nibble (8/9/a/b), 12-bit rand_b, 50-bit rand_c.
-        ; doc: Example: set id=$$v7^STDUUID()  ; sorts in generation order
         new ms,tsHex,b1,b2,b3,b4,b5
         set ms=$$unixMs()
         set tsHex=$$toHex(ms,12)
@@ -44,9 +54,14 @@ v7()    ; Return a new RFC-9562 v7 UUID (time-ordered).
         quit b1_"-"_b2_"-"_b3_"-"_b4_"-"_b5
         ;
 valid(u)        ; Return 1 iff u is a canonical 36-char hex UUID; else 0.
+        ; doc: @param u       string  candidate UUID text
+        ; doc: @returns       bool    1 iff canonical 36-char hex; 0 otherwise
+        ; doc: @example       write $$valid^STDUUID(id)  ; 1 or 0
+        ; doc: @since         v0.0.1
+        ; doc: @stable        stable
+        ; doc: @see           $$version^STDUUID, $$variant^STDUUID
         ; doc: Accepts both lowercase and uppercase hex. Hyphens must sit
         ; doc: at exactly positions 9, 14, 19, 24.
-        ; doc: Example: write $$valid^STDUUID(id)  ; 1 or 0
         if $length(u)'=36 quit 0
         if $extract(u,9)'="-" quit 0
         if $extract(u,14)'="-" quit 0
@@ -60,8 +75,13 @@ valid(u)        ; Return 1 iff u is a canonical 36-char hex UUID; else 0.
         quit 1
         ;
 version(u)      ; Return integer version (1..15) from position 15, or "" if invalid.
+        ; doc: @param u       string  candidate UUID
+        ; doc: @returns       int     1..15 from the version nibble; "" if `u` is not valid
+        ; doc: @example       write $$version^STDUUID($$v4^STDUUID())  ; 4
+        ; doc: @since         v0.0.1
+        ; doc: @stable        stable
+        ; doc: @see           $$valid^STDUUID, $$variant^STDUUID
         ; doc: For a v4 UUID this returns 4; for v7, 7. Empty string for malformed.
-        ; doc: Example: write $$version^STDUUID($$v4^STDUUID())  ; 4
         if '$$valid(u) quit ""
         new v,p
         set v=$translate($extract(u,15),"ABCDEF","abcdef")
@@ -70,9 +90,14 @@ version(u)      ; Return integer version (1..15) from position 15, or "" if inva
         quit p-2
         ;
 variant(u)      ; Classify UUID variant from the high bits of position 20.
-        ; doc: Returns "ncs" (high bit 0), "rfc4122" (high 10), "microsoft"
-        ; doc: (high 110), "future" (high 111), or "" if invalid.
-        ; doc: Example: write $$variant^STDUUID($$v4^STDUUID())  ; "rfc4122"
+        ; doc: @param u       string  candidate UUID
+        ; doc: @returns       string  one of "ncs", "rfc4122", "microsoft", "future"; "" if `u` invalid
+        ; doc: @example       write $$variant^STDUUID($$v4^STDUUID())  ; "rfc4122"
+        ; doc: @since         v0.0.1
+        ; doc: @stable        stable
+        ; doc: @see           $$valid^STDUUID, $$version^STDUUID
+        ; doc: "ncs" (high bit 0), "rfc4122" (high 10), "microsoft" (high 110),
+        ; doc: "future" (high 111). Empty string for malformed input.
         if '$$valid(u) quit ""
         new v
         set v=$translate($extract(u,20),"ABCDEF","abcdef")
@@ -85,14 +110,16 @@ variant(u)      ; Classify UUID variant from the high bits of position 20.
         ; ---------- internal helpers ----------
         ;
 randomHex(n)    ; Return n lowercase hex chars from $RANDOM.
-        ; doc: Internal — composes UUID nibbles. n nibbles = n*4 random bits.
+        ; doc: @internal
+        ; doc: Composes UUID nibbles. n nibbles = n*4 random bits.
         new s,i
         set s=""
         for i=1:1:n set s=s_$extract("0123456789abcdef",$random(16)+1)
         quit s
         ;
 toHex(n,width)  ; Integer n -> lowercase hex, left-padded to 'width' chars.
-        ; doc: Internal — encodes the v7 48-bit timestamp.
+        ; doc: @internal
+        ; doc: Encodes the v7 48-bit timestamp.
         new s,d
         set s=""
         if 'n set s="0"
@@ -101,7 +128,8 @@ toHex(n,width)  ; Integer n -> lowercase hex, left-padded to 'width' chars.
         quit s
         ;
 unixMs()        ; Current ms since 1970-01-01T00:00:00Z (Unix epoch).
-        ; doc: Internal — drives v7's time-ordered prefix.
+        ; doc: @internal
+        ; doc: Drives v7's time-ordered prefix.
         ; doc: $HOROLOG day 0 = 1840-12-31; day 47117 = 1970-01-01.
         ; doc: $ZHOROLOG adds microsecond and tz-offset pieces.
         ; YDB-only path; an IRIS arm using $ZTIMESTAMP lands when STDDATE ships.

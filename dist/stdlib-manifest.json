@@ -4,22 +4,49 @@
     "STDARGS": {
       "synopsis": "m-stdlib — argparse (v0.0.7).",
       "description": "Public API. The parser handle is a positive integer keyed under\n^STDLIB($job,\"stdargs\",p,...); state is per-process and per-handle.\n\n  $$new^STDARGS(prog,desc)                   — alloc parser, return p\n  addflag^STDARGS(p,long,short,action,dest)  — register a flag\n  addpos^STDARGS(p,name,dest)                — register a positional\n  addsub^STDARGS(p,name,subParserHandle)     — register a sub-command\n  parse^STDARGS(p,argline,.ns)               — parse argline into ns\n  $$help^STDARGS(p)                          — formatted help text\n  free^STDARGS(p)                            — drop parser state\n\nActions:\n  store_true   ns(dest)=1 if flag seen; default 0\n  store        ns(dest)=<next token>\n  count        ns(dest)+=1 per occurrence; default 0; \"-vvv\" expands\n  append       $increment(k); ns(dest,k)=<next token>\n\n\"--\" terminates flag parsing — subsequent tokens are positional even\nwhen they start with \"-\".\n\nSub-commands: when any sub is registered, the first non-flag token\nmust match a sub name; the remainder is re-parsed by the sub-parser\nagainst the same ns. The chosen sub name is recorded as ns(\"__sub__\").\n\nArgs source: $ZCMDLINE on YDB; an explicit string elsewhere.\nTokenisation is whitespace-only — quoting is the shell's job.\n\nErrors set $ECODE to one of:\n  ,U-STDARGS-UNKNOWN-ACTION,\n  ,U-STDARGS-UNKNOWN-FLAG,\n  ,U-STDARGS-UNKNOWN-SUBCOMMAND,\n  ,U-STDARGS-MISSING-VALUE,\n  ,U-STDARGS-MISSING-POSITIONAL,",
-      "errors": [],
+      "errors": [
+        "U-STDARGS-UNKNOWN-ACTION",
+        "U-STDARGS-UNKNOWN-FLAG",
+        "U-STDARGS-UNKNOWN-SUBCOMMAND",
+        "U-STDARGS-MISSING-VALUE",
+        "U-STDARGS-MISSING-POSITIONAL"
+      ],
       "labels": {
         "new": {
           "form": "extrinsic",
           "signature": "$$new^STDARGS(prog, desc)",
           "synopsis": "Allocate a fresh parser handle.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "prog",
+              "type": "string",
+              "doc": "program name (rendered into the help banner)"
+            },
+            {
+              "name": "desc",
+              "type": "string",
+              "doc": "one-line description (rendered into the help banner)"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "positive parser handle; pass to addflag / addpos / addsub / parse / help / free"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set p=$$new^STDARGS(\"widget\",\"frob the widget\")"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "do free^STDARGS",
+            "do addflag^STDARGS",
+            "do addpos^STDARGS",
+            "do parse^STDARGS"
+          ],
           "deprecated": "",
-          "description": "Returns a positive integer; pass to addflag/addpos/addsub/parse/help/free.\nExample: set p=$$new^STDARGS(\"widget\",\"frob the widget\")",
+          "description": "",
           "source": {
             "file": "src/STDARGS.m",
             "line": 41
@@ -29,266 +56,252 @@
           "form": "procedure",
           "signature": "do free^STDARGS(p)",
           "synopsis": "Release a parser's state.",
-          "params": [],
+          "params": [
+            {
+              "name": "p",
+              "type": "int",
+              "doc": "parser handle from new()"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do free^STDARGS(p)"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "$$new^STDARGS"
+          ],
           "deprecated": "",
-          "description": "Idempotent. The handle must not be reused after free().\nExample: do free^STDARGS(p)",
+          "description": "Idempotent. The handle must not be reused after free().",
           "source": {
             "file": "src/STDARGS.m",
-            "line": 50
+            "line": 55
           }
         },
         "addflag": {
           "form": "procedure",
           "signature": "do addflag^STDARGS(p, long, short, action, dest)",
           "synopsis": "Register a flag.",
-          "params": [],
+          "params": [
+            {
+              "name": "p",
+              "type": "int",
+              "doc": "parser handle from new()"
+            },
+            {
+              "name": "long",
+              "type": "string",
+              "doc": "long form including \"--\" prefix (e.g. \"--verbose\")"
+            },
+            {
+              "name": "short",
+              "type": "string",
+              "doc": "short form including \"-\" prefix; \"\" if no short"
+            },
+            {
+              "name": "action",
+              "type": "string",
+              "doc": "one of: store_true, store, count, append"
+            },
+            {
+              "name": "dest",
+              "type": "string",
+              "doc": "ns(dest) subscript that the parsed value lands in"
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDARGS-UNKNOWN-ACTION",
+              "doc": "`action` is not one of the four documented values"
+            }
+          ],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do addflag^STDARGS(p,\"--verbose\",\"-v\",\"store_true\",\"verbose\")"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "do addpos^STDARGS",
+            "do addsub^STDARGS"
+          ],
           "deprecated": "",
-          "description": "action ∈ {store_true, store, count, append}. Unknown action\nsets $ECODE to ,U-STDARGS-UNKNOWN-ACTION,. short may be empty.\nExample: do addflag^STDARGS(p,\"--verbose\",\"-v\",\"store_true\",\"verbose\")",
+          "description": "",
           "source": {
             "file": "src/STDARGS.m",
-            "line": 56
+            "line": 65
           }
         },
         "addpos": {
           "form": "procedure",
           "signature": "do addpos^STDARGS(p, name, dest)",
           "synopsis": "Register a positional argument.",
-          "params": [],
+          "params": [
+            {
+              "name": "p",
+              "type": "int",
+              "doc": "parser handle from new()"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "doc": "positional's display name (rendered into help)"
+            },
+            {
+              "name": "dest",
+              "type": "string",
+              "doc": "ns(dest) subscript that the value lands in"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do addpos^STDARGS(p,\"path\",\"path\")"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "do addflag^STDARGS",
+            "do parse^STDARGS"
+          ],
           "deprecated": "",
-          "description": "Positionals are filled in addpos() declaration order.\nExample: do addpos^STDARGS(p,\"path\",\"path\")",
+          "description": "Positionals are filled in addpos() declaration order.",
           "source": {
             "file": "src/STDARGS.m",
-            "line": 70
+            "line": 86
           }
         },
         "addsub": {
           "form": "procedure",
           "signature": "do addsub^STDARGS(p, name, sub)",
           "synopsis": "Register a sub-command -> sub-parser handle.",
-          "params": [],
+          "params": [
+            {
+              "name": "p",
+              "type": "int",
+              "doc": "parser handle from new()"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "doc": "sub-command name (matched against the first non-flag token)"
+            },
+            {
+              "name": "sub",
+              "type": "int",
+              "doc": "parser handle from a separate new() call — the sub-parser"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do addsub^STDARGS(p,\"add\",subHandle)"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "do parse^STDARGS"
+          ],
           "deprecated": "",
-          "description": "When a parser has any sub-commands, the first non-flag token\nmust name one (or $ECODE U-STDARGS-UNKNOWN-SUBCOMMAND fires).\nExample: do addsub^STDARGS(p,\"add\",subHandle)",
+          "description": "When a parser has any sub-commands, the first non-flag token\nmust name one — `parse` raises U-STDARGS-UNKNOWN-SUBCOMMAND otherwise.",
           "source": {
             "file": "src/STDARGS.m",
-            "line": 79
+            "line": 101
           }
         },
         "parse": {
           "form": "procedure",
           "signature": "do parse^STDARGS(p, argline, ns)",
           "synopsis": "Parse argline; populate ns(dest)=value.",
-          "params": [],
+          "params": [
+            {
+              "name": "p",
+              "type": "int",
+              "doc": "parser handle from new()"
+            },
+            {
+              "name": "argline",
+              "type": "string",
+              "doc": "the raw command line (e.g. $ZCMDLINE on YDB)"
+            },
+            {
+              "name": "ns",
+              "type": "array",
+              "doc": "by-ref local; populated as ns(dest)=value"
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDARGS-UNKNOWN-FLAG",
+              "doc": "token starts with \"-\" but isn't a registered flag"
+            },
+            {
+              "code": "U-STDARGS-UNKNOWN-SUBCOMMAND",
+              "doc": "first non-flag token doesn't match any addsub() name"
+            },
+            {
+              "code": "U-STDARGS-MISSING-VALUE",
+              "doc": "a `store` / `append` flag has no value token after it"
+            },
+            {
+              "code": "U-STDARGS-MISSING-POSITIONAL",
+              "doc": "a registered positional was not supplied"
+            }
+          ],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do parse^STDARGS(p,$zcmdline,.ns)"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "$$help^STDARGS"
+          ],
           "deprecated": "",
-          "description": "ns is by-reference. On parse error sets $ECODE to one of the\ndocumented codes; otherwise returns silently.\nExample: do parse^STDARGS(p,$zcmdline,.ns)",
+          "description": "ns is by-reference. On parse error sets $ECODE to one of the\ndocumented codes; otherwise returns silently.",
           "source": {
             "file": "src/STDARGS.m",
-            "line": 86
+            "line": 114
           }
         },
         "help": {
           "form": "extrinsic",
           "signature": "$$help^STDARGS(p)",
           "synopsis": "Return formatted help text.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "p",
+              "type": "int",
+              "doc": "parser handle from new()"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "multi-line help banner — usage line, description, flags, positionals, commands"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$help^STDARGS(p)"
+          ],
+          "since": "v0.0.7",
+          "stable": "stable",
+          "see_also": [
+            "$$new^STDARGS",
+            "do parse^STDARGS"
+          ],
           "deprecated": "",
-          "description": "Lists usage line, description, then flags, positionals, commands.\nExample: write $$help^STDARGS(p)",
+          "description": "Lists usage line, description, then flags, positionals, commands.",
           "source": {
             "file": "src/STDARGS.m",
-            "line": 95
-          }
-        },
-        "initDefaults": {
-          "form": "procedure",
-          "signature": "do initDefaults^STDARGS(p, ns)",
-          "synopsis": "Pre-fill ns(dest) for store_true and count flags.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — so absent flags are observable as 0 rather than undef.",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 127
-          }
-        },
-        "checkPositionals": {
-          "form": "procedure",
-          "signature": "do checkPositionals^STDARGS(p, ns)",
-          "synopsis": "Confirm every registered positional was filled.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — sets $ECODE on first missing positional.",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 139
-          }
-        },
-        "walk": {
-          "form": "procedure",
-          "signature": "do walk^STDARGS(p, argline, ns)",
-          "synopsis": "Walk tokens of argline; dispatch flags / positionals / sub.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — handles \"--\" terminator, sub-commands, grouped shorts.",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 150
-          }
-        },
-        "tokenize": {
-          "form": "procedure",
-          "signature": "do tokenize^STDARGS(argline, tokens, n)",
-          "synopsis": "Split argline on whitespace; populate tokens(1..n).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — runs of whitespace collapse; leading/trailing trim.",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 175
-          }
-        },
-        "handleLong": {
-          "form": "procedure",
-          "signature": "do handleLong^STDARGS(p, tok, ns, tokens, i, n)",
-          "synopsis": "Process a \"--name\" token.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — dispatches by action; advances i for store/append.",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 187
-          }
-        },
-        "handleShort": {
-          "form": "procedure",
-          "signature": "do handleShort^STDARGS(p, tok, ns, tokens, i, n)",
-          "synopsis": "Process a \"-x\" or grouped \"-xyz\" token.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — single char dispatches by action; multi-char body\nrequires every char to map to a count flag (-vvv form).",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 206
-          }
-        },
-        "assignPositional": {
-          "form": "procedure",
-          "signature": "do assignPositional^STDARGS(p, posIdx, tok, ns)",
-          "synopsis": "Assign tok to the posIdx-th positional.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — extra tokens past the last declared positional are\nsilently ignored at v0.0.7 (no varargs / nargs+ yet).",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 237
-          }
-        },
-        "raise": {
-          "form": "procedure",
-          "signature": "do raise^STDARGS(err)",
-          "synopsis": "Raise a U-STDARGS-<err> error code via a fresh frame.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — fires the caller's $ETRAP from a nested frame\nso the trap's QUIT-with-empty-$ECODE resumes execution at\na known safe point in the caller, not in the middle of\npost-error cleanup. Same pattern as STDREGEX.raise (added\nin L12 Pass B).",
-          "source": {
-            "file": "src/STDARGS.m",
-            "line": 246
+            "line": 133
           }
         }
       },
@@ -2753,22 +2766,34 @@
     "STDDATE": {
       "synopsis": "m-stdlib — ISO-8601 datetime + arithmetic (v0.0.5).",
       "description": "Public extrinsics:\n  $$now^STDDATE()                  — current ISO-8601 UTC (\"...Z\")\n  $$fromh^STDDATE(h)               — $HOROLOG -> ISO-8601 string\n  $$toh^STDDATE(iso)               — ISO-8601 -> $HOROLOG form\n  $$strftime^STDDATE(h,fmt)        — format horolog per fmt\n  $$strptime^STDDATE(text,fmt)     — parse text per fmt -> horolog\n  $$add^STDDATE(h,dur)             — h + ISO-8601 duration -> horolog\n  $$diff^STDDATE(h1,h2)            — h2-h1 -> ISO-8601 duration\n\nHorolog forms accepted/emitted:\n  2-piece: D,S         ($HOROLOG)\n  3-piece: D,S,U       (with microseconds)\n  4-piece: D,S,U,T     (with microseconds and tz offset in seconds)\n\nCalendar: proleptic Gregorian. Day 0 = 1840-12-31 (M $HOROLOG epoch);\nUnix epoch (1970-01-01) = day 47117. Civil <-> day-count conversions\nuse Howard Hinnant's \"days_from_civil\" algorithm — works for any\nyear in proleptic Gregorian.\n\nErrors set $ECODE to one of:\n  ,U-STDDATE-BAD-HOROLOG,\n  ,U-STDDATE-BAD-ISO,\n  ,U-STDDATE-BAD-DUR,",
-      "errors": [],
+      "errors": [
+        "U-STDDATE-BAD-HOROLOG",
+        "U-STDDATE-BAD-ISO",
+        "U-STDDATE-BAD-DUR"
+      ],
       "labels": {
         "now": {
           "form": "extrinsic",
           "signature": "$$now^STDDATE()",
           "synopsis": "Return current time as ISO-8601 UTC with millisecond precision.",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "string",
+            "doc": "ISO-8601 UTC: \"YYYY-MM-DDTHH:MM:SS.sssZ\""
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$now^STDDATE()  ; \"2026-05-05T17:42:31.123Z\""
+          ],
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$fromh^STDDATE",
+            "$$strftime^STDDATE"
+          ],
           "deprecated": "",
-          "description": "Format: \"YYYY-MM-DDTHH:MM:SS.sssZ\". Always trailing Z.\nExample: write $$now^STDDATE()  ; \"2026-05-05T17:42:31.123Z\"",
+          "description": "Always trailing Z. Source: $ZHOROLOG (microsecond + tz pieces).",
           "source": {
             "file": "src/STDDATE.m",
             "line": 31
@@ -2778,376 +2803,256 @@
           "form": "extrinsic",
           "signature": "$$fromh^STDDATE(h)",
           "synopsis": "Format a $HOROLOG (2/3/4-piece) as ISO-8601.",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "h",
+              "type": "horolog",
+              "doc": "comma-piece form: D,S | D,S,U | D,S,U,T"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "ISO-8601 rendering (precision matches piece-count)"
+          },
+          "raises": [
+            {
+              "code": "U-STDDATE-BAD-HOROLOG",
+              "doc": "`h` is not a 2/3/4-piece comma string"
+            }
+          ],
           "raised_in_body": [
             "U-STDDATE-BAD-HOROLOG"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$fromh^STDDATE(\"47117,0\")  ; \"1970-01-01T00:00:00\""
+          ],
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$toh^STDDATE",
+            "$$strftime^STDDATE"
+          ],
           "deprecated": "",
-          "description": "2-piece D,S        -> \"YYYY-MM-DDTHH:MM:SS\"\n3-piece D,S,U      -> \"...HH:MM:SS.uuuuuu\" when U>0\n4-piece D,S,U,T    -> \"...\" + \"Z\" or \"+HH:MM\" / \"-HH:MM\"\nExample: write $$fromh^STDDATE(\"47117,0\")  ; \"1970-01-01T00:00:00\"",
+          "description": "2-piece D,S        -> \"YYYY-MM-DDTHH:MM:SS\"\n3-piece D,S,U      -> \"...HH:MM:SS.uuuuuu\" when U>0\n4-piece D,S,U,T    -> \"...\" + \"Z\" or \"+HH:MM\" / \"-HH:MM\"",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 48
+            "line": 52
           }
         },
         "toh": {
           "form": "extrinsic",
           "signature": "$$toh^STDDATE(iso)",
           "synopsis": "Parse an ISO-8601 string into $HOROLOG form.",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "iso",
+              "type": "string",
+              "doc": "ISO-8601: date, date+time, or date+time+tz"
+            }
+          ],
+          "returns": {
+            "type": "horolog",
+            "doc": "2/3/4-piece comma string; \"\" on parse failure"
+          },
+          "raises": [
+            {
+              "code": "U-STDDATE-BAD-ISO",
+              "doc": "malformed input or invalid date"
+            }
+          ],
           "raised_in_body": [
             "U-STDDATE-BAD-ISO"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "2-piece D,S for date or date+time without subsec/tz;\n3-piece D,S,U if subseconds present; 4-piece D,S,U,T if tz.\n\"Z\" -> tzoff=0. \"+HH:MM\"/\"-HH:MM\" -> tzoff in seconds.\nExample: write $$toh^STDDATE(\"1970-01-01\")  ; \"47117,0\"",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 63
-          }
-        },
-        "parseFrac": {
-          "form": "procedure",
-          "signature": "do parseFrac^STDDATE(rest, us)",
-          "synopsis": "Parse leading \".ddd...\" in rest into us. Mutates rest.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [
-            "U-STDDATE-BAD-ISO"
+          "examples": [
+            "write $$toh^STDDATE(\"1970-01-01\")  ; \"47117,0\""
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — moves rest past the fractional. Up to 6 digits kept.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 89
-          }
-        },
-        "parseTz": {
-          "form": "procedure",
-          "signature": "do parseTz^STDDATE(rest, tz)",
-          "synopsis": "Parse a +HH:MM / -HH:MM suffix into tz seconds.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [
-            "U-STDDATE-BAD-ISO"
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$fromh^STDDATE",
+            "$$strptime^STDDATE"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
           "deprecated": "",
-          "description": "Internal — sets $ECODE on malformed offset.",
+          "description": "2-piece D,S for date or date+time without subsec/tz;\n3-piece D,S,U if subseconds present; 4-piece D,S,U,T if tz.\n\"Z\" -> tzoff=0. \"+HH:MM\"/\"-HH:MM\" -> tzoff in seconds.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 100
+            "line": 73
           }
         },
         "strftime": {
           "form": "extrinsic",
           "signature": "$$strftime^STDDATE(h, fmt)",
           "synopsis": "Format a horolog per a strftime-style format string.",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "h",
+              "type": "horolog",
+              "doc": "comma-piece form: D,S | D,S,U | D,S,U,T"
+            },
+            {
+              "name": "fmt",
+              "type": "string",
+              "doc": "format string with %Y %m %d %H %M %S %j %z %% directives"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "the rendered date/time"
+          },
+          "raises": [
+            {
+              "code": "U-STDDATE-BAD-HOROLOG",
+              "doc": "`h` is not a 2/3/4-piece comma string"
+            }
+          ],
           "raised_in_body": [
             "U-STDDATE-BAD-HOROLOG"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$strftime^STDDATE(\"47117,0\",\"%Y-%m-%d\")  ; \"1970-01-01\""
+          ],
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$strptime^STDDATE",
+            "$$fromh^STDDATE"
+          ],
           "deprecated": "",
-          "description": "Supports %Y %m %d %H %M %S %j %z %%; unknown -> \"%X\" passthrough.\n%z emits +HHMM/-HHMM (no colon) or \"\" if h has no tz piece.\nExample: write $$strftime^STDDATE(\"47117,0\",\"%Y-%m-%d\")  ; \"1970-01-01\"",
+          "description": "Unknown directives pass through as \"%X\". %z emits +HHMM/-HHMM\n(no colon) or \"\" if h has no tz piece.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 112
+            "line": 130
           }
         },
         "strptime": {
           "form": "extrinsic",
           "signature": "$$strptime^STDDATE(text, fmt)",
           "synopsis": "Parse text per format string into a horolog.",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "the input text to parse"
+            },
+            {
+              "name": "fmt",
+              "type": "string",
+              "doc": "format string with %Y %m %d %H %M %S directives"
+            }
+          ],
+          "returns": {
+            "type": "horolog",
+            "doc": "2-piece D,S; \"\" on parse failure"
+          },
+          "raises": [
+            {
+              "code": "U-STDDATE-BAD-ISO",
+              "doc": "parse mismatch or invalid date components"
+            }
+          ],
           "raised_in_body": [
             "U-STDDATE-BAD-ISO"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$strptime^STDDATE(\"1970-01-01\",\"%Y-%m-%d\")  ; \"47117,0\""
+          ],
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$strftime^STDDATE",
+            "$$toh^STDDATE"
+          ],
           "deprecated": "",
-          "description": "Supports %Y %m %d %H %M %S; literal chars must match exactly.\nSets $ECODE U-STDDATE-BAD-ISO if parse fails or date invalid.\nExample: write $$strptime^STDDATE(\"1970-01-01\",\"%Y-%m-%d\")  ; \"47117,0\"",
+          "description": "Literal characters in fmt must match `text` exactly; only the\ndocumented directives are honoured.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 139
+            "line": 164
           }
         },
         "add": {
           "form": "extrinsic",
           "signature": "$$add^STDDATE(h, dur)",
           "synopsis": "Add an ISO-8601 duration to a horolog. Negative prefix \"-P...\" accepted.",
-          "params": [],
-          "returns": null,
-          "raises": [],
+          "params": [
+            {
+              "name": "h",
+              "type": "horolog",
+              "doc": "comma-piece form: D,S | D,S,U | D,S,U,T"
+            },
+            {
+              "name": "dur",
+              "type": "string",
+              "doc": "ISO-8601 duration (\"P1Y\", \"PT2H30M\", \"-P1D\", etc.)"
+            }
+          ],
+          "returns": {
+            "type": "horolog",
+            "doc": "2-piece D,S after addition; \"\" on error"
+          },
+          "raises": [
+            {
+              "code": "U-STDDATE-BAD-DUR",
+              "doc": "`dur` is not a valid ISO-8601 duration"
+            },
+            {
+              "code": "U-STDDATE-BAD-HOROLOG",
+              "doc": "`h` is not a 2/3/4-piece comma string"
+            }
+          ],
           "raised_in_body": [
             "U-STDDATE-BAD-DUR",
             "U-STDDATE-BAD-HOROLOG"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$add^STDDATE(\"47117,0\",\"P1DT2H30M\")  ; \"47118,9000\""
+          ],
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$diff^STDDATE"
+          ],
           "deprecated": "",
-          "description": "Calendar arithmetic for Y/M (with day-clamp on shorter months);\nraw day arithmetic for W/D; second-arithmetic for H/M/S.\nExample: write $$add^STDDATE(\"47117,0\",\"P1DT2H30M\")  ; \"47118,9000\"",
+          "description": "Calendar arithmetic for Y/M (with day-clamp on shorter months);\nraw day arithmetic for W/D; second-arithmetic for H/M/S.",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 168
+            "line": 200
           }
         },
         "diff": {
           "form": "extrinsic",
           "signature": "$$diff^STDDATE(h1, h2)",
           "synopsis": "Return h2 - h1 as an ISO-8601 duration.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "h1",
+              "type": "horolog",
+              "doc": "start time (2-piece D,S minimum)"
+            },
+            {
+              "name": "h2",
+              "type": "horolog",
+              "doc": "end time (2-piece D,S minimum)"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "ISO-8601 duration; \"PT0S\" if zero; \"-P...\" if h2 < h1"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$diff^STDDATE(\"47117,0\",\"47118,0\")  ; \"P1D\""
+          ],
+          "since": "v0.0.5",
+          "stable": "stable",
+          "see_also": [
+            "$$add^STDDATE"
+          ],
           "deprecated": "",
-          "description": "Days carry into hours/minutes/seconds; never emits Y or M\n(variable-length). Zero -> \"PT0S\". Negative -> \"-P...\" prefix.\nExample: write $$diff^STDDATE(\"47117,0\",\"47118,0\")  ; \"P1D\"",
+          "description": "Days carry into hours/minutes/seconds; never emits Y or M\n(variable-length).",
           "source": {
             "file": "src/STDDATE.m",
-            "line": 212
-          }
-        },
-        "civilFromDays": {
-          "form": "procedure",
-          "signature": "do civilFromDays^STDDATE(z, y, m, d)",
-          "synopsis": "Howard Hinnant: days since 1970-01-01 -> (y,m,d).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — proleptic Gregorian conversion. y,m,d returned by-ref.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 238
-          }
-        },
-        "civilToDays": {
-          "form": "extrinsic",
-          "signature": "$$civilToDays^STDDATE(y, m, d)",
-          "synopsis": "Howard Hinnant inverse: (y,m,d) -> days since 1970-01-01.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — does not validate input. Pair with $$validDate first.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 255
-          }
-        },
-        "isLeap": {
-          "form": "extrinsic",
-          "signature": "$$isLeap^STDDATE(y)",
-          "synopsis": "Return 1 if y is a leap year in the proleptic Gregorian calendar.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — div-4-not-100-or-400 rule.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 267
-          }
-        },
-        "daysInMonth": {
-          "form": "extrinsic",
-          "signature": "$$daysInMonth^STDDATE(y, m)",
-          "synopsis": "Return the number of days in (y,m).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — Apr/Jun/Sep/Nov=30; Feb=28 or 29; else 31.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 274
-          }
-        },
-        "validDate": {
-          "form": "extrinsic",
-          "signature": "$$validDate^STDDATE(y, m, d)",
-          "synopsis": "Return 1 if (y,m,d) is a valid civil date; else 0.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — month 1..12 and day 1..daysInMonth.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 280
-          }
-        },
-        "dayOfYear": {
-          "form": "extrinsic",
-          "signature": "$$dayOfYear^STDDATE(y, m, d)",
-          "synopsis": "Return the day-of-year (1..366) for (y,m,d).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — used by strftime %j.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 286
-          }
-        },
-        "fmtDate": {
-          "form": "extrinsic",
-          "signature": "$$fmtDate^STDDATE(d)",
-          "synopsis": "Format horolog days as YYYY-MM-DD.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — d is days since 1840-12-31 (M $HOROLOG epoch).",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 293
-          }
-        },
-        "fmtTime": {
-          "form": "extrinsic",
-          "signature": "$$fmtTime^STDDATE(s)",
-          "synopsis": "Format seconds-into-day as HH:MM:SS.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — s in 0..86399.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 299
-          }
-        },
-        "fmtTzColon": {
-          "form": "extrinsic",
-          "signature": "$$fmtTzColon^STDDATE(t)",
-          "synopsis": "Format tz offset (seconds) as Z / +HH:MM / -HH:MM.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — used by fromh's 4-piece path.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 303
-          }
-        },
-        "fmtTzCompact": {
-          "form": "extrinsic",
-          "signature": "$$fmtTzCompact^STDDATE(t)",
-          "synopsis": "Format tz offset as +HHMM / -HHMM (no colon, no Z).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — used by strftime %z (POSIX-compatible).",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 311
-          }
-        },
-        "padL": {
-          "form": "extrinsic",
-          "signature": "$$padL^STDDATE(s, n, ch)",
-          "synopsis": "Left-pad string s with ch up to length n.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — used everywhere zero-padding is needed.",
-          "source": {
-            "file": "src/STDDATE.m",
-            "line": 318
+            "line": 252
           }
         }
       },
@@ -8697,15 +8602,24 @@
           "signature": "$$v4^STDUUID()",
           "synopsis": "Return a new RFC-4122 v4 UUID.",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "string",
+            "doc": "canonical 36-char hex UUID v4 (lowercase, hyphenated)"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set id=$$v4^STDUUID()  ; \"550e8400-e29b-41d4-a716-446655440000\""
+          ],
+          "since": "v0.0.1",
+          "stable": "stable",
+          "see_also": [
+            "$$v7^STDUUID",
+            "$$valid^STDUUID",
+            "$$version^STDUUID"
+          ],
           "deprecated": "",
-          "description": "122 bits of randomness; version nibble='4'; variant nibble in 8/9/a/b.\nExample: set id=$$v4^STDUUID()  ; \"550e8400-e29b-41d4-a716-446655440000\"",
+          "description": "122 bits of randomness; version nibble='4'; variant nibble in 8/9/a/b.\nRandomness is from $RANDOM (Mersenne Twister) — adequate for distributed\nprimary keys; not cryptographically strong (do not use for tokens).",
           "source": {
             "file": "src/STDUUID.m",
             "line": 21
@@ -8716,132 +8630,125 @@
           "signature": "$$v7^STDUUID()",
           "synopsis": "Return a new RFC-9562 v7 UUID (time-ordered).",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "string",
+            "doc": "canonical 36-char hex UUID v7; byte-wise sort = generation order"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set id=$$v7^STDUUID()  ; sorts in generation order"
+          ],
+          "since": "v0.0.1",
+          "stable": "stable",
+          "see_also": [
+            "$$v4^STDUUID",
+            "$$valid^STDUUID"
+          ],
           "deprecated": "",
-          "description": "First 48 bits = ms-since-Unix-epoch (sortable). 12-bit rand_a,\nvariant nibble (8/9/a/b), 12-bit rand_b, 50-bit rand_c.\nExample: set id=$$v7^STDUUID()  ; sorts in generation order",
+          "description": "First 48 bits = ms-since-Unix-epoch (sortable). 12-bit rand_a,\nvariant nibble (8/9/a/b), 12-bit rand_b, 50-bit rand_c.",
           "source": {
             "file": "src/STDUUID.m",
-            "line": 32
+            "line": 38
           }
         },
         "valid": {
           "form": "extrinsic",
           "signature": "$$valid^STDUUID(u)",
           "synopsis": "Return 1 iff u is a canonical 36-char hex UUID; else 0.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "u",
+              "type": "string",
+              "doc": "candidate UUID text"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "doc": "1 iff canonical 36-char hex; 0 otherwise"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$valid^STDUUID(id)  ; 1 or 0"
+          ],
+          "since": "v0.0.1",
+          "stable": "stable",
+          "see_also": [
+            "$$version^STDUUID",
+            "$$variant^STDUUID"
+          ],
           "deprecated": "",
-          "description": "Accepts both lowercase and uppercase hex. Hyphens must sit\nat exactly positions 9, 14, 19, 24.\nExample: write $$valid^STDUUID(id)  ; 1 or 0",
+          "description": "Accepts both lowercase and uppercase hex. Hyphens must sit\nat exactly positions 9, 14, 19, 24.",
           "source": {
             "file": "src/STDUUID.m",
-            "line": 46
+            "line": 56
           }
         },
         "version": {
           "form": "extrinsic",
           "signature": "$$version^STDUUID(u)",
           "synopsis": "Return integer version (1..15) from position 15, or \"\" if invalid.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "u",
+              "type": "string",
+              "doc": "candidate UUID"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "1..15 from the version nibble; \"\" if `u` is not valid"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$version^STDUUID($$v4^STDUUID())  ; 4"
+          ],
+          "since": "v0.0.1",
+          "stable": "stable",
+          "see_also": [
+            "$$valid^STDUUID",
+            "$$variant^STDUUID"
+          ],
           "deprecated": "",
-          "description": "For a v4 UUID this returns 4; for v7, 7. Empty string for malformed.\nExample: write $$version^STDUUID($$v4^STDUUID())  ; 4",
+          "description": "For a v4 UUID this returns 4; for v7, 7. Empty string for malformed.",
           "source": {
             "file": "src/STDUUID.m",
-            "line": 62
+            "line": 77
           }
         },
         "variant": {
           "form": "extrinsic",
           "signature": "$$variant^STDUUID(u)",
           "synopsis": "Classify UUID variant from the high bits of position 20.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "u",
+              "type": "string",
+              "doc": "candidate UUID"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "one of \"ncs\", \"rfc4122\", \"microsoft\", \"future\"; \"\" if `u` invalid"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$variant^STDUUID($$v4^STDUUID())  ; \"rfc4122\""
+          ],
+          "since": "v0.0.1",
+          "stable": "stable",
+          "see_also": [
+            "$$valid^STDUUID",
+            "$$version^STDUUID"
+          ],
           "deprecated": "",
-          "description": "Returns \"ncs\" (high bit 0), \"rfc4122\" (high 10), \"microsoft\"\n(high 110), \"future\" (high 111), or \"\" if invalid.\nExample: write $$variant^STDUUID($$v4^STDUUID())  ; \"rfc4122\"",
+          "description": "\"ncs\" (high bit 0), \"rfc4122\" (high 10), \"microsoft\" (high 110),\n\"future\" (high 111). Empty string for malformed input.",
           "source": {
             "file": "src/STDUUID.m",
-            "line": 72
-          }
-        },
-        "randomHex": {
-          "form": "extrinsic",
-          "signature": "$$randomHex^STDUUID(n)",
-          "synopsis": "Return n lowercase hex chars from $RANDOM.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — composes UUID nibbles. n nibbles = n*4 random bits.",
-          "source": {
-            "file": "src/STDUUID.m",
-            "line": 87
-          }
-        },
-        "toHex": {
-          "form": "extrinsic",
-          "signature": "$$toHex^STDUUID(n, width)",
-          "synopsis": "Integer n -> lowercase hex, left-padded to 'width' chars.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — encodes the v7 48-bit timestamp.",
-          "source": {
-            "file": "src/STDUUID.m",
-            "line": 94
-          }
-        },
-        "unixMs": {
-          "form": "extrinsic",
-          "signature": "$$unixMs^STDUUID()",
-          "synopsis": "Current ms since 1970-01-01T00:00:00Z (Unix epoch).",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — drives v7's time-ordered prefix.\n$HOROLOG day 0 = 1840-12-31; day 47117 = 1970-01-01.\n$ZHOROLOG adds microsecond and tz-offset pieces.",
-          "source": {
-            "file": "src/STDUUID.m",
-            "line": 103
+            "line": 92
           }
         }
       },
@@ -10242,6 +10149,57 @@
     }
   },
   "errors": {
+    "U-STDARGS-UNKNOWN-ACTION": {
+      "module": "STDARGS",
+      "labels": [
+        "addflag"
+      ]
+    },
+    "U-STDARGS-UNKNOWN-FLAG": {
+      "module": "STDARGS",
+      "labels": [
+        "parse"
+      ]
+    },
+    "U-STDARGS-UNKNOWN-SUBCOMMAND": {
+      "module": "STDARGS",
+      "labels": [
+        "parse"
+      ]
+    },
+    "U-STDARGS-MISSING-VALUE": {
+      "module": "STDARGS",
+      "labels": [
+        "parse"
+      ]
+    },
+    "U-STDARGS-MISSING-POSITIONAL": {
+      "module": "STDARGS",
+      "labels": [
+        "parse"
+      ]
+    },
+    "U-STDDATE-BAD-HOROLOG": {
+      "module": "STDDATE",
+      "labels": [
+        "fromh",
+        "strftime",
+        "add"
+      ]
+    },
+    "U-STDDATE-BAD-ISO": {
+      "module": "STDDATE",
+      "labels": [
+        "toh",
+        "strptime"
+      ]
+    },
+    "U-STDDATE-BAD-DUR": {
+      "module": "STDDATE",
+      "labels": [
+        "add"
+      ]
+    },
     "U-STDFMT-MISSING-ARG": {
       "module": "STDFMT",
       "labels": [
