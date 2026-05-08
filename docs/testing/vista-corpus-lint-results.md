@@ -314,7 +314,7 @@ the safe-test wrapper convention.
 
 - [`modern-m-corpus-test-results.md`](modern-m-corpus-test-results.md) — non-VA companion (5 modern OSS projects, 4,209 routines).
 - [`realcode-validation.md`](realcode-validation.md) — earlier validation pass over modern corpus only.
-- [`users-guide.md`](users-guide.md) §6.5 — portability open questions.
+- [`users-guide.md`](../guides/users-guide.md) §6.5 — portability open questions.
 - m-cli `m lint --list-profiles` — canonical profile descriptions.
 - m-cli `docs/vista-lint-presets/` — drop-in `.m-cli.toml` for VistA.
 - tree-sitter-m `docs/vista-parse-error-categories.md` — parser-side triage of the 376 outliers.

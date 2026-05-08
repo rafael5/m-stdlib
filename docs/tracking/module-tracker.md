@@ -78,38 +78,38 @@ expansion)** below — the table itself stays compact.
 
 | Phase | Track | # | Module | Tag | Effort | ToDo | Dependency | Headline | m-cli integration |
 |---|---|---|---|---|---|---|---|---|---|
-| P1 | L0 | 1 | [`STDASSERT`](modules/stdassert.md) | `v0.1.0` | 5d | none (completed) | none | Assertion library | ✅ C1 + C2 |
-| P1 | L0 | 2 | [`STDUUID`](modules/stduuid.md) | `v0.1.0` | 3d | none (completed) | none | RFC-4122 v4 + RFC-9562 v7 UUIDs | n/a |
-| P1 | L1 | 3 | [`STDB64`](modules/stdb64.md) | `v0.1.0` | 3d | none (completed) | none | RFC-4648 Base64 (std + URL-safe) | n/a |
-| P1 | L2 | 4 | [`STDHEX`](modules/stdhex.md) | `v0.1.0` | 1d | none (completed) | none | RFC-4648 §8 hex | n/a |
-| P1 | L3 | 5 | [`STDFMT`](modules/stdfmt.md) | `v0.1.0` | 5d | none (completed) | none | Printf-style (`str.format` subset) | n/a |
-| P1 | L4 | 6 | [`STDLOG`](modules/stdlog.md) | `v0.2.0` | 3d | none (completed) | STDDATE; STDJSON | Structured kv/json logger | n/a |
-| P1 | L5 | 7 | [`STDDATE`](modules/stddate.md) | `v0.1.0` | 5d | none (completed) | none | ISO-8601 datetime + duration arithmetic | n/a |
-| P1 | L6 | 8 | [`STDCSV`](modules/stdcsv.md) | `v0.1.0` | 4d | none (completed) | none | RFC-4180 CSV parse/write + file I/O | n/a |
-| P1 | L7 | 9 | [`STDARGS`](modules/stdargs.md) | `v0.1.0` | 4d | none (completed) | none | argparse (long/short/group/positional/`--`) | n/a |
-| P1b | L8 | 10 | [`STDFIX`](modules/stdfix.md) | `v0.2.0` | 3d | none (completed) | none | Per-test transactional isolation | ✅ C3 |
-| P1b | L9 | 11 | [`STDMOCK`](modules/stdmock.md) | `v0.2.0` | 3d | none (completed) | none | Test-time call interception | ✅ C4 |
-| P1b | L10 | 12 | [`STDSEED`](modules/stdseed.md) | `v0.2.0` | 3d | none (completed) | STDJSON; runtime-only `FILE^DIE` | TSV/JSON fixture loader + pluggable filer | ✅ C5 |
-| P2 | L11 | 13 | [`STDJSON`](modules/stdjson.md) | `v0.2.0` | 7d | none (completed) | none | RFC 8259 JSON parser + serialiser | n/a |
-| P2 | L12 | 14 | [`STDREGEX`](modules/stdregex.md) | `v0.2.0` | 10d | none (options) | none | Thompson-NFA regex (no back-refs / lookaround) | n/a |
-| P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | 5d | none (completed) | none | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | n/a |
-| P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | 5d | none (completed) | none | RFC 3986 URI parse/build/normalise/resolve | 🔮 C9 |
-| P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.3.0` | 1d | none (completed) | STDB64; STDHEX; STDUUID; `$ZF → getrandom(2)` (with `/dev/urandom` fallback) | Crypto random — bytes / hex / base64 / token / int / uuid4 | n/a |
-| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.4.0` | 2d | none (completed) | `$ZF → libc open/read/write/close` | File-system primitives + byte-faithful I/O (read/write/append/exists/remove/size + basename/dirname/join + readBytes/writeBytes/appendBytes) | n/a |
-| P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.3.0` | 1d | none (options) | none | Process / env / cmdline helpers | n/a |
-| P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.3.0` | 1d | none (options) | none | SemVer 2.0.0 — valid / parse / compare / matches | 🔮 C10 |
-| P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.3.0` | 1d | none (options) | none | String helpers (pad/trim/replaceAll/split/startsWith/endsWith/case-fold/repeat) | n/a |
-| P4 | L20 | 22 | [`STDTOML`](modules/stdtoml.md) | `v0.3.0` | 1d | none (options) | none | TOML 1.0 subset — top-level pairs + `[section]` tables | 🔮 C11 |
-| P4 | L21 | 23 | [`STDCACHE`](modules/stdcache.md) | `v0.3.0` | 1d | none (options) | none | LRU + TTL cache over caller-owned array | n/a |
-| P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.3.0` | 1d | none (completed) | none | Wall-clock profiler — start/stop/count/total/mean/min/max/percentile | ✅ C6 |
-| P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.3.0` | 1d | none (completed) | STDFS; STDASSERT | Snapshot testing — serialize/save/matches/asserts | ✅ C7 |
-| P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.3.0` | 1d | none (options) | STDFS | `.env` loader + typed accessors | ✅ C8 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.4.0` | 14d | none (completed) | none | XML 1.0 parser + XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / DOCTYPE + internal subset + `<!ENTITY>` custom entities) | n/a |
-| P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.4.0` | 1d | none (completed) | none | Numeric helpers — clamp / min / max / sum / count / mean | n/a |
-| P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.4.0` | 1d | none (completed) | none | Higher-order array transforms — map / filter / reduce | n/a |
-| P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.4.0` | 2d | none (completed) | `$&stdcrypto.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 |
-| P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.4.0` | 6d | none (completed) | `$&stdcompress.fn → libz + libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress | 🟡 C13 |
-| P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` | 4d | none (options) | STDURL; `$&stdhttp.fn → libcurl`; A6 | HTTP/1.1 client (`$$get` / `$$post` / `$$request`) + pure-M wire-format helpers | 🟡 C14 |
+| P1 | L0 | 1 | [`STDASSERT`](../modules/stdassert.md) | `v0.1.0` | 5d | none (completed) | none | Assertion library | ✅ C1 + C2 |
+| P1 | L0 | 2 | [`STDUUID`](../modules/stduuid.md) | `v0.1.0` | 3d | none (completed) | none | RFC-4122 v4 + RFC-9562 v7 UUIDs | n/a |
+| P1 | L1 | 3 | [`STDB64`](../modules/stdb64.md) | `v0.1.0` | 3d | none (completed) | none | RFC-4648 Base64 (std + URL-safe) | n/a |
+| P1 | L2 | 4 | [`STDHEX`](../modules/stdhex.md) | `v0.1.0` | 1d | none (completed) | none | RFC-4648 §8 hex | n/a |
+| P1 | L3 | 5 | [`STDFMT`](../modules/stdfmt.md) | `v0.1.0` | 5d | none (completed) | none | Printf-style (`str.format` subset) | n/a |
+| P1 | L4 | 6 | [`STDLOG`](../modules/stdlog.md) | `v0.2.0` | 3d | none (completed) | STDDATE; STDJSON | Structured kv/json logger | n/a |
+| P1 | L5 | 7 | [`STDDATE`](../modules/stddate.md) | `v0.1.0` | 5d | none (completed) | none | ISO-8601 datetime + duration arithmetic | n/a |
+| P1 | L6 | 8 | [`STDCSV`](../modules/stdcsv.md) | `v0.1.0` | 4d | none (completed) | none | RFC-4180 CSV parse/write + file I/O | n/a |
+| P1 | L7 | 9 | [`STDARGS`](../modules/stdargs.md) | `v0.1.0` | 4d | none (completed) | none | argparse (long/short/group/positional/`--`) | n/a |
+| P1b | L8 | 10 | [`STDFIX`](../modules/stdfix.md) | `v0.2.0` | 3d | none (completed) | none | Per-test transactional isolation | ✅ C3 |
+| P1b | L9 | 11 | [`STDMOCK`](../modules/stdmock.md) | `v0.2.0` | 3d | none (completed) | none | Test-time call interception | ✅ C4 |
+| P1b | L10 | 12 | [`STDSEED`](../modules/stdseed.md) | `v0.2.0` | 3d | none (completed) | STDJSON; runtime-only `FILE^DIE` | TSV/JSON fixture loader + pluggable filer | ✅ C5 |
+| P2 | L11 | 13 | [`STDJSON`](../modules/stdjson.md) | `v0.2.0` | 7d | none (completed) | none | RFC 8259 JSON parser + serialiser | n/a |
+| P2 | L12 | 14 | [`STDREGEX`](../modules/stdregex.md) | `v0.2.0` | 10d | none (options) | none | Thompson-NFA regex (no back-refs / lookaround) | n/a |
+| P2 | L13 | 15 | [`STDCOLL`](../modules/stdcoll.md) | `v0.2.0` | 5d | none (completed) | none | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | n/a |
+| P2 | L14 | 16 | [`STDURL`](../modules/stdurl.md) | `v0.2.0` | 5d | none (completed) | none | RFC 3986 URI parse/build/normalise/resolve | 🔮 C9 |
+| P4 | L15 | 17 | [`STDCSPRNG`](../modules/stdcsprng.md) | `v0.3.0` | 1d | none (completed) | STDB64; STDHEX; STDUUID; `$ZF → getrandom(2)` (with `/dev/urandom` fallback) | Crypto random — bytes / hex / base64 / token / int / uuid4 | n/a |
+| P4 | L16 | 18 | [`STDFS`](../modules/stdfs.md) | `v0.4.0` | 2d | none (completed) | `$ZF → libc open/read/write/close` | File-system primitives + byte-faithful I/O (read/write/append/exists/remove/size + basename/dirname/join + readBytes/writeBytes/appendBytes) | n/a |
+| P4 | L17 | 19 | [`STDOS`](../modules/stdos.md) | `v0.3.0` | 1d | none (options) | none | Process / env / cmdline helpers | n/a |
+| P4 | L18 | 20 | [`STDSEMVER`](../modules/stdsemver.md) | `v0.3.0` | 1d | none (options) | none | SemVer 2.0.0 — valid / parse / compare / matches | 🔮 C10 |
+| P4 | L19 | 21 | [`STDSTR`](../modules/stdstr.md) | `v0.3.0` | 1d | none (options) | none | String helpers (pad/trim/replaceAll/split/startsWith/endsWith/case-fold/repeat) | n/a |
+| P4 | L20 | 22 | [`STDTOML`](../modules/stdtoml.md) | `v0.3.0` | 1d | none (options) | none | TOML 1.0 subset — top-level pairs + `[section]` tables | 🔮 C11 |
+| P4 | L21 | 23 | [`STDCACHE`](../modules/stdcache.md) | `v0.3.0` | 1d | none (options) | none | LRU + TTL cache over caller-owned array | n/a |
+| P4 | L22 | 24 | [`STDPROF`](../modules/stdprof.md) | `v0.3.0` | 1d | none (completed) | none | Wall-clock profiler — start/stop/count/total/mean/min/max/percentile | ✅ C6 |
+| P4 | L23 | 25 | [`STDSNAP`](../modules/stdsnap.md) | `v0.3.0` | 1d | none (completed) | STDFS; STDASSERT | Snapshot testing — serialize/save/matches/asserts | ✅ C7 |
+| P4 | L24 | 26 | [`STDENV`](../modules/stdenv.md) | `v0.3.0` | 1d | none (options) | STDFS | `.env` loader + typed accessors | ✅ C8 |
+| P4 | L25 | 27 | [`STDXML`](../modules/stdxml.md) | `v0.4.0` | 14d | none (completed) | none | XML 1.0 parser + XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / DOCTYPE + internal subset + `<!ENTITY>` custom entities) | n/a |
+| P4 | L26 | 28 | [`STDMATH`](../modules/stdmath.md) | `v0.4.0` | 1d | none (completed) | none | Numeric helpers — clamp / min / max / sum / count / mean | n/a |
+| P4 | L27 | 29 | [`STDXFRM`](../modules/stdxfrm.md) | `v0.4.0` | 1d | none (completed) | none | Higher-order array transforms — map / filter / reduce | n/a |
+| P3 | H1 | 30 | [`STDCRYPTO`](../modules/stdcrypto.md) | `v0.4.0` | 2d | none (completed) | `$&stdcrypto.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 |
+| P3 | H2 | 31 | [`STDCOMPRESS`](../modules/stdcompress.md) | `v0.4.0` | 6d | none (completed) | `$&stdcompress.fn → libz + libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress | 🟡 C13 |
+| P3 | H3 | 32 | [`STDHTTP`](../modules/stdhttp.md) | `v0.4.0` | 4d | none (options) | STDURL; `$&stdhttp.fn → libcurl`; A6 | HTTP/1.1 client (`$$get` / `$$post` / `$$request`) + pure-M wire-format helpers | 🟡 C14 |
 
 **Aggregate:** ~108d shipped across all 32 landed modules (sum of
 the Effort column above). **Full engine suite green on `main`
@@ -1605,22 +1605,22 @@ Per `docs/parallel-tracks.md` §7:
 
 ### Cross-references
 
-- [users-guide.md](users-guide.md) — narrative § companion.
+- [users-guide.md](../guides/users-guide.md) — narrative § companion.
 - [parallel-tracks.md](parallel-tracks.md) — dispatch view (track
   IDs, track-level state).
-- [m-stdlib-implementation-plan.md](m-stdlib-implementation-plan.md)
+- [m-stdlib-implementation-plan.md](../plans/m-stdlib-implementation-plan.md)
   — per-module specs (§8 P1, §11 P2, §12 P3) and §9 acceptance gate.
-- [tdd-orchestration-plan.md](tdd-orchestration-plan.md) — joint
+- [tdd-orchestration-plan.md](../plans/tdd-orchestration-plan.md) — joint
   m-stdlib ↔ m-cli milestone narrative (M0 – M5).
-- [modules/index.md](modules/index.md) — released-module canonical
+- [modules/index.md](../modules/index.md) — released-module canonical
   index (Phase 1 only at present; regenerated each release).
-- [../TOOLCHAIN-FINDINGS.md](../TOOLCHAIN-FINDINGS.md) — open
+- [../TOOLCHAIN-FINDINGS.md](../../TOOLCHAIN-FINDINGS.md) — open
   toolchain bugs.
-- [../CHANGELOG.md](../CHANGELOG.md) — release history.
-- [../TODO.md](../TODO.md) — resume-here pointer.
-- [../CLAUDE.md](../CLAUDE.md) — project status banner +
+- [../CHANGELOG.md](../../CHANGELOG.md) — release history.
+- [../TODO.md](../../TODO.md) — resume-here pointer.
+- [../CLAUDE.md](../../CLAUDE.md) — project status banner +
   architectural rule.
-- [../../m-cli/TODO.md](../../m-cli/TODO.md) — m-cli's own track
+- [../../m-cli/TODO.md](../../../m-cli/TODO.md) — m-cli's own track
   list.
-- [../../vista-meta/docs/vista-orchestration-plan.md](../../vista-meta/docs/vista-orchestration-plan.md)
+- [../../vista-meta/docs/vista-orchestration-plan.md](../../../vista-meta/docs/vista-orchestration-plan.md)
   — parent plan; tracks P1–P3 belong to its scope.

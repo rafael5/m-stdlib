@@ -2,7 +2,7 @@
 
 Regenerated at the **v0.4.0** release (2026-05-08). One row per
 shipped module. The canonical "what's done / in flight / proposed"
-view lives in [`docs/module-tracker.md`](../module-tracker.md);
+view lives in [`docs/module-tracker.md`](../tracking/module-tracker.md);
 this file is the released-module catalogue.
 
 ## Phase 1 (v0.1.0)
@@ -143,7 +143,7 @@ byte-I/O, STDCSPRNG callout). Aggregate engine gate: **32 suites,
 
 ## Cross-module dependencies (runtime)
 
-Per [parallel-tracks.md §2](../parallel-tracks.md#2-dependency-map):
+Per [parallel-tracks.md §2](../tracking/parallel-tracks.md#2-dependency-map):
 
 - **STDLOG → STDDATE** — `$$now^STDDATE()` for line-leading
   timestamp.

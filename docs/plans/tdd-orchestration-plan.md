@@ -9,7 +9,7 @@ upstream: ~/projects/vista-meta/docs/vista-orchestration-plan.md
 
 This is the cross-project coordination plan for m-stdlib and m-cli.
 It carves the m-stdlib slice out of the parent
-[vista-orchestration-plan](../../vista-meta/docs/vista-orchestration-plan.md)
+[vista-orchestration-plan](../../../vista-meta/docs/vista-orchestration-plan.md)
 and sequences it against the m-cli capability work that has to land in
 lockstep — because m-cli is the consumer of m-stdlib's TDD primitives.
 
@@ -447,8 +447,8 @@ m-stdlib stays the regression suite for the toolchain (per existing
 
 - [m-stdlib-implementation-plan.md](m-stdlib-implementation-plan.md) — per-module work plan; authoritative for v0.0.1 → v0.3.0 module specs.
 - [m-libraries-remediation.md](m-libraries-remediation.md) — background and rationale for m-stdlib's existence.
-- [TOOLCHAIN-FINDINGS.md](../TOOLCHAIN-FINDINGS.md) — open m-cli / tree-sitter-m issues blocking publication.
-- [../../m-cli/CLAUDE.md](../../m-cli/CLAUDE.md) — m-cli's project context; runner / lint / lsp conventions.
-- [../../m-cli/TODO.md](../../m-cli/TODO.md) — m-cli's resume-here list; M1/M2/M3 entries land here as work begins.
-- [../../vista-meta/docs/vista-orchestration-plan.md](../../vista-meta/docs/vista-orchestration-plan.md) — the parent end-to-end plan; this doc is its m-stdlib slice.
-- [../../vista-meta/TODO.md](../../vista-meta/TODO.md) T-004 — master tracker for the parent plan.
+- [TOOLCHAIN-FINDINGS.md](../../TOOLCHAIN-FINDINGS.md) — open m-cli / tree-sitter-m issues blocking publication.
+- [../../m-cli/CLAUDE.md](../../CLAUDE.md) — m-cli's project context; runner / lint / lsp conventions.
+- [../../m-cli/TODO.md](../../../m-cli/TODO.md) — m-cli's resume-here list; M1/M2/M3 entries land here as work begins.
+- [../../vista-meta/docs/vista-orchestration-plan.md](../../../vista-meta/docs/vista-orchestration-plan.md) — the parent end-to-end plan; this doc is its m-stdlib slice.
+- [../../vista-meta/TODO.md](../../../vista-meta/TODO.md) T-004 — master tracker for the parent plan.

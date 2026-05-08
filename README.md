@@ -3,7 +3,11 @@
 Pure-M (and selectively `$ZF`-bound) runtime library that fills the
 highest-impact gaps in M's standard library — assertions, UUIDs,
 base64/hex, formatting, structured logging, datetime, CSV, argparse,
-fixtures, mocks, seed loaders, JSON, regex, collections, URLs.
+fixtures, mocks, seed loaders, JSON, regex, collections, URLs, file
+I/O, process / env / cmdline, SemVer, string helpers, TOML, LRU
+cache, profiling, snapshot testing, `.env` loaders, XML, numeric
+helpers, higher-order array transforms, SHA + HMAC, gzip / deflate /
+zstd, and HTTP/1.1.
 
 Sibling project to [m-cli](https://github.com/rafael5/m-cli) (the
 toolchain), [m-standard](https://github.com/rafael5/m-standard) (the
@@ -12,202 +16,293 @@ modern-M style guide), and
 
 YottaDB-first; IRIS-portable where reasonable.
 
-## Status
+## Contents
 
-- **`v0.1.0` shipped** (2026-05-05): Phase 1 — 9 modules covering the
-  pure-M quick wins (STDASSERT, STDUUID, STDB64, STDHEX, STDFMT,
-  STDLOG, STDDATE, STDCSV, STDARGS).
-- **Phase 1b on `main`, awaiting batch tag** (`v0.1.1`–`v0.1.3`):
-  STDFIX, STDMOCK, STDSEED — the TDD primitives that power per-test
-  isolation, call interception, and FileMan fixture loading.
-- **Phase 2 substance on `main`, awaiting `v0.2.0` tag**: STDJSON,
-  STDREGEX, STDCOLL, STDURL — pure-M heavy lifting.
-- 16 modules total. 800+ assertions across the suites; per-module
-  label coverage ≥ 95 % (most at 100 %); 0 lint errors; `m fmt` clean.
-- Phase 3 (`STDHTTP`, `STDCRYPTO`, `STDCOMPRESS` via `$ZF`) is
-  designed but not yet implemented.
+- [1. What this library is](#1-what-this-library-is)
+  - [Non-goals](#non-goals)
+- [2. Why a standard library, why now](#2-why-a-standard-library-why-now)
+  - [The point of a standard library](#the-point-of-a-standard-library)
+  - [The alternative is per-site reinvention](#the-alternative-is-per-site-reinvention)
+  - [Now because the toolchain finally supports it](#now-because-the-toolchain-finally-supports-it)
+- [3. Per-module acceptance gate](#3-per-module-acceptance-gate)
+- [4. Module inventory](#4-module-inventory)
+- [5. Module reference](#5-module-reference)
+- [6. What's next](#6-whats-next)
+- [7. Cross-references](#7-cross-references)
 
-Live dispatch board: [`docs/parallel-tracks.md`](docs/parallel-tracks.md).
-Genesis and evolution: see [§ Further reading](#further-reading).
+## 1. What this library is
 
-## What it's for
+`m-stdlib` is a runtime library that fills the highest-impact gaps in
+MUMPS / M's standard library: things every other modern runtime ships
+out-of-the-box — assertions, UUIDs, base64, JSON, regex, collections,
+datetime, logging, CSV, URL parsing, argparse, XML, file I/O,
+HTTP, SHA / HMAC, gzip / zstd, and more — but that M historically
+shipped only as ad-hoc per-site routines, packages, or, most often,
+not at all.
 
-- A **canonical, RFC-anchored answer** to the recurring small-library
-  questions in M — so each shop stops re-implementing base64, JSON,
-  UUIDs, and date arithmetic in a private `^XB*` / `^%Z*` routine.
-- A **TDD-first runtime substrate** — every module ships with a
-  conformance-grade test suite (RFC-4648 / RFC-4180 / RFC-8259 /
-  RFC-3986 / RFC-4122 / RFC-9562 vectors vendored where they exist).
-- A **CI/CD-friendly substrate** — `make ci` runs `m fmt --check`,
-  `m lint --error-on=error`, `m test --format=tap`, and
-  `m coverage --min-percent=85` against a shared YottaDB container
-  with no host install required.
-- **A non-framework**. No global registries, no init hooks, no DI.
-  Each module is a flat M routine; you `do`-call or `$$`-call its
-  public labels.
+The library is:
 
-## Module inventory
+- **Pure-M for the entire ergonomics surface; `$ZF`-bound only where
+  performance and correctness require it.** Phases 1, 1b, 2, and the
+  P4 promotion wave are 100% pure M (no host callouts). Phase 3 — the
+  three modules that bind to libcrypto / libz / libzstd / libcurl
+  (`STDCRYPTO`, `STDCOMPRESS`, `STDHTTP`) plus the byte-faithful
+  arms of `STDFS` and `STDCSPRNG` — uses YottaDB's `$&pkg.fn`
+  external-call ABI through a shared deployment harness
+  (`scripts/seed-callouts.sh`). Routines are upper-case
+  six-or-fewer-character names per the M routine-name convention,
+  prefixed `STD*` (the prefix is reserved family-wide).
+- **YottaDB-first; IRIS-portable where reasonable.** Every pure-M
+  module passes against the `intersystemsdc/iris-community:latest`
+  image in fail-soft CI (`.github/workflows/ci.yml` →
+  `iris-portability-check`) except where a feature is structurally
+  engine-specific (e.g. YDB `view "TRACE"` for coverage).
+- **Sibling to `m-cli`** (the toolchain), `m-standard` (the modern-M
+  style guide), and `tree-sitter-m` (the parser). Architectural rule:
+  **m-stdlib has priority over m-cli**. When both projects need a
+  utility it lands here first; m-cli imports.
 
-| # | Module | Tag | Purpose |
+### Non-goals
+
+- **Not a framework.** No global registries, no init hook, no
+  dependency injection. Each module is a flat routine; you `do`-call
+  or `$$`-call public labels.
+- **Not a compatibility shim.** Does not paper over differences
+  between YDB and IRIS — `STDREGEX` runs a Thompson-NFA on every
+  engine, but the public API is what's portable, not the
+  implementation.
+- **Not a security boundary.** Nothing in m-stdlib enforces
+  authentication, authorisation, or input sanitisation across trust
+  domains. Treat it as a library, not a gateway.
+- **Not a TDD framework, though seven of its modules** —
+  `STDASSERT`, `STDFIX`, `STDMOCK`, `STDSEED`, `STDPROF`, `STDSNAP`,
+  `STDENV` — are the operational primitives behind the m-cli runner's
+  TDD support. If you're building a test suite *on top of* m-stdlib
+  rather than just consuming utility code, see
+  [`docs/guides/m-tdd-guide.md`](docs/guides/m-tdd-guide.md) for the integrated workflow.
+
+## 2. Why a standard library, why now
+
+### The point of a standard library
+
+A standard library exists to enable **rapid, reliable, reproducible,
+portable** development with **minimal re-invention**. Every other
+modern runtime — Python, Go, Rust, Node, Java — assumes you can call
+into a single canonical answer for base64, JSON, regex, datetime,
+collections, HTTP, crypto digests, and the rest, and that the answer
+behaves the same on every supported platform. `m-stdlib` brings the
+same guarantee to MUMPS / M:
+
+- **Rapid** because the canonical answer is one `$$call^STDxxx`
+  away — no scaffolding, no shopping for which `^XB*` routine the
+  current site happens to use this quarter.
+- **Reliable** because every module ships with a vendored conformance
+  corpus tied to the relevant RFC or NIST publication (RFC-4648 for
+  base64/hex, RFC-4180 for CSV, RFC 8259 for JSON, RFC 3986 for URLs,
+  RFC 4122/9562 for UUIDs, FIPS 180-4 for SHA, RFC 4231 for HMAC,
+  the JSONTestSuite for JSON edge cases, the W3C XML Test Suite for
+  XML, …) and runs all of it on every commit.
+- **Reproducible** because the test corpus runs against a containerised
+  YottaDB endpoint (`vista-meta`) — the same engine the upstream
+  consumers run, with no host-side YDB install to drift.
+- **Portable** because IRIS is a first-class CI target: every pure-M
+  module is verified against `intersystemsdc/iris-community:latest`
+  in fail-soft CI. Phase 3 callouts are YDB-only by design and
+  document that explicitly.
+- **Minimal re-invention** because contributing a fix at the library
+  level fixes it for every consumer instead of the diff propagating
+  ad-hoc through forks of `^XB*BASE64` across forty sites.
+
+### The alternative is per-site reinvention
+
+Every M shop with more than a few engineers has a private `^XB*`,
+`^DI*`, or `^%Z*` routine that does base64 encoding, JSON parsing,
+date arithmetic, or string formatting. Each of those private routines
+has its own bug history, its own un-versioned conventions, and its
+own opinions about what to do at edge cases. `m-stdlib` publishes a
+canonical answer per concern.
+
+### Now because the toolchain finally supports it
+
+The library only works because the toolchain landed first:
+
+- **`m-cli`** ships `m fmt` (style enforcement), `m lint` (XINDEX
+  rules + ASTGREP-driven analyses), `m test` (test discovery +
+  execution + TAP/JUnit output + coverage minimums + `--changed`
+  diff-driven runs + `--seed` / `--update-snapshots` / `--env` /
+  `--timings` / `--no-isolation` flags consuming the seven m-cli-
+  integrated TDD primitives), and `m coverage` (line + branch +
+  LCOV / JSON).
+- **`tree-sitter-m`** parses M into a real AST so per-module docs,
+  lint rules, and coverage tooling can target language constructs
+  rather than line patterns.
+- **`vista-meta`** publishes a containerised YottaDB endpoint so
+  `make test` runs against a real engine without a host install. CI
+  layers an IRIS image on top via `iris-portability-check`.
+
+The toolchain is what makes the canonical-answer guarantee
+mechanically enforceable — a per-module §9 acceptance gate
+(fmt-check + lint + tests + coverage) blocks any release that drifts.
+
+## 3. Per-module acceptance gate
+
+Every module follows the same gate. The fast inner loop:
+
+```bash
+make check        # fmt-check + lint + test — under a minute on the dev box
+```
+
+The release-readiness loop (also what GitHub Actions runs):
+
+```bash
+make ci           # check + JUnit XML + LCOV coverage at min-percent 85
+```
+
+The per-module §9 acceptance gate, applied before any `vN.N.N` tag:
+
+| Gate | Tool | Command | Pass threshold |
 |---|---|---|---|
-| 1 | [`STDASSERT`](docs/modules/stdassert.md) | `v0.0.1` | Assertion library — `eq` / `ne` / `true` / `false` / `near` / `raises` / `contains` / `len` + `start` / `report`. Wire-protocol-compatible with m-cli's runner. |
-| 2 | [`STDUUID`](docs/modules/stduuid.md)   | `v0.0.1` | RFC-4122 v4 + RFC-9562 v7 UUIDs. v7 sorts in generation order under M collation. |
-| 3 | [`STDB64`](docs/modules/stdb64.md)     | `v0.0.2` | RFC-4648 Base64 — standard `+ /` and URL-safe `- _` alphabets. |
-| 4 | [`STDHEX`](docs/modules/stdhex.md)     | `v0.0.2` | RFC-4648 §8 hex — lowercase default + uppercase variant. |
-| 5 | [`STDFMT`](docs/modules/stdfmt.md)     | `v0.0.3` | Printf-style formatter — subset of Python `str.format`. |
-| 6 | [`STDLOG`](docs/modules/stdlog.md)     | `v0.0.4` | Structured `key=value` logger — five levels, four sinks. |
-| 7 | [`STDDATE`](docs/modules/stddate.md)   | `v0.0.5` | ISO-8601 datetime + duration arithmetic over proleptic Gregorian. |
-| 8 | [`STDCSV`](docs/modules/stdcsv.md)     | `v0.0.6` | RFC-4180 CSV parser/writer with optional file I/O. |
-| 9 | [`STDARGS`](docs/modules/stdargs.md)   | `v0.0.7` | argparse — long/short/grouped flags, positionals, sub-commands. |
-| 10 | [`STDFIX`](docs/modules/stdfix.md)    | `v0.1.1` (pending tag) | Fixture lifecycle — `with` / `invoke` transactional scope. |
-| 11 | [`STDMOCK`](docs/modules/stdmock.md)  | `v0.1.2` (pending tag) | Opt-in test-time call interception. |
-| 12 | [`STDSEED`](docs/modules/stdseed.md)  | `v0.1.3` (pending tag) | Declarative TSV manifest loader for FileMan record fixtures. |
-| 13 | [`STDJSON`](docs/modules/stdjson.md)  | `v0.2.0` (pending tag) | RFC-8259 JSON parser + serialiser. |
-| 14 | [`STDREGEX`](docs/modules/stdregex.md)| `v0.2.0` (pending tag) | Thompson-NFA regex engine — full subset (literals, classes, groups, alternation, greedy quantifiers, capture, replace, split). |
-| 15 | [`STDCOLL`](docs/modules/stdcoll.md)  | `v0.2.0` (pending tag) | Collections — Set / Map / Stack / Queue / Deque / Heap / OrderedDict over caller-owned arrays. |
-| 16 | [`STDURL`](docs/modules/stdurl.md)    | `v0.2.0` (pending tag) | RFC-3986 URI parse / build / encode / decode / normalize / resolve. |
+| Format | `m fmt --check` | `make fmt-check` | clean (no diffs) |
+| Lint | `m lint --error-on=error` | `make lint` | 0 errors |
+| Tests | `m test --format=tap` | `make test` | 100 % assertions pass |
+| Coverage | `m coverage --min-percent=85` | `make coverage` | ≥ 85 % per-module label coverage (most modules ship at 100 %) |
+| IRIS portability | `iris-portability-check` CI job | (CI only) | fail-soft — surfaces regressions but does not gate merges |
 
-Canonical module index: [`docs/modules/index.md`](docs/modules/index.md).
-Per-module API surface: each row's linked page.
+The `make check` invocation talks to vista-meta's YottaDB container
+over SSH (`~/data/vista-meta/conn.env`), so there is no host YDB
+install to manage. For projects building tests on top of m-stdlib's
+TDD primitives, per-test isolation, mocking, fixture seeding, and
+the runner-protocol details live in [`docs/guides/m-tdd-guide.md`](docs/guides/m-tdd-guide.md).
 
-## Where it fits in the M development lifecycle
+## 4. Module inventory
 
-```
-   write tests          implement        format/lint        run + cover
-       │                   │                  │                │
-       ▼                   ▼                  ▼                ▼
-   STDASSERT           STDFMT etc.         m fmt              m test
-   STDFIX              (your code)         m lint             m coverage
-   STDMOCK                                                    │
-   STDSEED                                                    │
-                                                              ▼
-                                                      vista-meta YDB
-                                                      (shared engine)
-```
+Backend column: **pure-M** = no host callouts; **`$&pkg.fn`** = YDB
+external-call ABI to a libc / OpenSSL / libz / libzstd / libcurl
+shared object. m-cli column: **✅ C\<n\>** = m-cli companion
+integration shipped (see [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md)
+for the full companion-track names); **n/a** = no m-cli companion
+needed; **🟡** / **🔮** = future / speculative. Status column:
+**green-on-engine** = suite passes against the vista-meta YDB engine
+via `make test` at the head of `main`.
 
-| Stage | What you reach for in m-stdlib |
-|---|---|
-| **TDD red** | `STDASSERT` — `start` / `eq` / `ne` / `true` / `near` / `raises` / `contains` / `len` / `report`. The `*TST.m` convention `m test` discovers expects this API. |
-| **TDD green** | The runtime utility you'd otherwise have to write — `STDFMT` for formatting, `STDDATE` for time, `STDLOG` for diagnostics, `STDCSV` for ingest, `STDARGS` for CLI front-ends, `STDJSON` for serialisation, `STDREGEX` for parsing, `STDCOLL` for data structures, `STDURL` for routing, `STDB64`/`STDHEX`/`STDUUID` for IDs and encodings. |
-| **Test infrastructure** | `STDFIX` (per-test transactional rollback — wired by default into `m test`'s isolation), `STDMOCK` (test-time call interception), `STDSEED` (FileMan fixture loader). |
-| **CI gate** | `make check` / `make ci` enforces fmt + lint + test + coverage minimums against your m-stdlib-using code. |
+| # | Module | Backend | m-cli | Headline |
+|---|---|---|---|---|
+| 1 | [`STDASSERT`](docs/modules/stdassert.md) | pure-M | ✅ C1+C2 | Assertion library — `eq` / `ne` / `true` / `false` / `near` / `raises` / `contains` / `len` + counter `start` / `report`. Wire-protocol-compatible with the m-cli runner. |
+| 2 | [`STDUUID`](docs/modules/stduuid.md) | pure-M | n/a | RFC-4122 v4 + RFC-9562 v7 UUIDs. v7 timestamp-prefix sorts in generation order. |
+| 3 | [`STDB64`](docs/modules/stdb64.md) | pure-M | n/a | RFC-4648 Base64 — standard alphabet `+ /`, URL-safe variant `- _`, `valid` predicate. |
+| 4 | [`STDHEX`](docs/modules/stdhex.md) | pure-M | n/a | RFC-4648 §8 hex — lowercase default, uppercase variant, case-insensitive decode. |
+| 5 | [`STDFMT`](docs/modules/stdfmt.md) | pure-M | n/a | Printf-style formatter — subset of Python `str.format` (fill / align / width / precision / type `s d f x X o b`). |
+| 6 | [`STDLOG`](docs/modules/stdlog.md) | pure-M | n/a | Structured logger — five levels, four sinks, `kv` or `json` line format. |
+| 7 | [`STDDATE`](docs/modules/stddate.md) | pure-M | n/a | ISO-8601 datetime + duration arithmetic (`now`, `fromh`, `toh`, `strftime`, `strptime`, `add`, `diff`). |
+| 8 | [`STDCSV`](docs/modules/stdcsv.md) | pure-M | n/a | RFC-4180 CSV parser/writer — every §2 clause, optional file I/O. |
+| 9 | [`STDARGS`](docs/modules/stdargs.md) | pure-M | n/a | argparse — long/short/grouped flags, positionals, sub-commands, `--` terminator. |
+| 10 | [`STDFIX`](docs/modules/stdfix.md) | pure-M | ✅ C3 | Fixture lifecycle — `with` / `invoke` / `register` / `cleanup`. Powers `m test`'s default per-test isolation. |
+| 11 | [`STDMOCK`](docs/modules/stdmock.md) | pure-M | ✅ C4 | Test-time call interception — `register` / `invoke` / `$$resolve` / `$$called` / `$$args`. |
+| 12 | [`STDSEED`](docs/modules/stdseed.md) | pure-M | ✅ C5 | TSV / JSON manifest loader for FileMan record fixtures + pluggable filer hook. |
+| 13 | [`STDJSON`](docs/modules/stdjson.md) | pure-M | n/a | RFC 8259 JSON parser + serialiser — one M tree node per JSON value. |
+| 14 | [`STDREGEX`](docs/modules/stdregex.md) | pure-M | n/a | Thompson-NFA regex engine (literals, classes, groups, alternation, greedy quantifiers, capture, replace, split). |
+| 15 | [`STDCOLL`](docs/modules/stdcoll.md) | pure-M | n/a | Collections — Set / Map / Stack / Queue / Deque / Heap / OrderedDict over caller-owned arrays. |
+| 16 | [`STDURL`](docs/modules/stdurl.md) | pure-M | 🔮 C9 | RFC 3986 URI parse / build / encode / decode / valid / normalize / resolve. |
+| 17 | [`STDCSPRNG`](docs/modules/stdcsprng.md) | pure-M (+ optional `$&` → `getrandom(2)` perf path) | n/a | Cryptographic random — bytes / hex / base64 / token / int / uuid4 backed by `/dev/urandom`. |
+| 18 | [`STDFS`](docs/modules/stdfs.md) | pure-M (text I/O) + `$&` → libc `open/read/write/close` (byte-faithful arms) | n/a | File-system primitives — text-mode read/write/append + byte-faithful readBytes/writeBytes/appendBytes + exists/remove/size + basename/dirname/join. |
+| 19 | [`STDOS`](docs/modules/stdos.md) | pure-M | n/a | Process / env / cmdline helpers — env / pid / cmdline / argv / cwd / user / hostname / exit. |
+| 20 | [`STDSEMVER`](docs/modules/stdsemver.md) | pure-M | 🔮 C10 | SemVer 2.0.0 — valid / parse / compare / matches with caret, tilde, comparator AND-combination. |
+| 21 | [`STDSTR`](docs/modules/stdstr.md) | pure-M | n/a | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / case / repeat. |
+| 22 | [`STDTOML`](docs/modules/stdtoml.md) | pure-M | 🔮 C11 | TOML 1.0 subset — top-level pairs + `[section]` tables; string / int / float / bool scalars; `#` comments. |
+| 23 | [`STDCACHE`](docs/modules/stdcache.md) | pure-M | n/a | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear. |
+| 24 | [`STDPROF`](docs/modules/stdprof.md) | pure-M | ✅ C6 | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags. |
+| 25 | [`STDSNAP`](docs/modules/stdsnap.md) | pure-M | ✅ C7 | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY`. |
+| 26 | [`STDENV`](docs/modules/stdenv.md) | pure-M | ✅ C8 | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat. |
+| 27 | [`STDXML`](docs/modules/stdxml.md) | pure-M | n/a | XML 1.0 parser — elements, attributes, CDATA, comments / PI / xml-decl, numeric char refs, namespaces, full XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / comparison predicates / DOCTYPE + `<!ENTITY>`). |
+| 28 | [`STDMATH`](docs/modules/stdmath.md) | pure-M | n/a | Numeric helpers — clamp / min / max / sum / count / mean over caller-owned arrays. |
+| 29 | [`STDXFRM`](docs/modules/stdxfrm.md) | pure-M | n/a | Higher-order array transforms — map / filter / reduce via XECUTE-evaluated lambdas (`value` / `key` / `acc` locals). |
+| 30 | [`STDCRYPTO`](docs/modules/stdcrypto.md) | `$&stdcrypto.fn` → libcrypto | 🟡 C12 | SHA-256/384/512 + HMAC-SHA-256/384/512 backed by OpenSSL EVP_Digest + HMAC. Conformance: FIPS 180-4 + RFC 4231 vectors. |
+| 31 | [`STDCOMPRESS`](docs/modules/stdcompress.md) | `$&stdcompress.fn` → libz + libzstd | 🟡 C13 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress + magic-byte autodetect; 1 MiB output cap with `,U-…-FAIL,` on overflow. |
+| 32 | [`STDHTTP`](docs/modules/stdhttp.md) | `$&stdhttp.fn` → libcurl (callout) + pure-M (wire-format helpers) | 🟡 C14 | HTTP/1.1 client — `$$get` / `$$post` / `$$request` driving libcurl, plus pure-M `parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders` for offline wire-format work. |
 
-The library is what makes a TDD discipline mechanically enforceable in
-M. Without `STDASSERT` there is no `m test` runner protocol; without
-`STDFIX` per-test isolation costs ~5 lines of `tstart` / `trollback`
-boilerplate per test; without `STDMOCK` there is no way to assert
-"this routine was called with these arguments" without intrusive
-production-side scaffolding.
+**Aggregate gate, current head (`main`, 2026-05-08):** **32 suites,
+2483/2483 assertions green** on the vista-meta YDB engine — every
+public extrinsic exercised end-to-end through `m test`. Per-module
+label coverage ≥ 91% (most at 100%; STDOS at 91.7%, STDENV at 93.3%
+— `exit()` and `parseFile()` respectively unreachable / un-tested
+by automated tests), 0 lint errors, fmt clean. See
+[`docs/modules/index.md`](docs/modules/index.md) for the per-module
+gate breakdown and [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md)
+for live status, in-flight extensions, and proposed future modules.
 
-## Where it could fit in VistA package development
+## 5. Module reference
 
-A new VistA package built TDD-first — see
-[`~/projects/py-kids-install/docs/new-vista-package-lifecycle.md`](../py-kids-install/docs/new-vista-package-lifecycle.md)
-— uses m-stdlib in two distinct ways:
+The per-module five-minute orientation — one subsection for every
+shipped module, with the public surface, typical usage pattern, and
+the conformance corpus tied to it — lives in the user's guide:
 
-1. **At test time, always.** `tests/<RTN>TST.m` calls
-   `do start^STDASSERT(.pass,.fail)` … `do report^STDASSERT(...)`.
-   Tests are not shipped in the `.KID`, so STDASSERT et al. only need
-   to exist on the developer's vista-meta engine. This is the supported
-   path today; nothing more is needed.
-2. **At runtime, when wanted** — currently a manual choice. Two
-   options:
-   - **Vendor only what you need**: copy `STDDATE.m` (or whichever
-     module) into your package's namespace and rename it (e.g.
-     `MYPKGDATE.m`), shipping it inside your `.KID`. This keeps your
-     namespace clean and avoids a runtime dependency on a separate
-     m-stdlib KIDS build.
-   - **Ship m-stdlib as its own VistA package** (`STD` namespace, file
-     `#9.4` PACKAGE record, KIDS build). This is gap **G7** in the
-     lifecycle proposal — once shipped, downstream VistA packages can
-     declare `M-STDLIB 1.0` as a required build under `BUILD/4/` and
-     call STDDATE/STDFMT/STDREGEX/etc. at runtime without copying.
+→ **[`docs/guides/users-guide.md` § 5](docs/guides/users-guide.md#5-module-reference)**
 
-Until G7 lands, treat m-stdlib as a **dev-time / test-time** dependency
-for VistA packages, not a runtime one. Production VistA code stays in
-its own namespace and uses VA Kernel utilities (`^XLF*`, `^DI*`) for
-cross-cutting needs the same way the rest of VistA does.
+For each module that section gives:
 
-## Install (development checkout)
+- The headline plus the one-line "why you'd reach for this".
+- The minimal code example you'd write as a first call.
+- The per-module backend (pure-M vs. `$&pkg.fn` callout) with the
+  deployment runbook where relevant.
+- A pointer into the authoritative per-module document at
+  [`docs/modules/<module>.md`](docs/modules/) for the full label
+  list, error codes, edge cases, and extended examples.
 
-```bash
-git clone https://github.com/rafael5/m-stdlib ~/projects/m-stdlib
-cd ~/projects/m-stdlib
-make seed                  # one-time YDB workspace bootstrap (vista-meta engine)
-make check                 # fmt-check + lint + test
-make coverage              # line + label coverage; LCOV at coverage.lcov
-make ci                    # release-readiness gate (check + JUnit XML + min-percent)
-```
+The canonical inventory (one row per shipped module, conformance
+corpus pointers, cross-module dependency map) is at
+[`docs/modules/index.md`](docs/modules/index.md).
 
-Requires:
+## 6. What's next
 
-- [m-cli](https://github.com/rafael5/m-cli) installed at
-  `~/projects/m-cli/.venv` (or override `M=` on the make command line).
-- The shared **vista-meta** YottaDB container reachable per
-  `~/data/vista-meta/conn.env`. Tests run remotely over SSH — there is
-  no host YDB install to manage.
-- For Phase 3 host-callout work only:
-  [YottaDB](https://yottadb.com/product/get-started/) header files +
-  a C toolchain. `tools/build-callouts.sh` produces per-platform
-  shared objects in `so/`.
+Live work — proposed modules, in-flight extensions, deferred ToDos —
+is tracked in [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md). Open
+toolchain bugs that block or limit m-stdlib work live in
+[`TOOLCHAIN-FINDINGS.md`](TOOLCHAIN-FINDINGS.md). Release history
+is in [`CHANGELOG.md`](CHANGELOG.md).
 
-## Install (devcontainer)
+## 7. Cross-references
 
-Open the project in VS Code with the **Dev Containers** extension and
-choose *Reopen in Container*. YottaDB r2.07, m-cli, and the M LSP are
-all wired automatically.
+The `docs/` tree is organised into five subfolders by purpose:
+**guides/** (long-form orientation), **modules/** (per-module
+authoritative API docs + conformance-corpus pointers),
+**plans/** (forward-looking specs + roadmaps), **testing/**
+(corpus-validation reports), and **tracking/** (live work boards).
+Repo-root docs (`TOOLCHAIN-FINDINGS.md`, `CHANGELOG.md`) sit
+alongside this README.
 
-## Install (downstream M project)
+### `docs/guides/` — long-form orientation
 
-Until an M package manager exists, downstream projects vendor m-stdlib
-as a git submodule and add `src/` to `ydb_routines`:
+- [`docs/guides/users-guide.md`](docs/guides/users-guide.md) — full user's guide, including the § 5 per-module reference that this README links to.
+- [`docs/guides/m-tdd-guide.md`](docs/guides/m-tdd-guide.md) — operational TDD guide for projects building tests on top of m-stdlib's seven m-cli-integrated TDD primitives (STDASSERT / STDFIX / STDMOCK / STDSEED / STDPROF / STDSNAP / STDENV).
 
-```bash
-git submodule add https://github.com/rafael5/m-stdlib third_party/m-stdlib
-export ydb_routines="$PWD/routines $PWD/third_party/m-stdlib/src $ydb_dist"
-```
+### `docs/modules/` — per-module authoritative API docs
 
-For a project using m-cli's seed/unseed scripts, point the seed at the
-submodule's `src/` so STDASSERT loads alongside your routines.
+- [`docs/modules/index.md`](docs/modules/index.md) — canonical module inventory grouped by phase (v0.1.0 / v0.1.1–v0.1.3 / v0.2.0 / v0.3.0 / v0.4.0); conformance corpus + cross-module dependency map.
+- One file per shipped module — `docs/modules/<name>.md` — full label list, error codes, edge cases, extended examples. The **§ 4 Module inventory** table above links each module row directly into its per-module page.
 
-## Conventions
+### `docs/plans/` — forward-looking specs + roadmaps
 
-- All public routines use the `STD` prefix (reserved family-wide).
-- Test suites use the `*TST.m` suffix and the `t<UpperCase>(pass,fail)`
-  label convention recognised by `m test`.
-- Per-process state lives under `^STDLIB($job,...)`; shared config
-  under `^STDLIBC(...)`. No module writes outside these globals at
-  runtime.
-- Modern (pythonic-lower) style — lowercase keywords, full canonical
-  spellings, one command per line. Enforced by
-  [`m-cli`](https://github.com/rafael5/m-cli) under the `pythonic`
-  lint profile.
-- Per-module §9 acceptance gate before any `vN.N.N` tag: fmt clean,
-  0 lint errors, 100 % test pass, ≥ 85 % label coverage.
+- [`docs/plans/m-stdlib-implementation-plan.md`](docs/plans/m-stdlib-implementation-plan.md) — per-module specs (§8) and §9 acceptance gate.
+- [`docs/plans/tdd-orchestration-plan.md`](docs/plans/tdd-orchestration-plan.md) — historical cross-project TDD-orchestration plan (M0 → M5). Now fully realised; [`docs/guides/m-tdd-guide.md`](docs/guides/m-tdd-guide.md) is the operational follow-up.
+- [`docs/plans/m-libraries-remediation.md`](docs/plans/m-libraries-remediation.md) — original survey of which gaps exist in M's stdlib and the remediation path that produced m-stdlib.
+
+### `docs/testing/` — corpus validation reports
+
+- [`docs/testing/realcode-validation.md`](docs/testing/realcode-validation.md) — toolchain-side findings against `m-modern-corpus`; STD\* prefix collision-free across 4,215 routines; lint matrix per project.
+- [`docs/testing/modern-m-corpus-test-results.md`](docs/testing/modern-m-corpus-test-results.md) — library-fit findings; concrete LOC reductions in real projects (e.g. `_zewdJSON.m` 833 LOC → STDJSON ~50).
+- [`docs/testing/vista-corpus-lint-results.md`](docs/testing/vista-corpus-lint-results.md) — lint results against the VistA M corpus, calibrating the `pythonic` profile against legacy code.
+
+### `docs/tracking/` — live work boards
+
+- [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board (T1–T30) with per-module history archaeology.
+- [`docs/tracking/parallel-tracks.md`](docs/tracking/parallel-tracks.md) — dispatch view; current execution status across L1–L27 / H1–H3 / m-cli companion tracks.
+
+### Repo-root
+
+- [`TOOLCHAIN-FINDINGS.md`](TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
+- [`CHANGELOG.md`](CHANGELOG.md) — release history.
 
 ## License
 
 [AGPL-3.0](LICENSE). Family-wide consistency with m-cli, m-standard,
 and tree-sitter-m.
-
-## Further reading
-
-The README is the *current state*. For genesis, evolution, and the
-deeper why, walk the docs in this order:
-
-| Doc | Read it for |
-|---|---|
-| [`docs/users-guide.md`](docs/users-guide.md) | The 562-line orientation — TDD philosophy, CI/CD chain, every module in five-minute slices, roadmap. |
-| [`docs/m-stdlib-implementation-plan.md`](docs/m-stdlib-implementation-plan.md) | The live, continuously updated work plan — per-module specs (§§ 8.1–8.16), §10 release sequencing, §11 locked decisions. |
-| [`docs/parallel-tracks.md`](docs/parallel-tracks.md) | Dispatch board — every track L1–L14, m-cli companion tracks C1–C6 + W/X/Y, conformance corpora A1–A7, status snapshot, sync points. |
-| [`docs/tdd-orchestration-plan.md`](docs/tdd-orchestration-plan.md) | Milestone narrative for the m-stdlib ↔ m-cli joint cadence (M0–M5). |
-| [`docs/m-libraries-remediation.md`](docs/m-libraries-remediation.md) | The original survey of which gaps exist in M's stdlib and why. |
-| [`docs/modules/index.md`](docs/modules/index.md) | Canonical per-module index with conformance-corpus pointers. |
-| [`docs/realcode-validation.md`](docs/realcode-validation.md) | Findings from running the toolchain against `m-modern-corpus` — what shipped corpora bend toward needing. |
-| [`docs/modern-m-corpus-test-results.md`](docs/modern-m-corpus-test-results.md) | Library-fit findings — concrete LOC reductions in real projects (e.g. `_zewdJSON.m`'s 833 LOC → STDJSON ~50). |
-| [`docs/vista-corpus-lint-results.md`](docs/vista-corpus-lint-results.md) | Lint results against the VistA M corpus, calibrating the `pythonic` profile against legacy code. |
-| [`TOOLCHAIN-FINDINGS.md`](TOOLCHAIN-FINDINGS.md) | Open and resolved m-cli / YDB regressions discovered while building m-stdlib. |
-| [`CHANGELOG.md`](CHANGELOG.md) | Per-tag release notes. |
-
-For where m-stdlib fits a new VistA package end-to-end:
-[`~/projects/py-kids-install/docs/new-vista-package-lifecycle.md`](../py-kids-install/docs/new-vista-package-lifecycle.md).

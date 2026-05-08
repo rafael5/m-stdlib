@@ -6,7 +6,7 @@ m-tools `^TESTRUN`).
 
 Output mirrors `^TESTRUN`'s line protocol byte-for-byte so m-cli's
 `m test` runner accepts STDASSERT-driven suites unchanged. See [§7.6
-of the implementation plan](../m-stdlib-implementation-plan.md#7-phase-0--bootstrap-done-2026-04-30)
+of the implementation plan](../plans/m-stdlib-implementation-plan.md#7-phase-0--bootstrap-done-2026-04-30)
 for the bootstrap rationale.
 
 ## Suite shape

@@ -129,7 +129,7 @@ modern-M corpus. m-stdlib's toolchain runs cleanly over the corpus —
 no crashes, no infrastructure failures. The findings the toolchain
 surfaces are a mix of real lint-worthy patterns and known
 false-positive shapes already tracked in
-[`TOOLCHAIN-FINDINGS.md`](../TOOLCHAIN-FINDINGS.md). At least two
+[`TOOLCHAIN-FINDINGS.md`](../../TOOLCHAIN-FINDINGS.md). At least two
 corpus routines (`_zewdJSON.m`, `_webjsonDecodeTest.m`) reimplement
 functionality m-stdlib now ships and could plausibly migrate.
 

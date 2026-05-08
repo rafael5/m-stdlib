@@ -156,6 +156,6 @@ documented purpose of `invoke`, not a mistake.
 - [`STDASSERT`](stdassert.md) — assertion helpers used in test bodies.
 - `STDFIX` (Phase 1b, v0.1.1) — per-test transaction isolation.
 - `STDSEED` (Phase 1b, v0.1.3) — declarative fixture loading.
-- m-cli runner [track X](../parallel-tracks.md#34-m-cli-companion-tracks) —
+- m-cli runner [track X](../tracking/parallel-tracks.md#34-m-cli-companion-tracks) —
   hard-blocked on STDMOCK; will call `do clear^STDMOCK` between
   tests.

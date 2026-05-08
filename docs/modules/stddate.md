@@ -143,7 +143,7 @@ arithmetic are pure-M and run unchanged on IRIS.
 ## Replaces
 
 `STDLOG`'s inline ISO-8601 timestamp helper from `v0.0.4`. Track
-**L4b** (per [`docs/parallel-tracks.md`](../parallel-tracks.md))
+**L4b** (per [`docs/parallel-tracks.md`](../tracking/parallel-tracks.md))
 bumps `STDLOG` to use `$$now^STDDATE()` once both modules merge.
 
 ## See also

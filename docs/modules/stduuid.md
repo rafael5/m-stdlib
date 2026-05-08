@@ -105,7 +105,7 @@ digit). Always use `]` for UUID ordering.
 ## Engine portability
 
 Currently YDB-only — `$ZHOROLOG` is a YDB extension. An IRIS arm
-using `$ZTIMESTAMP` lands when [`STDDATE`](../m-stdlib-implementation-plan.md#87-stddate--iso-8601-datetime)
+using `$ZTIMESTAMP` lands when [`STDDATE`](../plans/m-stdlib-implementation-plan.md#87-stddate--iso-8601-datetime)
 ships in v0.0.5; until then, IRIS users get a `M-MOD-022` lint
 warning at the `unixMs` helper (suppressed inline with a directive).
 

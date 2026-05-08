@@ -106,5 +106,5 @@ manual rollback.
 
 - [`STDARGS`](stdargs.md) — pairs with the m-cli `m test --seed PATH`
   flag (track Y) once the runner protocol lands at M1.
-- The TDD orchestration plan, §6.3 ([`tdd-orchestration-plan.md`](../tdd-orchestration-plan.md))
+- The TDD orchestration plan, §6.3 ([`tdd-orchestration-plan.md`](../plans/tdd-orchestration-plan.md))
   — narrative around STDFIX / STDMOCK / STDSEED.

@@ -4,7 +4,7 @@ Pure-M test-isolation primitive built on YDB nested transactions:
 each fixture scope wraps its body in `tstart` / `trollback` so every
 global mutation made by the body is rolled back automatically when
 the scope ends. Pairs with the `m test` runner protocol described in
-[`docs/tdd-orchestration-plan.md` §6.4](../tdd-orchestration-plan.md).
+[`docs/tdd-orchestration-plan.md` §6.4](../plans/tdd-orchestration-plan.md).
 
 ## Public API
 
@@ -25,7 +25,7 @@ cannot expose the standalone `setup(tag)` / `teardown(tag)` pair
 described in the orchestration-plan sketch — every transaction-bearing
 label is a one-shot wrapper that opens AND closes the scope before
 returning. The runner-side wiring in `m test` (see [§6.4 of the
-orchestration plan](../tdd-orchestration-plan.md)) consumes
+orchestration plan](../plans/tdd-orchestration-plan.md)) consumes
 `with`/`invoke`, not raw `setup`/`teardown`.
 
 ## Examples
