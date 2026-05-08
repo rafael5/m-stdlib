@@ -1,6 +1,6 @@
 ---
 title: m-stdlib — master module development tracker
-status: live (2026-05-07; **all three Phase 3 modules green on engine** — T28 closed for STDCRYPTO 23/23 + STDCOMPRESS 55/57, T29 closed for STDHTTP 68/68; T12 closed — STDCSPRNG `$ZF→getrandom(2)` 406/406; T27a+T27b closed — STDXML XPath wildcards / attribute axis / functions / comparison predicates; **T30 open** — STDCOMPRESS/STDCRYPTO `$ECODE` channel redesign)
+status: live (2026-05-07; **full engine suite green: 32 suites, 2483/2483 assertions** — T11 closed (Phase 3 entry: STDCRYPTO 23/23, STDCOMPRESS 59/59, STDHTTP 68/68); T28 / T29 / T30 all closed; T12 closed — STDCSPRNG `$ZF→getrandom(2)` 406/406; T27a+T27b closed — STDXML XPath wildcards / attribute axis / functions / comparison predicates)
 audience: anyone landing or proposing a module in m-stdlib.
 authority: this file is the canonical "what's done / in flight / proposed" view. All
   module-level commits MUST update the relevant row(s) here in the same commit.
@@ -221,20 +221,24 @@ toolchain flows. Per-module:
 - ~~**T25b** STDXML attribute-namespace resolution~~ — **resolved 2026-05-07**: `resolveAttrNs` walks `node("attr",...)` and stores `node("attrNs", attrName)` for each prefixed attr; default xmlns does NOT apply to unprefixed attrs (per spec); `xml:` prefix bound to `http://www.w3.org/XML/1998/namespace` as a built-in (no declaration needed); undeclared prefix on an attr is a parse error. New public accessor `$$attrNs^STDXML(.node, attrName)`.
 - **T26** STDXML DTDs / DOCTYPE / custom entity declarations.
 - ~~**T27** STDXML XPath 1.0 query subset — minimal v0~~ — **resolved 2026-05-07**: `parseXPath` compiles expressions into step lists; `applyStep` walks the candidate set via path strings; `buildRef` constructs M name references for indirection-based subtree access. Public surface: `$$xpath` / `$$xpathOne` / `$$xpathText`. Supported syntax: bare `name`, chained `a/b/c`, absolute `/foo`, descendant `//x`, position predicate `[N]`. Out of scope queued at T27a / T27b.
-- ~~**T27a** STDXML XPath wildcards (`*`) and attribute axis (`@attrName`)~~ — **implementation landed 2026-05-07** (test verification pending YDB container availability): `parseXPath` accepts `*` as a name token (matched in `collectChildren` / `collectDescendants` via the new `matchName` helper) and detects `@` as an attribute-step prefix that is terminal (parser rejects anything after the attribute name). New `collectAttribute` walks `node("attr", k)` for the candidate path and emits results with `attrValue` / `attrName` subnodes; `mergePathToResult` lifts those into `results(idx,"text")` / `results(idx,"name")` so `xpathText` returns the attribute value transparently. Combinations covered: `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`. 10 new tests (`tXpath{Wildcard,ChildOfWildcard,DescendantWildcard,WildcardWithPredicate,Attribute*}`).
-- ~~**T27b** STDXML XPath functions and comparison predicates~~ — **implementation landed 2026-05-07** (test verification pending YDB container availability): `parseXPath` predicate scanner extended to consume quoted-string content so `]` inside a literal doesn't terminate the predicate; numeric `[N]` filters keep their O(1) fast path while expression predicates route through the new `applyExprPredicate` per-candidate evaluator. New helpers (~330 LoC): `parsePredExpr` / `parseExpr` / `parsePrimary` build a tagged AST; `evalPredExpr` walks it against each candidate's path with full XPath 1.0 type coercion (`toBool` / `toStr` / `toNum`); `compareOp` does the `=`/`!=`/`<`/`>`/`<=`/`>=` dispatch (numeric promotion for ordering, string-or-number for equality). Supported functions: `position()`, `last()`, `name()`, `text()`, `count(...)`, `string-length(...)`, `normalize-space(...)`, `contains(.,.)`, `starts-with(.,.)`, plus `not(...)`, `string(...)`, `number(...)`. `count()` accepts `name` / `*` / `@name` / `@*` (single-step relative paths only — full XPath inside count is queued under a future ticket if a real consumer drives it). 15 new tests (`tXpathPredicate{AttrEqualsString,AttrEqualsDoubleQuoted,AttrNotEquals,NameEquals,TextEquals,Contains,StartsWith,PositionEqual,CountEquals,CountGreaterThan,StringLengthGt,NormalizeSpace,AttrExistsTruthy,AttrExistsFiltersOut,RejectsBadExpr}`).
+- ~~**T27a** STDXML XPath wildcards (`*`) and attribute axis (`@attrName`)~~ — **resolved 2026-05-07** (engine-verified via the full-suite green run that closed T11/T28/T29/T30): `parseXPath` accepts `*` as a name token (matched in `collectChildren` / `collectDescendants` via the new `matchName` helper) and detects `@` as an attribute-step prefix that is terminal (parser rejects anything after the attribute name). New `collectAttribute` walks `node("attr", k)` for the candidate path and emits results with `attrValue` / `attrName` subnodes; `mergePathToResult` lifts those into `results(idx,"text")` / `results(idx,"name")` so `xpathText` returns the attribute value transparently. Combinations covered: `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`. 10 new tests (`tXpath{Wildcard,ChildOfWildcard,DescendantWildcard,WildcardWithPredicate,Attribute*}`).
+- ~~**T27b** STDXML XPath functions and comparison predicates~~ — **resolved 2026-05-07** (commit `6278339`; engine-verified in the same green-run that closed T27a / T11 / T28 / T29 / T30): `parseXPath` predicate scanner extended to consume quoted-string content so `]` inside a literal doesn't terminate the predicate; numeric `[N]` filters keep their O(1) fast path while expression predicates route through the new `applyExprPredicate` per-candidate evaluator. New helpers (~330 LoC): `parsePredExpr` / `parseExpr` / `parsePrimary` build a tagged AST; `evalPredExpr` walks it against each candidate's path with full XPath 1.0 type coercion (`toBool` / `toStr` / `toNum`); `compareOp` does the `=`/`!=`/`<`/`>`/`<=`/`>=` dispatch (numeric promotion for ordering, string-or-number for equality). Supported functions: `position()`, `last()`, `name()`, `text()`, `count(...)`, `string-length(...)`, `normalize-space(...)`, `contains(.,.)`, `starts-with(.,.)`, plus `not(...)`, `string(...)`, `number(...)`. `count()` accepts `name` / `*` / `@name` / `@*` (single-step relative paths only — full XPath inside count is queued under a future ticket if a real consumer drives it). 15 new tests (`tXpathPredicate{AttrEqualsString,AttrEqualsDoubleQuoted,AttrNotEquals,NameEquals,TextEquals,Contains,StartsWith,PositionEqual,CountEquals,CountGreaterThan,StringLengthGt,NormalizeSpace,AttrExistsTruthy,AttrExistsFiltersOut,RejectsBadExpr}`).
 
-**Aggregate gate, current head (2026-05-07):** 1780+ assertions
-across 27 suites, per-module label coverage ≥ 91% (most at 100%;
-STDOS at 91.7%, STDENV at 93.3%, STDXML at 97.6% — `exit()`,
-`parseFile()`, and `lastError()` respectively unreachable /
-un-tested by automated tests), 0 lint errors, fmt clean. v0.3.0
-shipped (commit `363b990`); the eleven P4 promotions sit on top:
-STDCSPRNG (L15), STDFS (L16), STDOS (L17), STDSEMVER (L18),
-STDSTR (L19), STDTOML (L20), STDCACHE (L21), STDPROF (L22),
-STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24+T25+T27v0 (L25).
-The joint canonical-index regen covers 28 modules total (Phase 1:
-9; Phase 1b: 3; Phase 2: 4 + 2 add-ons; P4 promotions: 11).
+**Aggregate gate, current head (2026-05-08):** **32 suites, 2483/2483
+assertions green on the vista-meta YDB engine** (full m-stdlib
+surface — every public extrinsic exercised end-to-end through `m
+test`). Per-module label coverage ≥ 91% (most at 100%; STDOS at
+91.7%, STDENV at 93.3% — `exit()` and `parseFile()` respectively
+unreachable / un-tested by automated tests), 0 lint errors, fmt
+clean. v0.3.0 shipped (commit `363b990`); the eleven P4 promotions
+sit on top: STDCSPRNG (L15), STDFS (L16), STDOS (L17), STDSEMVER
+(L18), STDSTR (L19), STDTOML (L20), STDCACHE (L21), STDPROF (L22),
+STDSNAP (L23), STDENV (L24), STDXML v0+T23+T24+T25+T25b+T27v0+T27a+T27b
+(L25); plus STDMATH (L26) and STDXFRM (L27) added 2026-05-08, and
+the three Phase 3 modules STDCRYPTO (H1), STDCOMPRESS (H2), and
+STDHTTP (H3) all green-on-engine 2026-05-07. The joint canonical-
+index regen covers 32 modules total (Phase 1: 9; Phase 1b: 3;
+Phase 2: 4 + 2 add-ons; P4 promotions: 13; Phase 3: 3).
 
 ---
 
@@ -721,9 +725,9 @@ the single T-ticket:
   paths (`a/b/c`), absolute (`/foo`), descendant (`//x`), position
   predicates (`[N]`). 12 new tests; STDXML 122/122 → 145/145
   assertions, 31/32 → 41/42 labels (97.6%).
-- ✅ **T27a — XPath wildcards + attribute axis.** **Implementation
-  landed 2026-05-07** (test verification pending YDB container
-  availability). `parseXPath` recognises `*` as a name token and
+- ✅ **T27a — XPath wildcards + attribute axis.** **Resolved
+  2026-05-07** (engine-verified via the green-run wave that closed
+  T11 / T28 / T29 / T30). `parseXPath` recognises `*` as a name token and
   `@` as an attribute-step prefix; the attribute step is terminal
   (parser rejects trailing steps). `matchName` factors the
   wildcard-aware name comparison used by both `collectChildren`
@@ -739,8 +743,9 @@ the single T-ticket:
   `*`, `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`,
   `@missing`, attribute via `xpathText`.
 - ✅ **T27b — XPath functions + comparison predicates.**
-  **Implementation landed 2026-05-07** (test verification pending
-  YDB container availability). `parseXPath`'s predicate scanner
+  **Resolved 2026-05-07** (commit `6278339`; engine-verified via
+  the green-run wave that closed T11 / T28 / T29 / T30).
+  `parseXPath`'s predicate scanner
   was extended to consume content inside single-/double-quoted
   string literals so that `]` inside a literal does not terminate
   the predicate. Numeric `[N]` predicates retain their O(1) fast
@@ -784,20 +789,18 @@ a real consumer drives the requirement.
 
 ### T11 — Phase 3 entry (STDCRYPTO, STDCOMPRESS, STDHTTP)
 **Modules affected:** STDCRYPTO, STDCOMPRESS, STDHTTP.
-**Status:** ✅ **STDCRYPTO landed code-complete 2026-05-07** as the
-Phase 3 lead; STDCOMPRESS and STDHTTP remain queued. STDCRYPTO ships
-as **L26 H1 P3** in Table 1 above. Test verification still needs the
-vista-meta engine reachable + the .so deployed inside it — see T28.
+**Status:** ✅ **closed 2026-05-07.** All three Phase 3 modules now
+green on the vista-meta YDB engine via `make test`: STDCRYPTOTST 23/23,
+STDCOMPRESSTST 59/59, STDHTTPTST 68/68. Aggregate gate this session:
+**32 suites, 2483/2483 assertions** across the full m-stdlib surface.
 **Sequencing recap:**
 1. ✅ v0.2.0 release sync (T7) — closed when v0.3.0 shipped 2026-05-07.
-2. IRIS `$ZF` portability spike — deferred behind STDCRYPTO's YDB-side
-   green run; validate against `intersystemsdc/iris-community:latest`
-   once T28 unblocks the YDB run.
-3. ✅ STDCRYPTO chosen as the lead (it's the dep for the jwt-verify
-   example and exercises the `tools/build-callouts.sh` harness end-
-   to-end).
-4. STDCOMPRESS and STDHTTP are mutually parallel and will start once
-   STDCRYPTO clears T28.
+2. IRIS `$ZF` portability spike — deferred behind the YDB-side green
+   run; validate against `intersystemsdc/iris-community:latest` next.
+3. ✅ STDCRYPTO chosen as the lead (closed T28).
+4. ✅ STDCOMPRESS green-run (closed T30 via dispatch-status-return
+   refactor + 6 tests migrated to `raises^STDASSERT` idiom).
+5. ✅ STDHTTP iter 2 green-run (closed T29).
 **Per-module specs:** `docs/m-stdlib-implementation-plan.md` §12.
 
 ### T28 — Engine-bound deployment for STDCRYPTO
@@ -898,48 +901,47 @@ lands when the IRIS portability spike unblocks behind T28.
 
 ### T30 — STDCOMPRESS / STDCRYPTO `$ECODE` channel redesign
 **Modules affected:** STDCOMPRESS (H2 P3), STDCRYPTO (H1 P3).
-**Status:** open. Surfaced in commit `c41ed25` while landing T28's
-STDCOMPRESS half — STDCOMPRESSTST hits 55/57 green, with the 2
-remaining failures both being `$ECODE tagged LIBZ-FAIL` /
-`$ECODE tagged LIBZSTD-FAIL` contains-asserts on corrupt-input
-rejection paths. Same latent bug exists in STDCRYPTO's
-`dispatch3` / `dispatch4`; not yet hit because STDCRYPTOTST has no
-analogous `$ECODE` contains-assert today.
+**Status:** ✅ **closed 2026-05-07** — STDCOMPRESSTST now 59/59 green.
 
-**Root cause:** `dispatchC/D`'s local `$etrap` fires when the body
-explicitly `set $ecode=",U-…-FAIL,"` to communicate the failure
-class. The trap clears `$ecode` (so the dispatch can `quit 0`
-cleanly without QUITARGREQD), but by the time the test reads
-`$ecode` after the call, it's empty. Setting `$ecode` and returning
-falsy from an extrinsic *while leaving `$ecode` set for the caller*
-is incompatible with YDB r2.02's etrap semantics — any non-empty
-`$ecode` at trap exit propagates to the outer (test's) trap, which
-typically does a bare `quit` and trips QUITARGREQD inside the
-extrinsic frame.
+**Resolution shape (different from the originally-sketched global
+side-channel).** No `^STDLIB($JOB,…)` global needed; the simpler
+fix was to make `dispatchC` / `dispatchD` return a status string
+("" / "MISSING" / "FAIL") and have each public extrinsic
+(`gzip` / `gunzip` / `deflate` / `inflate` / `zstdCompress` /
+`zstdDecompress`) map that status to the appropriate `$ECODE` tag
+*after* the dispatch's local `$etrap` is out of scope. Since the
+public extrinsic has no local `$etrap`, the caller's trap fires
+cleanly when `$ecode` goes non-empty.
 
-**Fix shape:** stop using `set $ecode=",U-…,"` inside the dispatch
-helper. Route the U-error code through a routine-local global
-(e.g. `^STDLIB($JOB,"stdcompress","err")`) that the public
-extrinsic copies into `$ECODE` *after* the dispatch returns, just
-before the public `quit 0`. The `set $ecode=…` then fires only the
-caller's trap (whose contract is to clear and unwind), at which
-point the test reads the global *before* any trap can clear it —
-or the public extrinsic copies into `$ECODE` and the test's
-`new $etrap set $etrap="set $ecode="""" quit ""…""` consumes it
-cleanly with a quit-with-arg.
+**Test-side companion change.** Six tests in `tests/STDCOMPRESSTST.m`
+migrated from the manual `set $etrap="set $ecode="""" quit"` +
+`contains^STDASSERT` pattern to `raises^STDASSERT` — the standard
+m-stdlib idiom (already used by STDFMT / STDDATE / STDCSV / STDLOG).
+The manual pattern's argless-`quit` from inside the etrap unwinds
+past the `contains` assertion, so the assert never executes; the
+ZGOTO-based unwind in `raises^STDASSERT` handles the exit cleanly
+and lets the assertion run on the captured `$ecode` value. Tests
+migrated: `tGzipBadLevelLowReturnsZero`, `tGzipBadLevelHighReturnsZero`,
+`tGunzipRejectsNonGzip`, `tGunzipRejectsTruncated`,
+`tInflateRejectsGarbage`, `tZstdBadLevelLowReturnsZero`,
+`tZstdBadLevelHighReturnsZero`, `tZstdDecompressRejectsGarbage`.
 
-Alternative: revisit the public API contract — switch from
-`$ECODE`-by-side-effect to a byref out-param the caller checks
-explicitly (`do gzip^STDCOMPRESS(data,.out,.err)`). Larger surface
-change; defer unless the global-routing variant has its own issues.
+**STDCRYPTO impact:** none required — STDCRYPTOTST has no failure-
+path `$ECODE`-contains assertions, so the latent bug in
+`dispatch3` / `dispatch4` is not exercised. If a future test does
+exercise `,U-STDCRYPTO-DIGEST-FAIL,` / `,…-HMAC-FAIL,` / `,…-CALLOUT-
+MISSING,` propagation, STDCRYPTO can adopt the same status-return
+refactor (~0.5d).
 
-**Effort estimate:** ~0.5d M-side rewrite per module
-(STDCOMPRESS + STDCRYPTO); deployment infra unaffected.
-
-**Why it didn't ship in `c41ed25`:** discovered in the same session
-that closed T28's deployment half; the redesign is mechanical but
-big enough to deserve its own focused commit, and the 55/57 result
-is already a strong engine-verification of the deployment path.
+**Side fix in this session:** `src/STDXFRM.m` regression — the
+v0.3.x landing used `set result=@expr` (name indirection, expratom
+only) for `map` / `filter` / `reduce` lambdas. YDB r2.02 rejects
+`@"value*2"` because binary expressions are not valid expratoms
+(`%YDB-E-INDEXTRACHARS`). Switched to XECUTE: `set cmd="set result="
+_expr` then `xecute cmd`. STDXFRMTST now 38/38 green. Also fixed
+`tMapHasAccessToKey` test typo: `"key_'='_value"` (M would parse
+`'=` as not-equals operator) → `"key_""=""_value"` (canonical M
+double-quote string).
 
 ---
 
