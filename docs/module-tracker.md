@@ -104,14 +104,14 @@ expansion)** below — the table itself stays compact.
 | P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.3.0` | 1d | none (completed) | none | Wall-clock profiler — start/stop/count/total/mean/min/max/percentile | ✅ C6 |
 | P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.3.0` | 1d | none (completed) | STDFS; STDASSERT | Snapshot testing — serialize/save/matches/asserts | ✅ C7 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.3.0` | 1d | none (options) | STDFS | `.env` loader + typed accessors | ✅ C8 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.4.0` (engine-green 2026-05-08; 209/209) | 14d | none — full envelope covered | none | XML 1.0 parser + XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / **DOCTYPE + internal subset + `<!ENTITY>` custom entities (T26 closed 2026-05-08)**) | n/a |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.4.0` (pending) | 14d | none (completed) | none | XML 1.0 parser + XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / DOCTYPE + internal subset + `<!ENTITY>` custom entities) | n/a |
 | P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.4.0` (pending) | 1d | none (completed) | none | Numeric helpers — clamp / min / max / sum / count / mean | n/a |
 | P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.4.0` (pending) | 1d | none (completed) | none | Higher-order array transforms — map / filter / reduce | n/a |
 | P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.4.0` (pending) | 2d | none (completed) | `$&stdcrypto.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 |
 | P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.4.0` (pending) | 6d | none (completed) | `$&stdcompress.fn → libz + libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress | 🟡 C13 |
 | P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` (pending) | 4d | none (options) | STDURL; `$&stdhttp.fn → libcurl`; A6 | HTTP/1.1 client (`$$get` / `$$post` / `$$request`) + pure-M wire-format helpers | 🟡 C14 |
 
-**Aggregate:** ~106d shipped across all 32 landed modules (sum of
+**Aggregate:** ~108d shipped across all 32 landed modules (sum of
 the Effort column above). **Full engine suite green on `main`
 2026-05-08: 32 suites, 2483/2483 assertions.** All three Phase 3
 modules engine-green: STDCRYPTO H1 (23/23), STDCOMPRESS H2 (59/59),
@@ -430,9 +430,9 @@ convention for typed accessors.
 (depends on STDOS setenv from T15). Activates when a concrete `.env`
 consumer needs full POSIX shell `.env` semantics.
 
-### #27 — `STDXML` (`v0.4.0` pending, T23–T27b closed; T26 active)
+### #27 — `STDXML` (`v0.4.0` pending, T23–T27b + T26 all closed)
 
-Shipped incrementally across seven landings, each preserving 100%
+Shipped incrementally across eight landings, each preserving 100%
 backward compatibility:
 
 - **v0** (`3d5df3a`, 2026-05-07): well-formed XML 1.0 elements,
@@ -467,14 +467,11 @@ backward compatibility:
   `starts-with()`, `not()`, `string()`, `number()`. Full XPath 1.0
   type coercion (`toBool` / `toStr` / `toNum`); ordering operators
   numeric-promote, equality is string-or-number.
+- **T26** (2026-05-08): DOCTYPE + internal subset + `<!ENTITY>`
+  custom entity declarations. Closes the 12-16d envelope.
+  STDXMLTST 209/209 on engine.
 
-Aggregate covers ~95% of the 12-16d full envelope. STDXMLTST
-181/181 on engine.
-
-**Active ToDo (T26):** DTDs / DOCTYPE / custom entity declarations.
-Lowest priority — DTDs are rare in modern HL7v3 / CDA / FHIR.
-Activates when a real consumer drives the requirement; the W3C XML
-Test Suite is the conformance corpus to vendor at that point.
+Full envelope covered.
 
 ### #29 — `STDXFRM` (`v0.4.0` pending)
 
