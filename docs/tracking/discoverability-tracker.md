@@ -125,7 +125,7 @@ the work without further orientation.
 
 | Task ID | Status | Phase | Seq | Repo | Title | Deps | Effort | Acceptance | Plan § | Paths |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WA1 | not-started | WA | 1 | stdlib | Specify M-doc tag grammar (`@param` / `@returns` / `@raises` / `@example` / `@since` / `@stable` / `@see` / `@deprecated` / `@internal`) and synopsis-line rule | — | 0.5d | New `docs/guides/m-doc-grammar.md` reviewed; sample worked example shown using `STDJSON.parse` | § 3.1 | `docs/guides/m-doc-grammar.md` (new) |
+| WA1 | done | WA | 1 | stdlib | Specify M-doc tag grammar (`@param` / `@returns` / `@raises` / `@example` / `@since` / `@stable` / `@see` / `@deprecated` / `@internal`) and synopsis-line rule | — | 0.5d | New `docs/guides/m-doc-grammar.md` reviewed; sample worked example shown using `STDJSON.parse` | § 3.1 | `docs/guides/m-doc-grammar.md` (landed 2026-05-08) |
 | WA2 | not-started | WA | 2 | stdlib | Backfill structured doc tags across all public labels in `src/STD*.m` (incl. `@stable` tier annotation per § 3.6) | WA1 | 3–4d | Every public label in src/ has `@param`s matching the formal-list, `@returns` for extrinsics, `@raises` for any `$ECODE` it sets, ≥1 `@example`, `@since`, `@stable`. Manifest generator (WA4) parses src/ without diagnostics. | § 3.1, § 3.6 | `src/STD*.m` (all 30+ routines) |
 | WA3 | not-started | WA | 3 | m-cli | Add lint rule `M-DOC-001` warning on public labels missing required tags (warn-only at first) | WA1 | 0.5–1d | `m lint` raises `M-DOC-001` (severity warn) on a public label whose `; doc:` block is missing `@returns` (extrinsic) or has a `@param` not in the formal-list. No errors emitted yet. | § 3.1 (acceptance gate) | m-cli lint rules dir |
 | WA4 | not-started | WA | 4 | stdlib | Implement `tools/gen-manifest.m` — hand-rolled parser, ~150 LoC — that walks `src/STD*.m` and emits `dist/stdlib-manifest.json` per the § 3.2 schema | WA1 | 1–2d | Running `make manifest` produces `dist/stdlib-manifest.json`; all public labels are present with signature, params, returns, raises, examples, since, stable, see_also, source.file/line. | § 3.2, § 11.4 | `tools/gen-manifest.m` (new), `dist/stdlib-manifest.json` (new), `Makefile` (target add) |
@@ -175,7 +175,7 @@ planning; expand them as work happens. The format is:
 
 #### WA1 — Specify M-doc tag grammar
 
-**Status.** not-started.
+**Status.** done (2026-05-08).
 
 **Goal.** Write `docs/guides/m-doc-grammar.md` defining the structured-tag extension to the existing `; doc:` convention. Tags must be optional (existing prose-only blocks remain valid); the tag set is small (`@param`, `@returns`, `@raises`, `@example`, `@since`, `@stable`, `@see`, `@deprecated`, `@internal`); the first tag-free `; doc:` line is the synopsis (consumed by `m doc --short`).
 
@@ -191,7 +191,7 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Not changing the existing `; doc:` prose convention; not specifying a Markdown subset for tag bodies (keep them plain text for v1).
 
 **Progress log.**
-- (none yet)
+- **2026-05-08** — `docs/guides/m-doc-grammar.md` landed (10 sections, ~250 lines). Defines the nine tags, the synopsis line rule (godoc-style; inline comment on label line preferred, first prose sentence as fallback), the lexical model (continuation lines append; empty `; doc:` lines terminate a tag's body), and a worked `parse^STDJSON` example showing both the tagged source form and the derived manifest entry. § 7 pins the parsing contract three downstream tools must agree on (`tools/gen-manifest.m`/WA4, `M-DOC-001` lint/WA3, all Wave B/C/D consumers via the manifest). § 8 tabulates edge-case behaviour (unknown tags, duplicate `@param`, etc.). Key calibrations vs the plan §3.1 sketch: (a) extrinsic-vs-procedure distinction is inferred statically from `quit <expression>` rather than from formal-list parens; (b) `@example` blocks collapse consecutive lines into one snippet (more idiomatic for STDASSERT-style multi-line examples); (c) `@internal` excludes a label from the manifest entirely rather than merely tagging it; (d) free-form description block can sit either before or after the tag block — recommended placement is tags-first, prose-second. No source files (`src/STD*.m`) touched — that is WA2's scope. WA3 (`M-DOC-001` lint rule) and WA4 (`tools/gen-manifest.m`) now have a normative spec to implement against and are unblocked.
 
 ---
 
