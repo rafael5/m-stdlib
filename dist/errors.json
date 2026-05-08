@@ -29,6 +29,13 @@
     ],
     "module": "STDARGS"
   },
+  "U-STDCSV-OPEN-FAIL": {
+    "labels": [
+      "parseFile",
+      "writeFile"
+    ],
+    "module": "STDCSV"
+  },
   "U-STDDATE-BAD-DUR": {
     "labels": [
       "add"
@@ -77,5 +84,23 @@
       "fn"
     ],
     "module": "STDFMT"
+  },
+  "U-STDLOG-INVALID-FORMAT": {
+    "labels": [
+      "FORMAT"
+    ],
+    "module": "STDLOG"
+  },
+  "U-STDLOG-INVALID-LEVEL": {
+    "labels": [
+      "LEVEL"
+    ],
+    "module": "STDLOG"
+  },
+  "U-STDLOG-INVALID-SINK": {
+    "labels": [
+      "SINK"
+    ],
+    "module": "STDLOG"
   }
 }

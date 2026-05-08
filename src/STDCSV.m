@@ -41,12 +41,15 @@ STDCSV  ; m-stdlib — RFC-4180 CSV parser/writer (pure-M).
         ; ---------- public API ----------
         ;
 parse(text,rows)        ; Parse CSV text into rows(i,j); return row count.
-        ; doc: Strips a leading UTF-8 BOM. Accepts CRLF, LF, or lone CR
-        ; doc: as record terminators. Quoted fields may contain commas,
-        ; doc: CRLF, and "" escapes (RFC-4180 §2.5–§2.7). The caller's
-        ; doc: rows array is killed before population so stale subscripts
-        ; doc: do not leak across calls.
-        ; doc: Example: set n=$$parse^STDCSV("a,b,c"_$char(13,10),.r)
+        ; doc: @param text    string  CSV document (CRLF, LF, or lone-CR record terminators)
+        ; doc: @param rows    array   caller-owned destination; killed before population
+        ; doc: @returns       int     number of rows parsed (0 if `text` is empty)
+        ; doc: @example       set n=$$parse^STDCSV("a,b,c"_$char(13,10),.r)
+        ; doc: @since         v0.0.6
+        ; doc: @stable        stable
+        ; doc: @see           $$write^STDCSV, do parseFile^STDCSV
+        ; doc: Strips a leading UTF-8 BOM. Quoted fields may contain commas,
+        ; doc: CRLF, and "" escapes (RFC-4180 §2.5–§2.7).
         new i,n,c,nc,state,field,row,col,bom,cr,lf,q
         kill rows
         if text="" quit 0
@@ -78,12 +81,16 @@ parse(text,rows)        ; Parse CSV text into rows(i,j); return row count.
         quit row-1
         ;
 write(rows)     ; Serialise rows(i,j) to RFC-4180 CSV text.
-        ; doc: Each populated row is emitted with a CRLF terminator. Fields
-        ; doc: containing ',', '"', CR, or LF are wrapped in '"..."' with
-        ; doc: embedded '"' doubled per RFC-4180 §2.7. An empty rows array
-        ; doc: yields the empty string. Sparse columns walk via $order, so
-        ; doc: ragged rows are emitted with as many fields as are defined.
-        ; doc: Example: set r(1,1)="a",r(1,2)="b" write $$write^STDCSV(.r)
+        ; doc: @param rows    array   by-ref local subscripted as rows(i,j) for row i, col j
+        ; doc: @returns       string  RFC-4180 text with CRLF row terminators; "" for empty input
+        ; doc: @example       set r(1,1)="a",r(1,2)="b" write $$write^STDCSV(.r)
+        ; doc: @since         v0.0.6
+        ; doc: @stable        stable
+        ; doc: @see           $$parse^STDCSV, do writeFile^STDCSV
+        ; doc: Fields containing ',', '"', CR, or LF are wrapped in '"..."'
+        ; doc: with embedded '"' doubled per RFC-4180 §2.7. Sparse columns
+        ; doc: walk via $order, so ragged rows are emitted with as many
+        ; doc: fields as are defined.
         new out,r,c,first,crlf
         set out="",crlf=$char(13,10)
         set r=$order(rows(""))
@@ -98,15 +105,19 @@ write(rows)     ; Serialise rows(i,j) to RFC-4180 CSV text.
         quit out
         ;
 parseFile(path,callback)        ; Parse file at path; dispatch callback per record.
-        ; doc: Reads path line-by-line, accumulating across record boundaries
+        ; doc: @param path        string  filesystem path to a CSV file
+        ; doc: @param callback    string  M call-site as "label^routine" (used via @-indirection)
+        ; doc: @raises            U-STDCSV-OPEN-FAIL  could not open `path` for read
+        ; doc: @example           do parseFile^STDCSV("foo.csv","onrow^MYAPP")
+        ; doc: @since             v0.0.6
+        ; doc: @stable            stable
+        ; doc: @see               $$parse^STDCSV, do writeFile^STDCSV
+        ; doc: Reads `path` line-by-line, accumulating across record boundaries
         ; doc: when a quoted field contains an embedded line break (RFC-4180
-        ; doc: §2.6). For each completed record, calls the callback as
+        ; doc: §2.6). For each completed record, calls
         ; doc:   do @callback@(rownum, .fields)
         ; doc: where fields(j) holds the j'th field (1-based) and rownum is
-        ; doc: the 1-based record index. The callback identifier is the
-        ; doc: usual "label^routine" form passed to indirection.
-        ; doc: Sets $ECODE=,U-STDCSV-OPEN-FAIL, on open failure.
-        ; doc: Example: do parseFile^STDCSV("foo.csv","onrow^MYAPP")
+        ; doc: the 1-based record index.
         new buf,line,curRow,nrows,rows,j,fields
         set buf="",curRow=0
         open path:(readonly):5  else  set $ecode=",U-STDCSV-OPEN-FAIL," quit
@@ -137,10 +148,15 @@ parseFile(path,callback)        ; Parse file at path; dispatch callback per reco
         quit
         ;
 writeFile(path,rows)    ; Serialise rows(i,j) and write to path as RFC-4180 CSV.
-        ; doc: Truncates path if it exists. Uses STREAM mode so embedded
-        ; doc: CRLFs in quoted fields are written byte-faithfully.
-        ; doc: Sets $ECODE=,U-STDCSV-OPEN-FAIL, on open failure.
-        ; doc: Example: do writeFile^STDCSV("/tmp/out.csv",.rows)
+        ; doc: @param path    string  filesystem path; truncated if it exists
+        ; doc: @param rows    array   by-ref local subscripted as rows(i,j)
+        ; doc: @raises        U-STDCSV-OPEN-FAIL  could not open `path` for write
+        ; doc: @example       do writeFile^STDCSV("/tmp/out.csv",.rows)
+        ; doc: @since         v0.0.6
+        ; doc: @stable        stable
+        ; doc: @see           $$write^STDCSV, do parseFile^STDCSV
+        ; doc: Uses STREAM mode so embedded CRLFs in quoted fields are written
+        ; doc: byte-faithfully.
         new text
         set text=$$write(.rows)
         open path:(newversion:stream:nowrap):5  else  set $ecode=",U-STDCSV-OPEN-FAIL," quit
@@ -152,16 +168,18 @@ writeFile(path,rows)    ; Serialise rows(i,j) and write to path as RFC-4180 CSV.
         ; ---------- internal helpers ----------
         ;
 emit(s) ; Render one field per RFC-4180.
-        ; doc: Internal — wraps in '"..."' iff s contains ',', '"', CR, or LF;
-        ; doc: doubles every embedded '"' before wrapping.
+        ; doc: @internal
+        ; doc: Wraps in '"..."' iff s contains ',', '"', CR, or LF; doubles
+        ; doc: every embedded '"' before wrapping.
         new q,cr,lf
         set q="""",cr=$char(13),lf=$char(10)
         if (s'[",")&(s'[q)&(s'[cr)&(s'[lf) quit s
         quit q_$$dq(s)_q
         ;
 dq(s)   ; Double every '"' in s — RFC-4180 §2.7 escape.
-        ; doc: Internal — implemented via $piece walk so the cost is
-        ; doc: linear in the input length.
+        ; doc: @internal
+        ; doc: Implemented via $piece walk so the cost is linear in the
+        ; doc: input length.
         new q,n,p,out
         set q=""""
         set n=$length(s,q)

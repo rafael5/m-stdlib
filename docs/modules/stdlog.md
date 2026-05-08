@@ -5,8 +5,8 @@ phase: Phase 1
 stable: stable
 since: v0.0.4
 synopsis: 'structured key=value logger (v0.0.4)'
-labels: ['DEBUG', 'ERROR', 'FATAL', 'FORMAT', 'INFO', 'LEVEL', 'SINK', 'WARN', 'collect', 'emitJson', 'emitLine', 'escape', 'kvVal', 'levelNum', 'needsQuote', 'replace', 'writeLine']
-errors: []
+labels: ['DEBUG', 'ERROR', 'FATAL', 'FORMAT', 'INFO', 'LEVEL', 'SINK', 'WARN']
+errors: ['U-STDLOG-INVALID-FORMAT', 'U-STDLOG-INVALID-LEVEL', 'U-STDLOG-INVALID-SINK']
 conformance: []
 see_also: ['STDDATE', 'STDJSON']
 ---

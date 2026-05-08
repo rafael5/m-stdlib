@@ -2637,22 +2637,43 @@
     "STDCSV": {
       "synopsis": "m-stdlib — RFC-4180 CSV parser/writer (pure-M).",
       "description": "m-lint: disable-file=M-MOD-024\nM-MOD-024 false positives: the linter parses YDB OPEN/CLOSE\ndeviceparams (readonly, newversion, stream, nowrap, delete) as\nlocal-variable reads, then cascades read-of-undefined complaints\nthrough the rest of parseFile/writeFile. Tracked as a P2 in\nTOOLCHAIN-FINDINGS.md.\n\nFour public entry points:\n  $$parse^STDCSV(text,.rows)    — text → rows(i,j); returns row count\n  $$write^STDCSV(.rows)         — rows(i,j) → RFC-4180 CSV text\n  parseFile^STDCSV(path,cb)     — read path; dispatch cb(row,.fields) per record\n  writeFile^STDCSV(path,.rows)  — write rows(i,j) to path as RFC-4180 CSV\n\nBehaviours (RFC-4180 §2):\n  §2.1 — records separated by CRLF; LF-only and lone-CR are also\n         accepted on input. write() emits CRLF.\n  §2.2 — trailing line terminator on the last record is optional\n         on input; write() always emits one.\n  §2.3 — header rows have the same shape as data rows; the parser\n         does not distinguish them.\n  §2.4 — spaces inside fields are preserved verbatim.\n  §2.5 — fields may optionally be wrapped in '\"...\"'; the wrapping\n         quotes are not part of the value.\n  §2.6 — quoted fields may contain ',', CR, or LF as literals.\n  §2.7 — '\"\"' inside a quoted field decodes to a single '\"';\n         write() doubles any embedded '\"' and wraps the field.\n\nExtension over the RFC: a leading UTF-8 BOM (EF BB BF) is stripped\nfrom the input by parse(). write() never emits a BOM.\n\nErrors set $ECODE to one of:\n  ,U-STDCSV-OPEN-FAIL,\n\nInput is treated as a string of bytes (one M character per byte —\nvalues 0..255 via $ASCII / $CHAR). Embedded NUL bytes are not\nsupported (M strings cannot represent them portably).",
-      "errors": [],
+      "errors": [
+        "U-STDCSV-OPEN-FAIL"
+      ],
       "labels": {
         "parse": {
           "form": "extrinsic",
           "signature": "$$parse^STDCSV(text, rows)",
           "synopsis": "Parse CSV text into rows(i,j); return row count.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "doc": "CSV document (CRLF, LF, or lone-CR record terminators)"
+            },
+            {
+              "name": "rows",
+              "type": "array",
+              "doc": "caller-owned destination; killed before population"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "number of rows parsed (0 if `text` is empty)"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set n=$$parse^STDCSV(\"a,b,c\"_$char(13,10),.r)"
+          ],
+          "since": "v0.0.6",
+          "stable": "stable",
+          "see_also": [
+            "$$write^STDCSV",
+            "do parseFile^STDCSV"
+          ],
           "deprecated": "",
-          "description": "Strips a leading UTF-8 BOM. Accepts CRLF, LF, or lone CR\nas record terminators. Quoted fields may contain commas,\nCRLF, and \"\" escapes (RFC-4180 §2.5–§2.7). The caller's\nrows array is killed before population so stale subscripts\ndo not leak across calls.\nExample: set n=$$parse^STDCSV(\"a,b,c\"_$char(13,10),.r)",
+          "description": "Strips a leading UTF-8 BOM. Quoted fields may contain commas,\nCRLF, and \"\" escapes (RFC-4180 §2.5–§2.7).",
           "source": {
             "file": "src/STDCSV.m",
             "line": 43
@@ -2662,99 +2683,117 @@
           "form": "extrinsic",
           "signature": "$$write^STDCSV(rows)",
           "synopsis": "Serialise rows(i,j) to RFC-4180 CSV text.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "rows",
+              "type": "array",
+              "doc": "by-ref local subscripted as rows(i,j) for row i, col j"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "RFC-4180 text with CRLF row terminators; \"\" for empty input"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set r(1,1)=\"a\",r(1,2)=\"b\" write $$write^STDCSV(.r)"
+          ],
+          "since": "v0.0.6",
+          "stable": "stable",
+          "see_also": [
+            "$$parse^STDCSV",
+            "do writeFile^STDCSV"
+          ],
           "deprecated": "",
-          "description": "Each populated row is emitted with a CRLF terminator. Fields\ncontaining ',', '\"', CR, or LF are wrapped in '\"...\"' with\nembedded '\"' doubled per RFC-4180 §2.7. An empty rows array\nyields the empty string. Sparse columns walk via $order, so\nragged rows are emitted with as many fields as are defined.\nExample: set r(1,1)=\"a\",r(1,2)=\"b\" write $$write^STDCSV(.r)",
+          "description": "Fields containing ',', '\"', CR, or LF are wrapped in '\"...\"'\nwith embedded '\"' doubled per RFC-4180 §2.7. Sparse columns\nwalk via $order, so ragged rows are emitted with as many\nfields as are defined.",
           "source": {
             "file": "src/STDCSV.m",
-            "line": 80
+            "line": 83
           }
         },
         "parseFile": {
           "form": "procedure",
           "signature": "do parseFile^STDCSV(path, callback)",
           "synopsis": "Parse file at path; dispatch callback per record.",
-          "params": [],
+          "params": [
+            {
+              "name": "path",
+              "type": "string",
+              "doc": "filesystem path to a CSV file"
+            },
+            {
+              "name": "callback",
+              "type": "string",
+              "doc": "M call-site as \"label^routine\" (used via @-indirection)"
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDCSV-OPEN-FAIL",
+              "doc": "could not open `path` for read"
+            }
+          ],
           "raised_in_body": [
             "U-STDCSV-OPEN-FAIL"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do parseFile^STDCSV(\"foo.csv\",\"onrow^MYAPP\")"
+          ],
+          "since": "v0.0.6",
+          "stable": "stable",
+          "see_also": [
+            "$$parse^STDCSV",
+            "do writeFile^STDCSV"
+          ],
           "deprecated": "",
-          "description": "Reads path line-by-line, accumulating across record boundaries\nwhen a quoted field contains an embedded line break (RFC-4180\n§2.6). For each completed record, calls the callback as\ndo @callback@(rownum, .fields)\nwhere fields(j) holds the j'th field (1-based) and rownum is\nthe 1-based record index. The callback identifier is the\nusual \"label^routine\" form passed to indirection.\nSets $ECODE=,U-STDCSV-OPEN-FAIL, on open failure.\nExample: do parseFile^STDCSV(\"foo.csv\",\"onrow^MYAPP\")",
+          "description": "Reads `path` line-by-line, accumulating across record boundaries\nwhen a quoted field contains an embedded line break (RFC-4180\n§2.6). For each completed record, calls\ndo @callback@(rownum, .fields)\nwhere fields(j) holds the j'th field (1-based) and rownum is\nthe 1-based record index.",
           "source": {
             "file": "src/STDCSV.m",
-            "line": 100
+            "line": 107
           }
         },
         "writeFile": {
           "form": "procedure",
           "signature": "do writeFile^STDCSV(path, rows)",
           "synopsis": "Serialise rows(i,j) and write to path as RFC-4180 CSV.",
-          "params": [],
+          "params": [
+            {
+              "name": "path",
+              "type": "string",
+              "doc": "filesystem path; truncated if it exists"
+            },
+            {
+              "name": "rows",
+              "type": "array",
+              "doc": "by-ref local subscripted as rows(i,j)"
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDCSV-OPEN-FAIL",
+              "doc": "could not open `path` for write"
+            }
+          ],
           "raised_in_body": [
             "U-STDCSV-OPEN-FAIL"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do writeFile^STDCSV(\"/tmp/out.csv\",.rows)"
+          ],
+          "since": "v0.0.6",
+          "stable": "stable",
+          "see_also": [
+            "$$write^STDCSV",
+            "do parseFile^STDCSV"
+          ],
           "deprecated": "",
-          "description": "Truncates path if it exists. Uses STREAM mode so embedded\nCRLFs in quoted fields are written byte-faithfully.\nSets $ECODE=,U-STDCSV-OPEN-FAIL, on open failure.\nExample: do writeFile^STDCSV(\"/tmp/out.csv\",.rows)",
+          "description": "Uses STREAM mode so embedded CRLFs in quoted fields are written\nbyte-faithfully.",
           "source": {
             "file": "src/STDCSV.m",
-            "line": 139
-          }
-        },
-        "emit": {
-          "form": "extrinsic",
-          "signature": "$$emit^STDCSV(s)",
-          "synopsis": "Render one field per RFC-4180.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — wraps in '\"...\"' iff s contains ',', '\"', CR, or LF;\ndoubles every embedded '\"' before wrapping.",
-          "source": {
-            "file": "src/STDCSV.m",
-            "line": 154
-          }
-        },
-        "dq": {
-          "form": "extrinsic",
-          "signature": "$$dq^STDCSV(s)",
-          "synopsis": "Double every '\"' in s — RFC-4180 §2.7 escape.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — implemented via $piece walk so the cost is\nlinear in the input length.",
-          "source": {
-            "file": "src/STDCSV.m",
-            "line": 162
+            "line": 150
           }
         }
       },
@@ -5039,22 +5078,89 @@
     "STDLOG": {
       "synopsis": "m-stdlib — structured key=value logger (v0.0.4).",
       "description": "m-lint: disable-file=M-MOD-024\nM-MOD-024 false positives: the linter parses YDB OPEN deviceparams\n(e.g. APPEND) in writeLine() as local-variable reads. Same cause as\nSTDCSV's file-wide disable; tracked in TOOLCHAIN-FINDINGS.md.\n\nPublic entry points:\n  DEBUG^STDLOG(event,k1,v1,...,k5,v5)   — up to 5 kv pairs\n  INFO^STDLOG(event,...)\n  WARN^STDLOG(event,...)\n  ERROR^STDLOG(event,...)\n  FATAL^STDLOG(event,...)\n  LEVEL^STDLOG(threshold)               — \"DEBUG\"|\"INFO\"|\"WARN\"|\"ERROR\"|\"FATAL\"\n  SINK^STDLOG(target)                   — \"stderr\"|\"stdout\"|\"global\"|\"global:^GREF\"\n  FORMAT^STDLOG(name)                   — \"kv\" (default) | \"json\"\n\nOutput line format (kv, default):\n  <ISO-8601 UTC ts> level=<NAME> event=<event> k=v k=v ...\n\nOutput line format (json):\n  {\"ts\":\"<ISO-8601>\",\"level\":\"<NAME>\",\"event\":\"<event>\",\"k\":\"v\",...}\n  All values are emitted as JSON strings (preserves the kv contract\n  that values are opaque text). Built via $$encode^STDJSON, so the\n  line is byte-exactly conformant RFC 8259.\n\nValue escaping (kv): a value with no space, '=', '\"', or '\\' is\nemitted raw. Otherwise it is wrapped in double quotes, with embedded\n'\\' doubled to '\\\\' and embedded '\"' escaped to '\\\"'.\n\nDefaults: threshold=INFO, sink=stderr, format=kv. Configuration is\nprocess-local (held under ^STDLIB($job,\"stdlog\",\"...\")).\n\nErrors set $ECODE to one of:\n  ,U-STDLOG-INVALID-LEVEL,\n  ,U-STDLOG-INVALID-SINK,\n  ,U-STDLOG-INVALID-FORMAT,\n\nTimestamp source: $$now^STDDATE() (millisecond-precision ISO-8601\nUTC ending in Z). v0.0.4 shipped an inline helper; track L4b\n(this commit) bumps to STDDATE now that v0.0.5 is in.",
-      "errors": [],
+      "errors": [
+        "U-STDLOG-INVALID-LEVEL",
+        "U-STDLOG-INVALID-SINK",
+        "U-STDLOG-INVALID-FORMAT"
+      ],
       "labels": {
         "DEBUG": {
           "form": "procedure",
           "signature": "do DEBUG^STDLOG(event, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5)",
           "synopsis": "Emit a DEBUG line.",
-          "params": [],
+          "params": [
+            {
+              "name": "event",
+              "type": "string",
+              "doc": "short event name (one token, no spaces ideally)"
+            },
+            {
+              "name": "k1",
+              "type": "string",
+              "doc": "key 1 (optional)"
+            },
+            {
+              "name": "v1",
+              "type": "string",
+              "doc": "value 1 (optional)"
+            },
+            {
+              "name": "k2",
+              "type": "string",
+              "doc": "key 2 (optional)"
+            },
+            {
+              "name": "v2",
+              "type": "string",
+              "doc": "value 2 (optional)"
+            },
+            {
+              "name": "k3",
+              "type": "string",
+              "doc": "key 3 (optional)"
+            },
+            {
+              "name": "v3",
+              "type": "string",
+              "doc": "value 3 (optional)"
+            },
+            {
+              "name": "k4",
+              "type": "string",
+              "doc": "key 4 (optional)"
+            },
+            {
+              "name": "v4",
+              "type": "string",
+              "doc": "value 4 (optional)"
+            },
+            {
+              "name": "k5",
+              "type": "string",
+              "doc": "key 5 (optional)"
+            },
+            {
+              "name": "v5",
+              "type": "string",
+              "doc": "value 5 (optional)"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do DEBUG^STDLOG(\"cache_miss\",\"key\",\"u:42\")"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do INFO^STDLOG",
+            "do WARN^STDLOG",
+            "do ERROR^STDLOG",
+            "do FATAL^STDLOG"
+          ],
           "deprecated": "",
-          "description": "Suppressed when the configured threshold is above DEBUG.\nExample: do DEBUG^STDLOG(\"cache_miss\",\"key\",\"u:42\")",
+          "description": "Suppressed when the configured threshold is above DEBUG.",
           "source": {
             "file": "src/STDLOG.m",
             "line": 46
@@ -5064,310 +5170,253 @@
           "form": "procedure",
           "signature": "do INFO^STDLOG(event, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5)",
           "synopsis": "Emit an INFO line (default level).",
-          "params": [],
+          "params": [
+            {
+              "name": "event",
+              "type": "string",
+              "doc": "short event name"
+            },
+            {
+              "name": "k1",
+              "type": "string",
+              "doc": "key 1 (optional; same shape through k5/v5)"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do INFO^STDLOG(\"login\",\"user\",\"alice\",\"ip\",\"1.2.3.4\")"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do DEBUG^STDLOG",
+            "do WARN^STDLOG",
+            "do ERROR^STDLOG",
+            "do FATAL^STDLOG"
+          ],
           "deprecated": "",
-          "description": "Example: do INFO^STDLOG(\"login\",\"user\",\"alice\",\"ip\",\"1.2.3.4\")",
+          "description": "Emitted when threshold is INFO or below (DEBUG). The default level.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 53
+            "line": 67
           }
         },
         "WARN": {
           "form": "procedure",
           "signature": "do WARN^STDLOG(event, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5)",
           "synopsis": "Emit a WARN line.",
-          "params": [],
+          "params": [
+            {
+              "name": "event",
+              "type": "string",
+              "doc": "short event name"
+            },
+            {
+              "name": "k1",
+              "type": "string",
+              "doc": "key 1 (optional; same shape through k5/v5)"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do WARN^STDLOG(\"retry\",\"attempt\",\"3\")"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do INFO^STDLOG",
+            "do ERROR^STDLOG"
+          ],
           "deprecated": "",
-          "description": "Example: do WARN^STDLOG(\"retry\",\"attempt\",\"3\")",
+          "description": "Suppressed when threshold is ERROR or higher.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 59
+            "line": 79
           }
         },
         "ERROR": {
           "form": "procedure",
           "signature": "do ERROR^STDLOG(event, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5)",
           "synopsis": "Emit an ERROR line.",
-          "params": [],
+          "params": [
+            {
+              "name": "event",
+              "type": "string",
+              "doc": "short event name"
+            },
+            {
+              "name": "k1",
+              "type": "string",
+              "doc": "key 1 (optional; same shape through k5/v5)"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do ERROR^STDLOG(\"db_failed\",\"sqlcode\",\"-803\")"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do WARN^STDLOG",
+            "do FATAL^STDLOG"
+          ],
           "deprecated": "",
-          "description": "Example: do ERROR^STDLOG(\"db_failed\",\"sqlcode\",\"-803\")",
+          "description": "Suppressed when threshold is FATAL.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 65
+            "line": 91
           }
         },
         "FATAL": {
           "form": "procedure",
           "signature": "do FATAL^STDLOG(event, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5)",
           "synopsis": "Emit a FATAL line.",
-          "params": [],
+          "params": [
+            {
+              "name": "event",
+              "type": "string",
+              "doc": "short event name"
+            },
+            {
+              "name": "k1",
+              "type": "string",
+              "doc": "key 1 (optional; same shape through k5/v5)"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do FATAL^STDLOG(\"crash\",\"reason\",\"oom\")"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do ERROR^STDLOG"
+          ],
           "deprecated": "",
-          "description": "Example: do FATAL^STDLOG(\"crash\",\"reason\",\"oom\")",
+          "description": "Always emitted (threshold cannot be set above FATAL).",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 71
+            "line": 103
           }
         },
         "LEVEL": {
           "form": "procedure",
           "signature": "do LEVEL^STDLOG(threshold)",
           "synopsis": "Set the runtime threshold. Levels at or above pass.",
-          "params": [],
+          "params": [
+            {
+              "name": "threshold",
+              "type": "string",
+              "doc": "one of \"DEBUG\", \"INFO\", \"WARN\", \"ERROR\", \"FATAL\""
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDLOG-INVALID-LEVEL",
+              "doc": "`threshold` is not one of the five names"
+            }
+          ],
           "raised_in_body": [
             "U-STDLOG-INVALID-LEVEL"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do LEVEL^STDLOG(\"WARN\")  ; suppress DEBUG and INFO"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do SINK^STDLOG",
+            "do FORMAT^STDLOG"
+          ],
           "deprecated": "",
-          "description": "Accepts \"DEBUG\", \"INFO\", \"WARN\", \"ERROR\", \"FATAL\". Bad\nvalues raise ,U-STDLOG-INVALID-LEVEL,.\nExample: do LEVEL^STDLOG(\"WARN\")  ; suppress DEBUG and INFO",
+          "description": "Numeric ranks: DEBUG=10, INFO=20, WARN=30, ERROR=40, FATAL=50.\nAn emitter at rank n is suppressed when threshold > n.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 77
+            "line": 115
           }
         },
         "SINK": {
           "form": "procedure",
           "signature": "do SINK^STDLOG(target)",
           "synopsis": "Configure where log lines go.",
-          "params": [],
+          "params": [
+            {
+              "name": "target",
+              "type": "string",
+              "doc": "one of \"stderr\", \"stdout\", \"global\", or \"global:^GREF\""
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDLOG-INVALID-SINK",
+              "doc": "`target` is not one of the documented forms"
+            }
+          ],
           "raised_in_body": [
             "U-STDLOG-INVALID-SINK"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do SINK^STDLOG(\"global:^MYLOG\")  ; write to ^MYLOG(N)"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do LEVEL^STDLOG",
+            "do FORMAT^STDLOG"
+          ],
           "deprecated": "",
-          "description": "\"stderr\" / \"stdout\" — write to /dev/stderr or current device.\n\"global\" — write to ^STDLIB($job,\"stdlog\",\"buf\",N).\n\"global:^FOO\" — write to ^FOO(N) using $increment for N.\nAnything else raises ,U-STDLOG-INVALID-SINK,.",
+          "description": "\"stderr\" / \"stdout\" — write to /dev/stderr or current device.\n\"global\" — write to ^STDLIB($job,\"stdlog\",\"buf\",N).\n\"global:^FOO\" — write to ^FOO(N) using $increment for N.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 87
+            "line": 130
           }
         },
         "FORMAT": {
           "form": "procedure",
           "signature": "do FORMAT^STDLOG(name)",
           "synopsis": "Select line-rendering format. \"kv\" (default) or \"json\".",
-          "params": [],
+          "params": [
+            {
+              "name": "name",
+              "type": "string",
+              "doc": "\"kv\" (default) or \"json\""
+            }
+          ],
           "returns": null,
-          "raises": [],
+          "raises": [
+            {
+              "code": "U-STDLOG-INVALID-FORMAT",
+              "doc": "`name` is not \"kv\" or \"json\""
+            }
+          ],
           "raised_in_body": [
             "U-STDLOG-INVALID-FORMAT"
           ],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do FORMAT^STDLOG(\"json\")  ; emit JSON-line output"
+          ],
+          "since": "v0.0.4",
+          "stable": "stable",
+          "see_also": [
+            "do LEVEL^STDLOG",
+            "do SINK^STDLOG",
+            "$$encode^STDJSON"
+          ],
           "deprecated": "",
-          "description": "kv format: <ts> level=<NAME> event=<event> k=v k=v ...\njson format: {\"ts\":...,\"level\":...,\"event\":...,\"k\":\"v\",...}\nBad values raise ,U-STDLOG-INVALID-FORMAT,. JSON output uses\n$$encode^STDJSON internally so every line round-trips through\n$$parse^STDJSON without loss. All kv values render as JSON\nstrings (matches the kv-line semantic that values are opaque\ntext); callers wanting typed JSON should build a tree directly\nand call $$encode^STDJSON themselves.",
+          "description": "kv format: <ts> level=<NAME> event=<event> k=v k=v ...\njson format: {\"ts\":...,\"level\":...,\"event\":...,\"k\":\"v\",...}\nJSON output uses $$encode^STDJSON internally so every line\nround-trips through $$parse^STDJSON without loss. All kv values\nrender as JSON strings (matches the kv-line semantic that\nvalues are opaque text); callers wanting typed JSON should\nbuild a tree directly and call $$encode^STDJSON themselves.",
           "source": {
             "file": "src/STDLOG.m",
-            "line": 100
-          }
-        },
-        "collect": {
-          "form": "procedure",
-          "signature": "do collect^STDLOG(pairs, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5)",
-          "synopsis": "Pack supplied kv formals into pairs(N,\"k\"|\"v\").",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — $data() detects which formals the caller actually\npassed. Missing values default to \"\" via $get().",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 115
-          }
-        },
-        "emitLine": {
-          "form": "procedure",
-          "signature": "do emitLine^STDLOG(num, name, event, pairs)",
-          "synopsis": "Build a log line at level (num,name) and dispatch.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — short-circuits when num < threshold; branches on\nconfigured format (\"kv\" default, \"json\" via $$encode^STDJSON).",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 128
-          }
-        },
-        "emitJson": {
-          "form": "procedure",
-          "signature": "do emitJson^STDLOG(name, event, pairs)",
-          "synopsis": "Render and dispatch a JSON-format line.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — builds an STDJSON tree, calls $$encode^STDJSON,\nwrites via writeLine. All values render as JSON strings.\nVERIFICATION DEFERRED — full assertion-level tests of the\nemitted line are currently held back; calling $$encode^STDJSON\nfrom inside the suite driver crashes the YDB harness with an\nunattributable rc=1 (no TAP not-ok, no Bail Out, no stderr).\nLikely the same M17/extrinsic-chain class as the documented\nSTDASSERT.raises P1 in TOOLCHAIN-FINDINGS.md. Implementation\nis shipped intact; tests will land with that fix.",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 143
-          }
-        },
-        "writeLine": {
-          "form": "procedure",
-          "signature": "do writeLine^STDLOG(line)",
-          "synopsis": "Send a fully-rendered line to the configured sink.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — sink defaults to stderr when unset. The \"global\"\nsinks use $increment so concurrent emitters get unique slots.",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 165
-          }
-        },
-        "kvVal": {
-          "form": "extrinsic",
-          "signature": "$$kvVal^STDLOG(s)",
-          "synopsis": "Render a value: raw if \"clean\", else quoted-and-escaped.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — a value is \"clean\" iff it has at least one char\nand contains none of [space, '=', '\"', '\\']. Empty strings\nrender as the two-character literal \"\".",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 189
-          }
-        },
-        "needsQuote": {
-          "form": "extrinsic",
-          "signature": "$$needsQuote^STDLOG(s)",
-          "synopsis": "True iff s contains any byte that forces quoting.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — space, '=', '\"', or '\\' triggers quoting.",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 197
-          }
-        },
-        "escape": {
-          "form": "extrinsic",
-          "signature": "$$escape^STDLOG(s)",
-          "synopsis": "Backslash-escape '\\' (-> '\\\\') and '\"' (-> '\\\"') in s.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — order matters: replace '\\' first, then '\"'.",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 205
-          }
-        },
-        "replace": {
-          "form": "extrinsic",
-          "signature": "$$replace^STDLOG(haystack, from, to)",
-          "synopsis": "Naive scan-and-replace. Returns rebuilt string.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — used by escape(). $TRANSLATE only replaces single\nchars and can't expand '\\' to '\\\\'.",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 213
-          }
-        },
-        "levelNum": {
-          "form": "extrinsic",
-          "signature": "$$levelNum^STDLOG(name)",
-          "synopsis": "Map a level name to its numeric priority. 0 if unknown.",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — used by LEVEL() to validate input and by emit\nto compare against the threshold.",
-          "source": {
-            "file": "src/STDLOG.m",
-            "line": 226
+            "line": 148
           }
         }
       },
@@ -5654,16 +5703,31 @@
           "form": "extrinsic",
           "signature": "$$env^STDOS(name)",
           "synopsis": "Return the value of environment variable `name`, or \"\" if unset.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "name",
+              "type": "string",
+              "doc": "environment variable name"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "value, or \"\" if `name` is empty or unset"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$env^STDOS(\"HOME\")"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$user^STDOS",
+            "$$cwd^STDOS",
+            "$$hostname^STDOS"
+          ],
           "deprecated": "",
-          "description": "Empty `name` returns \"\" without consulting the environment.\nExample: write $$env^STDOS(\"HOME\")",
+          "description": "",
           "source": {
             "file": "src/STDOS.m",
             "line": 38
@@ -5674,18 +5738,23 @@
           "signature": "$$pid^STDOS()",
           "synopsis": "Return the current process ID as an integer.",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "int",
+            "doc": "process ID"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
+          "examples": [
+            "write $$pid^STDOS()  ; e.g. 12345"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
           "see_also": [],
           "deprecated": "",
-          "description": "Equivalent to YDB's $J / $JOB special variable.\nExample: write $$pid^STDOS()  ; e.g. 12345",
+          "description": "Equivalent to YDB's $J / $JOB special variable.",
           "source": {
             "file": "src/STDOS.m",
-            "line": 44
+            "line": 48
           }
         },
         "cmdline": {
@@ -5693,37 +5762,66 @@
           "signature": "$$cmdline^STDOS()",
           "synopsis": "Return the raw $ZCMDLINE string.",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "string",
+            "doc": "whole command-line tail (post-`-run ENTRY`), un-tokenised"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$cmdline^STDOS()"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$argc^STDOS",
+            "$$arg^STDOS",
+            "do argv^STDOS",
+            "$$splitArgs^STDOS"
+          ],
           "deprecated": "",
-          "description": "This is the whole command-line tail (post-`-run ENTRY`) as\none un-tokenised string. Use argc/arg/argv for split access.\nExample: write $$cmdline^STDOS()",
+          "description": "",
           "source": {
             "file": "src/STDOS.m",
-            "line": 49
+            "line": 56
           }
         },
         "splitArgs": {
           "form": "extrinsic",
           "signature": "$$splitArgs^STDOS(s, args)",
           "synopsis": "Tokenise `s` on whitespace; populate args(1..N); return N.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "s",
+              "type": "string",
+              "doc": "input string"
+            },
+            {
+              "name": "args",
+              "type": "array",
+              "doc": "by-ref local; killed then populated as args(1..N)"
+            }
+          ],
+          "returns": {
+            "type": "int",
+            "doc": "number of tokens"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set n=$$splitArgs^STDOS(\"a b c\",.args)  ; args(1..3)"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "do argv^STDOS",
+            "$$cmdline^STDOS"
+          ],
           "deprecated": "",
-          "description": "Runs of spaces collapse; leading and trailing whitespace\nare dropped. Tab and LF are NOT treated as separators in v1\n(cmdline tails rarely contain them). Empty input yields 0.\nExample: set n=$$splitArgs^STDOS(\"a b c\",.args)  ; args(1..3)",
+          "description": "Runs of spaces collapse; leading and trailing whitespace are\ndropped. Tab and LF are NOT treated as separators in v1\n(cmdline tails rarely contain them). Empty input yields 0.",
           "source": {
             "file": "src/STDOS.m",
-            "line": 55
+            "line": 64
           }
         },
         "argc": {
@@ -5731,56 +5829,90 @@
           "signature": "$$argc^STDOS()",
           "synopsis": "Return the number of $ZCMDLINE arguments.",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "int",
+            "doc": "count of whitespace-separated tokens in $ZCMDLINE"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "if $$argc^STDOS()<2 do usage^MYAPP"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$arg^STDOS",
+            "do argv^STDOS"
+          ],
           "deprecated": "",
-          "description": "Example: if $$argc^STDOS()<2 do usage^MYAPP",
+          "description": "",
           "source": {
             "file": "src/STDOS.m",
-            "line": 74
+            "line": 89
           }
         },
         "arg": {
           "form": "extrinsic",
           "signature": "$$arg^STDOS(i)",
           "synopsis": "Return the i-th $ZCMDLINE argument (1-indexed); \"\" if out of bounds.",
-          "params": [],
-          "returns": null,
+          "params": [
+            {
+              "name": "i",
+              "type": "int",
+              "doc": "1-based argument index"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "doc": "the i-th token, or \"\" if i is out of bounds"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "set inputPath=$$arg^STDOS(1)"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$argc^STDOS",
+            "do argv^STDOS"
+          ],
           "deprecated": "",
-          "description": "Example: set inputPath=$$arg^STDOS(1)",
+          "description": "",
           "source": {
             "file": "src/STDOS.m",
-            "line": 79
+            "line": 98
           }
         },
         "argv": {
           "form": "procedure",
           "signature": "do argv^STDOS(args)",
           "synopsis": "Populate args(1..N) from $ZCMDLINE; N is the implicit return.",
-          "params": [],
+          "params": [
+            {
+              "name": "args",
+              "type": "array",
+              "doc": "by-ref local; killed then populated from $ZCMDLINE tokens"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "do argv^STDOS(.args)"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$argc^STDOS",
+            "$$arg^STDOS",
+            "$$splitArgs^STDOS"
+          ],
           "deprecated": "",
-          "description": "Example: do argv^STDOS(.args)",
+          "description": "",
           "source": {
             "file": "src/STDOS.m",
-            "line": 87
+            "line": 111
           }
         },
         "cwd": {
@@ -5788,18 +5920,25 @@
           "signature": "$$cwd^STDOS()",
           "synopsis": "Return the current working directory (from $PWD).",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "path",
+            "doc": "value of $PWD; \"\" if unset"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$cwd^STDOS()  ; \"/home/user/project\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$env^STDOS"
+          ],
           "deprecated": "",
-          "description": "For container environments where $PWD is unset, this returns\n\"\"; callers that need stat-based getcwd() should wait on the\n$ZF→getcwd(2) callout backend.\nExample: write $$cwd^STDOS()  ; \"/home/user/project\"",
+          "description": "For container environments where $PWD is unset, this returns\n\"\"; callers that need stat-based getcwd() should wait on the\n$ZF→getcwd(2) callout backend.",
           "source": {
             "file": "src/STDOS.m",
-            "line": 94
+            "line": 122
           }
         },
         "user": {
@@ -5807,18 +5946,26 @@
           "signature": "$$user^STDOS()",
           "synopsis": "Return the current username (from $USER).",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "string",
+            "doc": "$USER if set; otherwise $LOGNAME; \"\" if neither"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$user^STDOS()  ; \"alice\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$env^STDOS",
+            "$$hostname^STDOS"
+          ],
           "deprecated": "",
-          "description": "Falls back to $LOGNAME if $USER is unset (System V convention).\nReturns \"\" only if neither is set.\nExample: write $$user^STDOS()  ; \"alice\"",
+          "description": "Falls back to $LOGNAME if $USER is unset (System V convention).",
           "source": {
             "file": "src/STDOS.m",
-            "line": 101
+            "line": 133
           }
         },
         "hostname": {
@@ -5826,56 +5973,53 @@
           "signature": "$$hostname^STDOS()",
           "synopsis": "Return the host name (from $HOSTNAME) or \"\" if unset.",
           "params": [],
-          "returns": null,
+          "returns": {
+            "type": "string",
+            "doc": "value of $HOSTNAME; \"\" if unset"
+          },
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
+          "examples": [
+            "write $$hostname^STDOS()  ; \"vista-meta-1\""
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
+          "see_also": [
+            "$$env^STDOS",
+            "$$user^STDOS"
+          ],
           "deprecated": "",
-          "description": "$HOSTNAME is exported by some shells (bash) but stripped in\nminimal containers; callers that always need a value should\nwait on the $ZF→gethostname(2) callout backend.\nExample: write $$hostname^STDOS()  ; \"vista-meta-1\"",
+          "description": "$HOSTNAME is exported by some shells (bash) but stripped in\nminimal containers; callers that always need a value should\nwait on the $ZF→gethostname(2) callout backend.",
           "source": {
             "file": "src/STDOS.m",
-            "line": 110
+            "line": 145
           }
         },
         "exit": {
           "form": "procedure",
           "signature": "do exit^STDOS(rc)",
           "synopsis": "Terminate the YDB process with exit code rc (default 0).",
-          "params": [],
+          "params": [
+            {
+              "name": "rc",
+              "type": "int",
+              "doc": "exit code; defaults to 0 if unsupplied"
+            }
+          ],
           "returns": null,
           "raises": [],
           "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
+          "examples": [
+            "do exit^STDOS(2)  ; rc=2 to the calling shell"
+          ],
+          "since": "v0.3.0",
+          "stable": "stable",
           "see_also": [],
           "deprecated": "",
-          "description": "Implemented via ZHALT. The process exits immediately; no\n$ETRAP fires, no cleanup runs, no further M code executes.\nExample: do exit^STDOS(2)  ; rc=2 to the calling shell",
+          "description": "Implemented via ZHALT. The process exits immediately; no\n$ETRAP fires, no cleanup runs, no further M code executes.",
           "source": {
             "file": "src/STDOS.m",
-            "line": 117
-          }
-        },
-        "replaceDouble": {
-          "form": "extrinsic",
-          "signature": "$$replaceDouble^STDOS(s)",
-          "synopsis": "Collapse one occurrence of \"  \" (two spaces) to \" \".",
-          "params": [],
-          "returns": null,
-          "raises": [],
-          "raised_in_body": [],
-          "examples": [],
-          "since": "",
-          "stable": "",
-          "see_also": [],
-          "deprecated": "",
-          "description": "Internal — driven by splitArgs's run-collapse loop. The loop\nre-checks containment so multi-run collapse converges in\nO(log n) iterations.",
-          "source": {
-            "file": "src/STDOS.m",
-            "line": 125
+            "line": 156
           }
         }
       },
@@ -10179,6 +10323,13 @@
         "parse"
       ]
     },
+    "U-STDCSV-OPEN-FAIL": {
+      "module": "STDCSV",
+      "labels": [
+        "parseFile",
+        "writeFile"
+      ]
+    },
     "U-STDDATE-BAD-HOROLOG": {
       "module": "STDDATE",
       "labels": [
@@ -10226,6 +10377,24 @@
       "labels": [
         "f",
         "fn"
+      ]
+    },
+    "U-STDLOG-INVALID-LEVEL": {
+      "module": "STDLOG",
+      "labels": [
+        "LEVEL"
+      ]
+    },
+    "U-STDLOG-INVALID-SINK": {
+      "module": "STDLOG",
+      "labels": [
+        "SINK"
+      ]
+    },
+    "U-STDLOG-INVALID-FORMAT": {
+      "module": "STDLOG",
+      "labels": [
+        "FORMAT"
       ]
     }
   }

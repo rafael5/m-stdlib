@@ -5,7 +5,7 @@ phase: P4 wave
 stable: stable
 since: v0.3.0
 synopsis: 'Process / env / cmdline helpers (YDB-only v1)'
-labels: ['arg', 'argc', 'argv', 'cmdline', 'cwd', 'env', 'exit', 'hostname', 'pid', 'replaceDouble', 'splitArgs', 'user']
+labels: ['arg', 'argc', 'argv', 'cmdline', 'cwd', 'env', 'exit', 'hostname', 'pid', 'splitArgs', 'user']
 errors: []
 conformance: []
 see_also: []
