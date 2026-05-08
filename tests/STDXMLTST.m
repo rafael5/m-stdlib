@@ -103,6 +103,23 @@ STDXMLTST       ; Test suite for STDXML (v0.2.x — Phase 4, in-progress).
         do tXpathPredicateAttrExistsFiltersOut(.pass,.fail)
         do tXpathPredicateRejectsBadExpr(.pass,.fail)
         ;
+        ; ---- T26: DTD / DOCTYPE / custom entities ----
+        do tDoctypeNoSubsetSkipped(.pass,.fail)
+        do tDoctypeEmptyInternalSubsetSkipped(.pass,.fail)
+        do tDoctypeSystemExternalSkipped(.pass,.fail)
+        do tDoctypeSystemPlusInternalSubsetSkipped(.pass,.fail)
+        do tDoctypePublicExternalSkipped(.pass,.fail)
+        do tEntityDeclExpandsInText(.pass,.fail)
+        do tEntityDeclExpandsInAttribute(.pass,.fail)
+        do tEntityDeclSingleQuotedValue(.pass,.fail)
+        do tEntityDeclMultipleDecls(.pass,.fail)
+        do tEntityDeclWithCommentsAndPI(.pass,.fail)
+        do tEntityDeclIgnoresElementAttlistNotation(.pass,.fail)
+        do tDoctypeCommentBetweenDecls(.pass,.fail)
+        do tDoctypeUnclosedRejected(.pass,.fail)
+        do tEntityDeclUnclosedSubsetRejected(.pass,.fail)
+        do tBuiltinEntitiesStillWork(.pass,.fail)
+        ;
         do report^STDASSERT(pass,fail)
         quit
         ;
@@ -793,4 +810,109 @@ tXpathPredicateRejectsBadExpr(pass,fail)        ;@TEST "xpath rejects malformed 
         set rc=$$parse^STDXML("<r><a/></r>",.root)
         set n=$$xpath^STDXML(.root,"a[contains(]",.results)
         do eq^STDASSERT(.pass,.fail,n,0,"unparseable predicate → 0")
+        quit
+        ;
+        ; ---- T26: DTD / DOCTYPE / custom entities ----
+        ;
+tDoctypeNoSubsetSkipped(pass,fail)      ;@TEST "<!DOCTYPE root> with no subset is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past DOCTYPE")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tDoctypeEmptyInternalSubsetSkipped(pass,fail)   ;@TEST "<!DOCTYPE root []> with empty internal subset is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo []><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past empty subset")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tDoctypeSystemExternalSkipped(pass,fail)        ;@TEST "<!DOCTYPE root SYSTEM ""url""> external ref is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo SYSTEM ""http://x/dtd""><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past SYSTEM ref")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tDoctypeSystemPlusInternalSubsetSkipped(pass,fail)      ;@TEST "<!DOCTYPE root SYSTEM ""url"" [...]> with both is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo SYSTEM ""x.dtd"" [<!ENTITY g ""H"">]><foo>&g;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past SYSTEM + subset")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"H","internal entity expands")
+        quit
+        ;
+tDoctypePublicExternalSkipped(pass,fail) ;@TEST "<!DOCTYPE root PUBLIC ""id"" ""url""> is skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo PUBLIC ""-//X//Y"" ""x.dtd""><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses past PUBLIC ref")
+        do eq^STDASSERT(.pass,.fail,$$rootName^STDXML(.root),"foo","root=foo")
+        quit
+        ;
+tEntityDeclExpandsInText(pass,fail)     ;@TEST "<!ENTITY name ""value""> expands in element text"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY g ""Hello"">]><foo>&g; world</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses with custom entity")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"Hello world","entity expanded in text")
+        quit
+        ;
+tEntityDeclExpandsInAttribute(pass,fail) ;@TEST "<!ENTITY name ""value""> expands in attribute value"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY id ""abc123"">]><foo bar=""&id;""/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses with attr entity")
+        do eq^STDASSERT(.pass,.fail,$$attr^STDXML(.root,"bar"),"abc123","entity expanded in attribute")
+        quit
+        ;
+tEntityDeclSingleQuotedValue(pass,fail) ;@TEST "<!ENTITY name 'value'> with single quotes works"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY g 'Hi'>]><foo>&g;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses single-quoted entity")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"Hi","single-quoted value expanded")
+        quit
+        ;
+tEntityDeclMultipleDecls(pass,fail)     ;@TEST "multiple <!ENTITY> declarations all expand"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY a ""A""><!ENTITY b ""B"">]><foo>&a;-&b;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses multi-entity DOCTYPE")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"A-B","both entities expanded")
+        quit
+        ;
+tEntityDeclWithCommentsAndPI(pass,fail) ;@TEST "comments and PIs inside DOCTYPE subset are skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!-- pre --><!ENTITY g ""V""><?pi data?>]><foo>&g;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses subset with comment + PI")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"V","entity still found")
+        quit
+        ;
+tEntityDeclIgnoresElementAttlistNotation(pass,fail) ;@TEST "<!ELEMENT> / <!ATTLIST> / <!NOTATION> are skipped"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ELEMENT foo (#PCDATA)><!ATTLIST foo id CDATA #IMPLIED><!NOTATION n SYSTEM ""x""><!ENTITY g ""kept"">]><foo>&g;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses subset with element/attlist/notation")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"kept","entity decl still picked up")
+        quit
+        ;
+tDoctypeCommentBetweenDecls(pass,fail)  ;@TEST "<!-- comment --> between markup decls in subset"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY a ""A""><!-- between --><!ENTITY b ""B"">]><foo>&a;&b;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses subset with mid-comment")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"AB","both entities survive")
+        quit
+        ;
+tDoctypeUnclosedRejected(pass,fail)     ;@TEST "<!DOCTYPE foo without > is rejected"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo<foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,0,"unclosed DOCTYPE → fail")
+        quit
+        ;
+tEntityDeclUnclosedSubsetRejected(pass,fail)    ;@TEST "<!DOCTYPE foo [<!ENTITY... without ]> is rejected"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY g ""x""><foo/>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,0,"unclosed internal subset → fail")
+        quit
+        ;
+tBuiltinEntitiesStillWork(pass,fail)    ;@TEST "after DOCTYPE, &amp; / &lt; / numeric refs still expand"
+        new root,rc
+        set rc=$$parse^STDXML("<!DOCTYPE foo [<!ENTITY g ""x"">]><foo>&amp;&lt;&#65;&g;</foo>",.root)
+        do eq^STDASSERT(.pass,.fail,rc,1,"parses combined builtin + custom")
+        do eq^STDASSERT(.pass,.fail,$$text^STDXML(.root),"&<Ax","builtins + custom both decode")
         quit

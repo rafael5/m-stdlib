@@ -43,8 +43,16 @@ STDXML  ; m-stdlib — XML parser (well-formed XML 1.0 subset, in-progress).
         ;   <name>       ::= [A-Za-z_:] [A-Za-z0-9_:.-]*
         ;   <chardata>   ::= text with the 5 standard entities decoded
         ;
-        ; Out of scope (queued — see docs/module-tracker.md):
-        ;   - DTDs / DOCTYPE / custom entities                       (T26)
+        ; T26 — DTDs / DOCTYPE / internal subset / custom entities (closed
+        ; 2026-05-08): `<!DOCTYPE root [...]>` is consumed at the prolog;
+        ; `<!ENTITY name "value">` declarations populate ctx("entity",name)
+        ; and expand in subsequent text + attribute content. `<!ELEMENT>` /
+        ; `<!ATTLIST>` / `<!NOTATION>` decls are parsed but not enforced
+        ; (skipped through the next `>`). External DTDs (`SYSTEM "url"`,
+        ; `PUBLIC "id" "url"`) are accepted in the prolog and silently
+        ; ignored — only the internal subset is materialised. Parameter
+        ; entities (`%name;`) and external entity references are out of
+        ; scope; if a real consumer needs them, lift through a follow-up.
         ;
         quit
         ;
@@ -262,7 +270,7 @@ parseAttrs(ctx,node)    ; Parse zero-or-more attributes onto node.
         . set value=$$parseAttrValue(.ctx,quote)
         . if $$peek(.ctx)'=quote do err("unterminated attr value") set done=1,bad=1 quit
         . do advance(.ctx,1)
-        . set node("attr",attrName)=$$decodeEntities(value)
+        . set node("attr",attrName)=$$decodeEntities(value,.ctx)
         if bad quit 0
         quit 1
         ;
@@ -290,7 +298,7 @@ parseContent(ctx,parentName,node,nsIn)  ; Parse element content until </parentNa
         . . set end9=$$peekN(.ctx,9)
         . . if end4="<!--" if '$$skipComment(.ctx) set bad=1,done=1
         . . if end9="<![CDATA[" do
-        . . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf),buf=""
+        . . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf,.ctx),buf=""
         . . . set cdataText=""
         . . . if '$$parseCdata(.ctx,.cdataText) set bad=1,done=1 quit
         . . . set node("text")=$get(node("text"),"")_cdataText
@@ -298,14 +306,14 @@ parseContent(ctx,parentName,node,nsIn)  ; Parse element content until </parentNa
         . if end2="<?" do  quit
         . . if '$$skipPI(.ctx) set bad=1,done=1
         . if $$peek(.ctx)="<" do  quit
-        . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf),buf=""
+        . . if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf,.ctx),buf=""
         . . set childCount=childCount+1
         . . if '$$parseElement(.ctx,.tmpChild,.nsIn) set bad=1,done=1 quit
         . . merge node("child",childCount)=tmpChild
         . set buf=buf_$$peek(.ctx)
         . do advance(.ctx,1)
         if bad quit 0
-        if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf)
+        if buf'="" set node("text")=$get(node("text"),"")_$$decodeEntities(buf,.ctx)
         set node("childCount")=childCount
         ; Now consume </parentName>
         if $$peekN(.ctx,2)'="</" do err("expected end tag") quit 0
@@ -998,22 +1006,129 @@ parseName(ctx)  ; Read an XML name [A-Za-z_:] [A-Za-z0-9_:.-]*; return "" on fai
         ;
         ; ---------- internal: doc-level skipping (T23) ----------
         ;
-skipDocLevel(ctx)       ; Skip whitespace, comments, and PIs at the document level.
+skipDocLevel(ctx)       ; Skip whitespace, comments, PIs, and DOCTYPE at the document level.
         ; doc: Internal — used before and after the root element. Returns 0
-        ; doc: only if a comment / PI is malformed (unclosed); whitespace and
-        ; doc: a missing comment / PI are normal.
-        new end2,end4,done,bad
+        ; doc: only if a comment / PI / DOCTYPE is malformed (unclosed);
+        ; doc: whitespace and a missing item are normal. DOCTYPE handling
+        ; doc: populates ctx("entity",name) for any internal `<!ENTITY>`
+        ; doc: declarations, which `decodeEntities` then expands.
+        new end2,end4,end9,done,bad
         set done=0,bad=0
         for  quit:done  do
         . do skipWs(.ctx)
         . set end2=$$peekN(.ctx,2)
         . set end4=$$peekN(.ctx,4)
+        . set end9=$$peekN(.ctx,9)
         . if end4="<!--" do  quit
         . . if '$$skipComment(.ctx) set done=1,bad=1
         . if end2="<?" do  quit
         . . if '$$skipPI(.ctx) set done=1,bad=1
+        . if end9="<!DOCTYPE" do  quit
+        . . if '$$parseDoctype(.ctx) set done=1,bad=1
         . set done=1
         if bad quit 0
+        quit 1
+        ;
+parseDoctype(ctx)       ; Consume `<!DOCTYPE name [external-id] [internal-subset] >`.
+        ; doc: Internal — T26. External SYSTEM / PUBLIC identifiers are
+        ; doc: tolerated but ignored; only the internal subset (between
+        ; doc: `[` and `]`) is parsed for `<!ENTITY>` decls.
+        new c,inQuote,sub,done,bad
+        if $$peekN(.ctx,9)'="<!DOCTYPE" do err("expected <!DOCTYPE") quit 0
+        do advance(.ctx,9)
+        ; Scan past root-name and optional ExternalID until `[` or `>`.
+        ; Tolerate quoted strings (SYSTEM "..." / PUBLIC "..." "...").
+        set inQuote="",done=0,bad=0,sub=1
+        for  quit:done  do
+        . set c=$$peek(.ctx)
+        . if c="" set done=1,bad=1 quit
+        . if inQuote'="" do  quit
+        . . if c=inQuote set inQuote=""
+        . . do advance(.ctx,1)
+        . if (c="""")!(c="'") set inQuote=c do advance(.ctx,1) quit
+        . if c="[" set done=1 quit
+        . if c=">" set done=1 quit
+        . do advance(.ctx,1)
+        if bad do err("unclosed DOCTYPE") quit 0
+        if c="[" do
+        . do advance(.ctx,1)
+        . set sub=$$parseDoctypeSubset(.ctx)
+        if 'sub quit 0
+        do skipWs(.ctx)
+        if $$peek(.ctx)'=">" do err("expected '>' at end of DOCTYPE") quit 0
+        do advance(.ctx,1)
+        quit 1
+        ;
+parseDoctypeSubset(ctx) ; Inside `[...]` of DOCTYPE — consume markup decls until `]`.
+        ; doc: Internal — T26. Recognised forms: `<!ENTITY>` (kept),
+        ; doc: `<!ELEMENT>` / `<!ATTLIST>` / `<!NOTATION>` (skipped),
+        ; doc: `<!--…-->` (skipped), `<?…?>` (skipped). Whitespace
+        ; doc: between decls is consumed. Parameter entity references
+        ; doc: (`%name;`) are not supported.
+        new c,end4,end9,done,bad
+        set done=0,bad=0
+        for  quit:done  do
+        . set c=$$peek(.ctx)
+        . if c="" do err("unclosed internal DTD subset") set done=1,bad=1 quit
+        . if c="]" set done=1 quit
+        . if (c=" ")!(c=$char(9))!(c=$char(10))!(c=$char(13)) do advance(.ctx,1) quit
+        . set end4=$$peekN(.ctx,4)
+        . set end9=$$peekN(.ctx,9)
+        . if end9="<!ENTITY " do  quit
+        . . if '$$parseEntityDecl(.ctx) set done=1,bad=1
+        . if end4="<!--" do  quit
+        . . if '$$skipComment(.ctx) set done=1,bad=1
+        . if $$peekN(.ctx,2)="<?" do  quit
+        . . if '$$skipPI(.ctx) set done=1,bad=1
+        . if $extract(end4,1,2)="<!" do  quit
+        . . if '$$skipMarkupDecl(.ctx) set done=1,bad=1
+        . do err("unexpected character in DTD subset: "_c) set done=1,bad=1
+        if bad quit 0
+        do advance(.ctx,1)        ; consume the closing ']'
+        quit 1
+        ;
+parseEntityDecl(ctx)    ; Consume `<!ENTITY name "value">` and record in ctx("entity",name).
+        ; doc: Internal — T26. Single- or double-quoted values; entity
+        ; doc: refs inside the value are NOT recursively expanded in v1
+        ; doc: (consumer-driven simplification — modern XML rarely nests
+        ; doc: custom-entity definitions).
+        new name,quote,value,c
+        if $$peekN(.ctx,9)'="<!ENTITY " do err("expected <!ENTITY ") quit 0
+        do advance(.ctx,9)
+        do skipWs(.ctx)
+        if $$peek(.ctx)="%" do err("parameter entities not supported") quit 0
+        set name=$$parseName(.ctx)
+        if name="" do err("expected entity name") quit 0
+        do skipWs(.ctx)
+        set quote=$$peek(.ctx)
+        if (quote'="""")&(quote'="'") do err("expected quote for entity value") quit 0
+        do advance(.ctx,1)
+        set value=""
+        for  set c=$$peek(.ctx) quit:c=""  quit:c=quote  set value=value_c do advance(.ctx,1)
+        if c="" do err("unterminated entity value") quit 0
+        do advance(.ctx,1)
+        do skipWs(.ctx)
+        if $$peek(.ctx)'=">" do err("expected '>' at end of <!ENTITY>") quit 0
+        do advance(.ctx,1)
+        set ctx("entity",name)=value
+        quit 1
+        ;
+skipMarkupDecl(ctx)     ; Skip `<!ELEMENT|ATTLIST|NOTATION ...>`. Quote-aware.
+        ; doc: Internal — T26. v1 does not enforce content models; the
+        ; doc: declaration is consumed verbatim. Inner SYSTEM / PUBLIC
+        ; doc: literals are tolerated.
+        new c,inQuote
+        if $$peekN(.ctx,2)'="<!" do err("expected <!") quit 0
+        do advance(.ctx,2)
+        set inQuote=""
+        for  set c=$$peek(.ctx) quit:c=""  quit:(inQuote="")&(c=">")  do
+        . if inQuote'="" do  quit
+        . . if c=inQuote set inQuote=""
+        . . do advance(.ctx,1)
+        . if (c="""")!(c="'") set inQuote=c do advance(.ctx,1) quit
+        . do advance(.ctx,1)
+        if c="" do err("unclosed markup decl in DTD subset") quit 0
+        do advance(.ctx,1)
         quit 1
         ;
 skipComment(ctx)        ; Consume `<!-- ... -->`. Return 1/0 on closure.
@@ -1058,9 +1173,13 @@ parseCdata(ctx,text)    ; Consume `<![CDATA[ ... ]]>`. Append literal content to
         ;
         ; ---------- internal: entity decoding ----------
         ;
-decodeEntities(s)       ; Decode the 5 standard entities + numeric character refs in s.
+decodeEntities(s,ctx)   ; Decode the 5 standard entities + numeric refs + custom entities in s.
         ; doc: Internal — &amp; &lt; &gt; &quot; &apos; → & < > " '.
         ; doc: T24: also &#NNN; (decimal) and &#xHH; (hex), UTF-8-encoded.
+        ; doc: T26: any name found in ctx("entity",name) (populated by
+        ; doc: parseEntityDecl from the DOCTYPE internal subset) expands
+        ; doc: to its declared value. Unknown / undeclared entity refs
+        ; doc: pass through verbatim — same lenient policy as v0.
         new out,n,i,c,end,name,cp,first
         set n=$length(s),out="",i=1
         for  quit:i>n  do
@@ -1079,6 +1198,7 @@ decodeEntities(s)       ; Decode the 5 standard entities + numeric character ref
         . . set cp=$$decodeNumericRef(name)
         . . if cp<0 set out=out_c,i=i+1 quit
         . . set out=out_$$encodeUtf8(cp),i=end
+        . if $data(ctx("entity",name)) set out=out_ctx("entity",name),i=end quit
         . set out=out_c,i=i+1
         quit out
         ;
