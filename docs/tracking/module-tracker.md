@@ -1539,6 +1539,24 @@ time, not development time:
 | `v0.3.0` release | 🟡 queued | All Phase 3 tracks + jwt-verify example |
 | `v1.0.0` | 🟡 queued (time-based) | 3 months of API stability after `v0.3.0` |
 
+### Deferred decisions — revisit triggers
+
+Decisions intentionally deferred. Each row records the deferred
+choice, the trigger condition that should re-open it, and the
+plan-doc location of the original analysis. Source:
+[`docs/plans/discoverability-and-tooling-plan.md`](../plans/discoverability-and-tooling-plan.md)
+§ 11.
+
+| ID | Deferred decision | Default in effect | Revisit when | Source |
+|---|---|---|---|---|
+| D1 | Build an HTML / GitHub Pages docs site (`dist/site/`) generated from the manifest + `docs/modules/*.md` | Markdown-only; humans read on GitHub | A non-maintainer adopts m-stdlib, **or** a second human contributor lands a module | discoverability-and-tooling-plan.md § 5.2, § 11.1 |
+| D2 | Turn on the `@stable` SemVer CI gate (manifest diff at HEAD vs last tag fails on `stable` regressions outside a major bump) | Annotation ships with Wave A; gate stays off | v1.0 is being planned, **or** a non-maintainer consumer adopts m-stdlib, whichever comes first | discoverability-and-tooling-plan.md § 3.6, § 11.2 |
+| D3 | Replace the hand-rolled `tools/gen-manifest.m` parser with a tree-sitter-m–driven generator | Hand parser (~150 LoC) ships in Wave A | tree-sitter-m hits a stable v1, **or** the manifest generator needs language features beyond labels + doc comments (cross-module type inference, dead-code detection, etc.) | discoverability-and-tooling-plan.md § 3.2, § 11.4 |
+
+These rows are deliberately not Tn tickets — Tn is for active or
+queued work; these are conditional re-openings. Promote a row to a
+Tn ticket the moment its trigger fires.
+
 ### Per-module acceptance gate (§9 of the implementation plan)
 
 Every module must pass these before its `vN.N.N` tag:
