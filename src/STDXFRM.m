@@ -42,11 +42,12 @@ map(in,expr,out)        ; out(k) := <expr> for each k in $ORDER(in,k).
         ; doc:   ; out(1)=2, out(2)=4, out(3)=6
         ; doc: Lambda locals visible to expr: `value` (in(k)) and `key` (k).
         kill out
-        new k,value,key,result
-        set k=""
+        new k,value,key,result,cmd
+        set cmd="set result="_expr
+        set result="",k=""
         for  set k=$order(in(k)) quit:k=""  do
         . set value=in(k),key=k
-        . set result=@expr
+        . xecute cmd
         . set out(k)=result
         quit
         ;
@@ -58,11 +59,12 @@ filter(in,expr,out)     ; Copy in(k)→out(k) iff <expr> is truthy.
         ; doc: Subscripts are preserved. Values are copied verbatim — the
         ; doc: predicate result is discarded after the keep/drop decision.
         kill out
-        new k,value,key,keep
-        set k=""
+        new k,value,key,keep,cmd
+        set cmd="set keep="_expr
+        set keep="",k=""
         for  set k=$order(in(k)) quit:k=""  do
         . set value=in(k),key=k
-        . set keep=@expr
+        . xecute cmd
         . if keep set out(k)=in(k)
         quit
         ;
@@ -72,9 +74,10 @@ reduce(in,expr,init)    ; Fold left: walk in, evaluate expr with `acc`+`value`+`
         ; doc:   new a  set a(1)=1,a(2)=2,a(3)=3,a(4)=4
         ; doc:   write $$reduce^STDXFRM(.a, "acc+value", 0)  ; 10
         ; doc:   write $$reduce^STDXFRM(.a, "acc*value", 1)  ; 24
-        new k,value,key,acc
+        new k,value,key,acc,cmd
+        set cmd="set acc="_expr
         set acc=init,k=""
         for  set k=$order(in(k)) quit:k=""  do
         . set value=in(k),key=k
-        . set acc=@expr
+        . xecute cmd
         quit acc

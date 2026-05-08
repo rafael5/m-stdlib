@@ -1104,17 +1104,22 @@ Promoted out of Table 2 (now in Table 1):
   coercion rule so non-numeric values fold to 0 the same way native
   arithmetic does, no surprise. 28 tests / 26 labels staked.
 - **STDXFRM** — promoted 2026-05-08 to Table 1 as **L27 P4**. Higher-
-  order array transforms via `@expr` indirection: `do map^STDXFRM`,
+  order array transforms via XECUTE-evaluated lambdas: `do map^STDXFRM`,
   `do filter^STDXFRM`, `$$reduce^STDXFRM`. The lambda string is
-  evaluated in STDXFRM's own stack frame so it sees `value` (current
-  element), `key` (current subscript), and `acc` (reduce only) as
-  plain locals. `map` / `filter` `kill out` before walking — stale
-  prior state cannot leak through. `reduce` returns `init` unchanged
-  on empty input (standard fold identity). Errors in the expression
-  propagate to the caller's `$ETRAP` — STDXFRM does not catch.
-  Same `@`-indirection idiom as STDMOCK's `do @resolved@(.args)`;
-  M-MOD-036 disabled file-wide for the same reason. 19 tests /
-  19 labels staked.
+  evaluated via `XECUTE "set <target>="_expr` in STDXFRM's own stack
+  frame so it sees `value` (current element), `key` (current
+  subscript), and `acc` (reduce only) as plain locals. `map` /
+  `filter` `kill out` before walking — stale prior state cannot leak
+  through. `reduce` returns `init` unchanged on empty input (standard
+  fold identity). Errors in the expression propagate to the caller's
+  `$ETRAP` — STDXFRM does not catch. **Implementation note:** the
+  initial v1 used `set result=@expr` (name-indirection) which YDB
+  rejects on any binary expression like `value*2` (`INDEXTRACHARS` —
+  `@expr` only resolves a single expratom). Switched to XECUTE
+  2026-05-08 alongside the engine-bound green-run; XECUTE accepts
+  any RHS-of-`set` expression. M-MOD-036 disabled file-wide for the
+  intentional indirection. **Engine-verified 2026-05-08: 38/38
+  assertions across 19 labels green.**
 
 **Aggregate proposal effort:** ~20–32d est. for the remaining 2
 candidates if every row eventually lands (STDXML, STDMATH, STDXFRM

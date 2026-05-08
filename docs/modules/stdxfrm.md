@@ -2,10 +2,10 @@
 
 A small higher-order-function trio that modernises the standard
 `$ORDER`-loop idiom. The transformation is supplied as an M
-expression string and evaluated via `@expr` in the module's stack
-frame — the lambda sees `value` and `key` (and `acc`, for
-`reduce`) as plain locals. Pure-M throughout; runs unchanged on
-YDB and IRIS.
+expression string and evaluated via `XECUTE "set <target>="_expr`
+in the module's stack frame — the lambda sees `value` and `key`
+(and `acc`, for `reduce`) as plain locals. Pure-M throughout;
+runs unchanged on YDB and IRIS.
 
 ## Public API
 
@@ -25,7 +25,7 @@ DO map^STDXFRM(.a, "value*2", .out)
 
 ; format key:value pairs
 NEW a,out  SET a("x")=10,a("y")=20
-DO map^STDXFRM(.a, "key_'='_value", .out)
+DO map^STDXFRM(.a, "key_""=""_value", .out)
 ; out("x")="x=10", out("y")="y=20"
 
 ; even-only
@@ -51,8 +51,8 @@ WRITE $$reduce^STDXFRM(.a, "acc+1", 0),!      ; 4
 
 ## Lambda locals
 
-The expression is evaluated via M's `@expr` indirection inside
-STDXFRM's stack frame, so it sees these locals:
+The expression is evaluated via `XECUTE "set <target>="_expr`
+inside STDXFRM's stack frame, so it sees these locals:
 
 | Local | Visible to | Holds |
 |---|---|---|
@@ -108,18 +108,32 @@ IF errored ...
 
 ## Performance
 
-`@expr` indirection compiles the expression once per element —
-faster than `XECUTE`'s string-recompile-every-time idiom but
-slower than a hand-rolled loop with a static expression. For
-hot loops over millions of elements, write the loop directly.
-For everything else (config transforms, FileMan record munging,
-report aggregations) STDXFRM is the right shape.
+The dispatch builds the `set <target>="_expr` command string
+once per call (outside the `$ORDER` walk) and `XECUTE`s it per
+element. YDB caches the compiled form of an `XECUTE` argument
+when the same string is reused, so the per-element overhead
+collapses to a constant after the first iteration. Slower than
+a hand-rolled loop with a static expression but adequate for
+the typical workload (config transforms, FileMan record
+munging, report aggregations). For hot loops over millions of
+elements, write the loop directly.
+
+## Why XECUTE and not `@expr`?
+
+The original v1 implementation used `set result=@expr`. That
+form is **name-indirection** in M — `@expr` resolves to a single
+expratom (a glvn / literal / unary / parenthesised expression),
+not an arbitrary expression. So `@"value*2"` fires
+`%YDB-E-INDEXTRACHARS` because `*2` parses as trailing junk
+after the name `value`. The XECUTE form accepts any expression
+that's valid on the right-hand side of `set` — which is what
+the documented contract advertises.
 
 ## Engine portability
 
-Pure-M, no `$Z*` extensions. The `@expr` indirection is ANSI M
-standard. Runs unchanged on YDB and IRIS. The test suite (19
-assertions across 19 labels) is the conformance gate.
+Pure-M, no `$Z*` extensions. `XECUTE` is ANSI M standard. Runs
+unchanged on YDB and IRIS. The test suite (38 assertions across
+19 labels) is the conformance gate.
 
 ## See also
 

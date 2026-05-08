@@ -10,6 +10,41 @@ Pre-1.0 minor versions may include breaking changes.
 
 ### Fixed
 
+- **`STDXFRM` (L27, P4) — `@expr` regression replaced with XECUTE.**
+  The v0.3.x landing used `set result=@expr` for `map` / `filter` /
+  `reduce` lambdas. YDB's `@expr` is **name-indirection** (single
+  expratom only — glvn / literal / unary / parenthesised expr); it
+  rejects binary expressions like `value*2` with `%YDB-E-INDEXTRACHARS`
+  because `*2` parses as trailing junk after the name `value`. All
+  three lambda labels now build the command string once
+  (`set cmd="set result="_expr` outside the `$ORDER` walk) and
+  `xecute cmd` per element. Bonus: `tMapHasAccessToKey` test had a
+  typo `"key_'='_value"` (M's `'=` is the not-equals operator) —
+  fixed to `"key_""=""_value"`. Engine-verified: STDXFRMTST
+  0/0 → **38/38 green**, 100% label coverage, lint clean (0E).
+- **`STDCOMPRESS` (H2, P3) — `$ECODE` channel redesign (T30).**
+  `dispatchC` / `dispatchD` previously set `$ECODE=,U-…-FAIL,`
+  while a local `$etrap` was still armed; the trap fired on the
+  ECODE-set, cleared the value, and returned 0 — so by the time
+  the caller read `$ECODE`, it was empty. New design: dispatch
+  returns a status string (`""` / `"MISSING"` / `"FAIL"`); each
+  public extrinsic (`gzip` / `gunzip` / `deflate` / `inflate` /
+  `zstdCompress` / `zstdDecompress`) maps the status to the
+  appropriate `$ECODE` tag *after* dispatch returns, where the
+  caller's etrap can see it cleanly. Six error-path tests in
+  `STDCOMPRESSTST.m` migrated from the manual
+  `set $etrap="set $ecode="""" quit"` + `contains^STDASSERT` pattern
+  (whose argless `quit` from inside the etrap unwinds past the
+  contains assertion) to the standard `raises^STDASSERT` idiom
+  (which uses `ZGOTO` to unwind cleanly after capturing `$ECODE`).
+  Engine-verified: STDCOMPRESSTST 55/57 → **59/59 green**.
+- **Aggregate engine gate now full-green.** `m test tests/`:
+  **32 suites, 2483/2483 assertions** across the entire m-stdlib
+  surface (was 29/32 with STDCRYPTOTST timeout / STDCOMPRESSTST 0/0
+  / STDXFRMTST 0/0). Closes T11 (Phase 3 entry) wholesale —
+  STDCRYPTO 23/23 + STDCOMPRESS 59/59 + STDHTTP 68/68 all green
+  via `make test` against the vista-meta YDB engine.
+
 - **`STDCRYPTO` (H1, P3) — actually green on the engine.** The Phase 3
   lead landed code-complete on `main` 2026-05-07 but had never run
   green: the M-side dispatch used `$ZF` + `ydb_ci` with `.var` byref

@@ -64,7 +64,7 @@ tMapStringExpression(pass,fail) ;@TEST "map evaluates an arbitrary M expression"
 tMapHasAccessToKey(pass,fail)   ;@TEST "lambda sees the current key local"
         new in,out
         set in("a")=10,in("b")=20
-        do map^STDXFRM(.in,"key_'='_value",.out)
+        do map^STDXFRM(.in,"key_""=""_value",.out)
         do eq^STDASSERT(.pass,.fail,$get(out("a")),"a=10","key+value")
         do eq^STDASSERT(.pass,.fail,$get(out("b")),"b=20","key+value")
         quit

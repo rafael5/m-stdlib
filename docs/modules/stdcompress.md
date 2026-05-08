@@ -7,8 +7,10 @@ compress/decompress kernels execute in C via YDB external calls.
 
 ## Status
 
-🚧 **In flight** — H2 track. v1 surface scoped here; tests-first; impl
-follows. See `docs/parallel-tracks.md` §3.5 (Phase 3) and
+✅ **Shipped** — H2 track. Engine-verified 2026-05-08 via `make test`:
+STDCOMPRESSTST 59/59 against the vista-meta YDB engine (T11 Phase 3
+entry closed; T28 deployment closed; T30 `$ECODE` channel redesign
+closed). See `docs/parallel-tracks.md` §3.5 (Phase 3) and
 `docs/module-tracker.md` row H2.
 
 ## Public API
@@ -82,8 +84,30 @@ recover, or check `$ECODE` after the call.
 |---|---|
 | `,U-STDCOMPRESS-BAD-LEVEL,` | Level argument outside the codec's supported range. |
 | `,U-STDCOMPRESS-CALLOUT-MISSING,` | The `stdcompress` callout shared object isn't loaded (env not set, .so not built, or library missing). Use `available()` for an upfront check. |
-| `,U-STDCOMPRESS-LIBZ-FAIL,` | libz returned a non-Z_OK status — usually corrupt / truncated input on inflate, or a `Z_BUF_ERROR` if compressed output exceeded the 16 MiB cap. |
+| `,U-STDCOMPRESS-LIBZ-FAIL,` | libz returned a non-Z_OK status — usually corrupt / truncated input on inflate, or a `Z_BUF_ERROR` if compressed output exceeded the 1 MiB cap. |
 | `,U-STDCOMPRESS-LIBZSTD-FAIL,` | libzstd returned an error frame — same shape as libz on the corrupt-input path. |
+
+### Error channel — implementation note
+
+The internal `dispatchC` / `dispatchD` helpers return a status string
+(`""` / `"MISSING"` / `"FAIL"`) rather than setting `$ECODE` directly.
+Each public extrinsic maps the status onto the right `$ECODE` tag
+**after** dispatch returns. The reason: while a local `$ETRAP` is
+armed inside dispatch (to catch the missing-callout case), an
+explicit `set $ecode=,U-…,` would re-fire the local trap before the
+caller can observe the value. By splitting the responsibilities —
+dispatch only catches dispatch-level errors, public extrinsics own
+the user-visible `$ECODE` contract — both the missing-callout path
+(rare) and the codec-failure path (common) propagate cleanly to
+the caller's trap.
+
+The error-path tests in `STDCOMPRESSTST.m` use the standard
+`raises^STDASSERT(.pass,.fail,code,errno,desc)` idiom, not the
+manual `set $etrap="set $ecode="""" quit"` + `contains^STDASSERT`
+pattern — the manual pattern's argless `quit` from inside the etrap
+unwinds past the contains assertion before it executes, so the
+`$ECODE` value is never inspected. `raises^STDASSERT` uses `ZGOTO`
+to unwind cleanly after capturing `$ECODE`.
 
 ## Build
 
@@ -99,20 +123,42 @@ links against `-lz` and `-lzstd`. The build host must have `zlib.h`
 and `zstd.h` available (Debian/Ubuntu: `apt install zlib1g-dev
 libzstd-dev`; macOS: `brew install zlib zstd`).
 
-The YDB call-out descriptor is `tools/std_compress.xc`. Deployment
-runbook (matches STDCRYPTO):
+The YDB call-out descriptor is `tools/std_compress.xc`. M-side calls
+use the `$&stdcompress.<fn>(...)` namespaced syntax (XECUTE-wrapped
+to keep tree-sitter-m happy with the `$&pkg.fn` token), so YDB
+expects `ydb_xc_stdcompress=<path>` (alphanumeric package name —
+no underscore between `std` and `compress`).
+
+For local development on a host with `libz.so.1` + `libzstd.so.1`
+loadable:
 
 ```bash
 tools/build-callouts.sh                                     # produce .so
 export STDLIB_LIB=$PWD/so/$(uname -s | tr 'A-Z' 'a-z')-$(uname -m)
-export ydb_ci=$PWD/tools/std_compress.xc
-# ensure libz.so.1 + libzstd.so.1 are on the loader path
+export ydb_xc_stdcompress=$PWD/tools/std_compress.xc
 ```
 
-After that, `make test` picks up the callout via `$ZF` calls inside
-`STDCOMPRESS.m`. The wiring is the same single-package model that
-STDCRYPTO uses; running both modules in one session requires unioning
-their `.xc` files (queued at T28 / T29).
+For the engine-bound test loop, `make seed` runs `scripts/seed-callouts.sh`,
+which scps `src/callouts/*.c` + `tools/std_*.xc` into the vista-meta
+container, compiles each `.c` against the runtime YDB headers (so the
+ABI matches r2.02), stages `.so` + `.xc` artefacts under
+`~/export/seed/m-stdlib/{lib/<plat>,xc}/`, and idempotently injects a
+marker block into `/etc/profile.d/ydb_env.sh` exporting
+`STDLIB_LIB` + `ydb_xc_stdcompress` (and the per-package env vars
+for the other Phase 3 modules) so every `m test` SSH session
+inherits them. Running multiple modules in one session is a no-op —
+each gets its own `ydb_xc_<pkg>` slot.
+
+### Output buffer cap — 1 MiB
+
+`tools/std_compress.xc` declares `O:ydb_string_t*[1048576]` — 1 MiB —
+on every output parameter. YDB r2.02 caps M-string length at 1 MiB
+by default, so larger declarations (the originally-shipped `[16777216]`
+form) trip a parse error at descriptor load time. The `preallocBuf()`
+M-side helper pre-allocates the same 1 MiB so the C side can write
+through `ydb_string_t.length` in place. Payloads that compress / decompress
+to more than 1 MiB will need the streaming API (queued — see
+"Out of scope" below).
 
 ## Out of scope (queued)
 

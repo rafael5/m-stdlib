@@ -11,14 +11,23 @@
  * Loading:
  *   tools/std_crypto.xc                # YDB call-out descriptor
  *   export STDLIB_LIB=<abs-path-to-so/<plat>>
- *   export ydb_xc_std_crypto=<abs-path>/tools/std_crypto.xc
+ *   export ydb_xc_stdcrypto=<abs-path>/tools/std_crypto.xc
  *
  * Calling convention:
- *   Each entry point takes one or two ydb_string_t* INPUT buffers, plus one
- *   ydb_string_t* OUTPUT buffer pre-allocated by YDB (size declared via
- *   O:ydb_string_t*[64] in the .xc descriptor — large enough for SHA-512).
- *   The C side writes the raw digest bytes into out->address and updates
- *   out->length to the actual digest size. Returns 0 on success.
+ *   YottaDB's `$&pkg.fn(args)` external-call ABI prepends an `int argc`
+ *   to every C entry point. So although the `.xc` descriptor describes
+ *   the user-visible signature, e.g.
+ *       sha256: ydb_int_t crypto_sha256(I:ydb_string_t*, O:ydb_string_t*[64])
+ *   the actual C function takes (argc, in, out) — argc is what the M
+ *   side passed (always equal to the descriptor's user-arg count for a
+ *   well-formed call).
+ *
+ *   Each digest/HMAC entry point takes one or two ydb_string_t* INPUT
+ *   buffers, plus one ydb_string_t* OUTPUT buffer pre-allocated by YDB
+ *   (size declared via O:ydb_string_t*[64] in the .xc descriptor — large
+ *   enough for SHA-512). The C side writes raw digest bytes into
+ *   out->address and updates out->length to the actual digest size.
+ *   Returns 0 on success.
  *
  * Status codes:
  *    0 = ok
@@ -26,6 +35,7 @@
  *   -2 = EVP_Digest{Init,Update,Final} reported failure
  *   -3 = caller-provided output buffer is too small for the digest
  *   -4 = HMAC() returned NULL
+ *   -5 = wrong arity (argc disagreed with descriptor)
  */
 
 #include <stddef.h>
@@ -81,32 +91,38 @@ static int hmac_digest(const EVP_MD *md,
     return 0;
 }
 
-int crypto_sha256(ydb_string_t *in, ydb_string_t *out)
+int crypto_sha256(int argc, ydb_string_t *in, ydb_string_t *out)
 {
+    if (argc != 2) return -5;
     return sha_digest(EVP_sha256(), in, out);
 }
 
-int crypto_sha384(ydb_string_t *in, ydb_string_t *out)
+int crypto_sha384(int argc, ydb_string_t *in, ydb_string_t *out)
 {
+    if (argc != 2) return -5;
     return sha_digest(EVP_sha384(), in, out);
 }
 
-int crypto_sha512(ydb_string_t *in, ydb_string_t *out)
+int crypto_sha512(int argc, ydb_string_t *in, ydb_string_t *out)
 {
+    if (argc != 2) return -5;
     return sha_digest(EVP_sha512(), in, out);
 }
 
-int crypto_hmac_sha256(ydb_string_t *key, ydb_string_t *msg, ydb_string_t *out)
+int crypto_hmac_sha256(int argc, ydb_string_t *key, ydb_string_t *msg, ydb_string_t *out)
 {
+    if (argc != 3) return -5;
     return hmac_digest(EVP_sha256(), key, msg, out);
 }
 
-int crypto_hmac_sha384(ydb_string_t *key, ydb_string_t *msg, ydb_string_t *out)
+int crypto_hmac_sha384(int argc, ydb_string_t *key, ydb_string_t *msg, ydb_string_t *out)
 {
+    if (argc != 3) return -5;
     return hmac_digest(EVP_sha384(), key, msg, out);
 }
 
-int crypto_hmac_sha512(ydb_string_t *key, ydb_string_t *msg, ydb_string_t *out)
+int crypto_hmac_sha512(int argc, ydb_string_t *key, ydb_string_t *msg, ydb_string_t *out)
 {
+    if (argc != 3) return -5;
     return hmac_digest(EVP_sha512(), key, msg, out);
 }

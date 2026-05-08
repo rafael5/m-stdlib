@@ -55,36 +55,51 @@ gzip(data,out,level)    ; RFC 1952 gzip-format compress.
         ; doc: ,U-STDCOMPRESS-CALLOUT-MISSING, if the .so is unloaded;
         ; doc: ,U-STDCOMPRESS-LIBZ-FAIL, on libz failure.
         ; doc: Example: do gzip^STDCOMPRESS("hello",.buf)
-        new lvl
+        new lvl,st
         set lvl=$$libzLevel($get(level,6))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
-        quit $$dispatchC("gzip",data,.out,lvl,"libz")
+        set st=$$dispatchC("gzip",data,.out,lvl)
+        if st="" quit 1
+        set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 gunzip(data,out)        ; RFC 1952 gunzip.
         ; doc: Example: do gunzip^STDCOMPRESS(buf,.raw)
-        quit $$dispatchD("gunzip",data,.out,"libz")
+        new st
+        set st=$$dispatchD("gunzip",data,.out)
+        if st="" quit 1
+        set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 deflate(data,out,level) ; RFC 1951 raw deflate (no header / trailer).
         ; doc: Example: do deflate^STDCOMPRESS("hello",.buf)
-        new lvl
+        new lvl,st
         set lvl=$$libzLevel($get(level,6))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
-        quit $$dispatchC("deflate",data,.out,lvl,"libz")
+        set st=$$dispatchC("deflate",data,.out,lvl)
+        if st="" quit 1
+        set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 inflate(data,out)       ; RFC 1951 raw inflate.
         ; doc: Example: do inflate^STDCOMPRESS(buf,.raw)
-        quit $$dispatchD("inflate",data,.out,"libz")
+        new st
+        set st=$$dispatchD("inflate",data,.out)
+        if st="" quit 1
+        set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZ-FAIL,") quit 0
         ;
 zstdCompress(data,out,level)    ; Zstandard (RFC 8478) compress.
         ; doc: Example: do zstdCompress^STDCOMPRESS("hello",.buf)
-        new lvl
+        new lvl,st
         set lvl=$$zstdLevel($get(level,3))
         if lvl=-1 set $ecode=",U-STDCOMPRESS-BAD-LEVEL," quit 0
-        quit $$dispatchC("zstdCompress",data,.out,lvl,"libzstd")
+        set st=$$dispatchC("zstdCompress",data,.out,lvl)
+        if st="" quit 1
+        set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
         ;
 zstdDecompress(data,out)        ; Zstandard decompress.
         ; doc: Example: do zstdDecompress^STDCOMPRESS(buf,.raw)
-        quit $$dispatchD("zstdDecompress",data,.out,"libzstd")
+        new st
+        set st=$$dispatchD("zstdDecompress",data,.out)
+        if st="" quit 1
+        set $ecode=$select(st="MISSING":",U-STDCOMPRESS-CALLOUT-MISSING,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
         ;
 available()     ; "" iff both libz and libzstd loaded; else missing list.
         ; doc: Example: if $$available^STDCOMPRESS()'="" w "missing libs",!
@@ -124,31 +139,31 @@ preallocBuf()   ; 1 MiB pre-allocated output buffer for the C side to fill.
         ; doc: matches the [1048576] declaration in tools/std_compress.xc.
         quit $justify("",1048576)
         ;
-dispatchC(sym,data,out,lvl,backend)     ; Compress dispatch — 3-arg $&.
+dispatchC(sym,data,out,lvl)     ; Compress dispatch — 3-arg $&. Returns status.
         ; doc: Internal — XECUTE-wraps $&stdcompress.<sym>(data,.out,lvl)
-        ; doc: so tree-sitter-m doesn't trip on the $&pkg.fn syntax. Sets
-        ; doc: $ECODE on failure: ,U-STDCOMPRESS-CALLOUT-MISSING, if the
-        ; doc: .so is unloaded; ,U-STDCOMPRESS-LIBZ-FAIL, / -LIBZSTD-FAIL,
-        ; doc: depending on the backend.
+        ; doc: so tree-sitter-m doesn't trip on the $&pkg.fn syntax.
+        ; doc: Returns "" on success, "MISSING" if .so unloaded,
+        ; doc: "FAIL" if libz/libzstd returned non-success. Caller maps
+        ; doc: status to the per-backend $ECODE tag.
         new $etrap,rc,cmd
-        set $etrap="set $ecode="""" set rc=-1 quit 0"
+        set $etrap="set $ecode="""" set rc=-1 quit ""MISSING"""
         set rc=0
         set out=$$preallocBuf()
         set cmd="set rc=$&stdcompress."_sym_"(data,.out,lvl)"
         xecute cmd
-        if rc=-1 set $ecode=",U-STDCOMPRESS-CALLOUT-MISSING," quit 0
-        if 'rc set $ecode=$select(backend="libz":",U-STDCOMPRESS-LIBZ-FAIL,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
-        quit 1
+        if rc=-1 quit "MISSING"
+        if 'rc quit "FAIL"
+        quit ""
         ;
-dispatchD(sym,data,out,backend) ; Decompress dispatch — 2-arg $&.
-        ; doc: Internal — same wrap as dispatchC but without the level arg.
+dispatchD(sym,data,out)         ; Decompress dispatch — 2-arg $&. Returns status.
+        ; doc: Internal — same XECUTE-wrap rationale as dispatchC.
         new $etrap,rc,cmd
-        set $etrap="set $ecode="""" set rc=-1 quit 0"
+        set $etrap="set $ecode="""" set rc=-1 quit ""MISSING"""
         set rc=0
         set out=$$preallocBuf()
         set cmd="set rc=$&stdcompress."_sym_"(data,.out)"
         xecute cmd
-        if rc=-1 set $ecode=",U-STDCOMPRESS-CALLOUT-MISSING," quit 0
-        if 'rc set $ecode=$select(backend="libz":",U-STDCOMPRESS-LIBZ-FAIL,",1:",U-STDCOMPRESS-LIBZSTD-FAIL,") quit 0
-        quit 1
+        if rc=-1 quit "MISSING"
+        if 'rc quit "FAIL"
+        quit ""
         ;

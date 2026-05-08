@@ -60,25 +60,37 @@ edge cases: empty key, key-longer-than-block, and the canonical RFC
 ## Architecture
 
 ```
-M side                       C side               OpenSSL
-──────                       ──────               ───────
-$$sha256^STDCRYPTO(data)     crypto_sha256()      EVP_DigestInit_ex(EVP_sha256())
-       │                            │             EVP_DigestUpdate(in)
-       │  XECUTE "set rc=             │             EVP_DigestFinal_ex(out)
-       │   $ZF(""crypto_sha256"",     │
-       └─→  data,.out)"          ──→ │             returns 32 bytes
-                                     │
-       ←────────────────  out (32 bytes) ←────────
+M side                              C side                 OpenSSL
+──────                              ──────                 ───────
+$$sha256^STDCRYPTO(data)            crypto_sha256(         EVP_DigestInit_ex(EVP_sha256())
+       │                              int argc,            EVP_DigestUpdate(in)
+       │  XECUTE "set rc=             ydb_string_t* in,    EVP_DigestFinal_ex(out)
+       │   $&stdcrypto.sha256(        ydb_string_t* out)
+       │     inp,.out)"              ────→                 returns 32 bytes
+       │                                       ←─ out (32 bytes) ─
        │
        └─→ $$encode^STDHEX(out)  →  hex digest
 ```
 
 - M-side calls go through `dispatch3` / `dispatch4` helpers that
-  build the `set rc=$ZF(...)` command as a string and `XECUTE` it.
-  The string-literal indirection sidesteps an `m fmt` abbreviation-
-  expansion bug (`$ZF` → `$zfind`); see TOOLCHAIN-FINDINGS for
-  detail. The runtime semantics are identical to a direct `$ZF`
-  call — only the source spelling differs.
+  build the `set rc=$&stdcrypto.<fn>(...)` command as a string and
+  `XECUTE` it. The string-literal indirection serves two purposes:
+  (a) sidesteps the open tree-sitter-m grammar gap for the
+  `$&pkg.fn` package-prefixed external-call form; (b) sidesteps a
+  pre-existing `m fmt` longest-prefix abbreviation bug. The runtime
+  semantics are identical to a direct `$&` call — only the source
+  spelling differs.
+- **YottaDB ABI note — argc-prefixed C signatures.** YDB's
+  `$&pkg.fn(args)` external-call ABI prepends an `int argc` to every
+  C entry point. So although `tools/std_crypto.xc` describes the
+  user-visible signature as
+  `crypto_sha256(I:ydb_string_t*, O:ydb_string_t*[64])`, the real C
+  function is `int crypto_sha256(int argc, ydb_string_t* in,
+  ydb_string_t* out)` and bails with `-5` on a wrong argc. (The
+  legacy `$ZF` + `ydb_ci` form was abandoned because YDB r2.02's M
+  parser rejects the `.var` byref-output syntax for `$ZF` —
+  `$&pkg.fn` is the only form that supports `O:ydb_string_t*[N]`
+  output args.)
 - The C side uses OpenSSL's EVP interface (`EVP_DigestInit_ex` /
   `EVP_DigestUpdate` / `EVP_DigestFinal_ex`) and `HMAC()` from
   `<openssl/hmac.h>`.
@@ -103,10 +115,9 @@ tools/build-callouts.sh                         # produces so/<plat>/std_crypto.
 
 # 2. Point YottaDB at the call-out descriptor.
 export STDLIB_LIB="$PWD/so/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
-export ydb_ci="$PWD/tools/std_crypto.xc"
-# (ydb_ci is the legacy global call-out table loaded by $ZF; the newer
-# ydb_xc_std_crypto env var would also work but only via $&std_crypto.func
-# syntax which tree-sitter-m's grammar doesn't yet parse.)
+export ydb_xc_stdcrypto="$PWD/tools/std_crypto.xc"
+# YDB package names must be alphanumeric, so the env-var name strips
+# the underscore: std_crypto.xc → ydb_xc_stdcrypto → $&stdcrypto.<fn>().
 
 # 3. Verify.
 ydb -run %XCMD 'write $$available^STDCRYPTO(),!'
@@ -122,32 +133,39 @@ hosts (you set `STDLIB_LIB` per-host).
 
 ## Engine-bound testing — `m test`
 
-For the test suite (`make test`) to run green, the **vista-meta YDB
-container** needs the same wiring inside it:
+`scripts/seed-callouts.sh` (invoked automatically by
+`scripts/seed-vista.sh` whenever `src/callouts/*.c` is present) handles
+the engine-bound wiring end-to-end:
 
-1. The container image must include `libcrypto.so.3` (or `.so.1.1`) at
-   load time. Modern Debian/Ubuntu base images already do; the
-   `ydb-perl-plugin` package has it as a transitive dependency.
-2. `scripts/seed-vista.sh` must scp `so/<plat>/std_crypto.so` and
-   `tools/std_crypto.xc` into the container alongside the routines.
-3. The container's YDB session must `export ydb_ci=...` and
-   `STDLIB_LIB=...` before `m test` invokes the suite.
+1. Pushes every `src/callouts/*.c` into the vista-meta container and
+   compiles it there against the runtime YDB headers, so the resulting
+   ABI matches the YDB session that loads it.
+2. Stages the .so files under `~/export/seed/m-stdlib/lib/<plat>/` and
+   the `tools/std_*.xc` descriptors under `~/export/seed/m-stdlib/xc/`
+   inside the container.
+3. Idempotently injects a labelled marker block into
+   `/etc/profile.d/ydb_env.sh` (via passwordless sudo) that exports
+   `STDLIB_LIB` and one `ydb_xc_<pkg>` per descriptor. The package name
+   strips non-alphanumerics from the .xc base, so `std_crypto.xc`
+   becomes `ydb_xc_stdcrypto`. Re-runs replace the prior block in
+   place; deleting the block between the markers is a clean uninstall.
 
-Steps 2 and 3 are the open work tracked at **T28 — engine-bound
-deployment for STDCRYPTO** in `docs/module-tracker.md`. Until it
-lands, `STDCRYPTOTST.m` runs RED on the engine — every test fails
-under `,U-STDCRYPTO-CALLOUT-MISSING,`. Local hosts with
-`STDLIB_LIB` + `ydb_xc_std_crypto` exported can run the suite green
-today, given libssl-dev and YottaDB headers.
+The container image must already include `libcrypto.so.3` (or
+`.so.1.1`) at load time. Modern Debian/Ubuntu base images do — the
+`ydb-perl-plugin` package has it as a transitive dependency.
+
+This closes **T28 — engine-bound deployment for STDCRYPTO** in
+`docs/module-tracker.md`. The same machinery handles the STDCOMPRESS
+and STDHTTP iter-2 callouts.
 
 ## Error handling
 
 | Code | When it fires |
 |---|---|
-| `,U-STDCRYPTO-CALLOUT-MISSING,` | The `std_crypto` callout package isn't loaded — env var unset, .so missing, or symbol unresolvable. `available()` returns `0` in this state. |
+| `,U-STDCRYPTO-CALLOUT-MISSING,` | The `stdcrypto` callout package isn't loaded — env var unset, .so missing, or symbol unresolvable. `available()` returns `0` in this state. |
 | `,U-STDCRYPTO-DIGEST-FAIL,` | OpenSSL's `EVP_Digest*` call returned non-zero (rare; typically only on memory pressure). |
 | `,U-STDCRYPTO-HMAC-FAIL,` | OpenSSL's `HMAC()` returned `NULL` (same rarity profile). |
-| `,U-STDCRYPTO-BAD-SYMBOL,` | Internal-only — the symbol-dispatch helper got a name it doesn't recognise. Indicates a bug in this module, not the caller. |
+| `,U-STDCRYPTO-BAD-ALGO,` | Internal — `shaLen` got an algorithm name it doesn't recognise. Indicates a bug in this module, not the caller. |
 
 All public extrinsics return the empty string when `$ECODE` is set,
 matching STDCSPRNG / STDFMT / STDDATE convention.

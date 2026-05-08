@@ -1,4 +1,4 @@
-STDCRYPTO       ; m-stdlib — Cryptographic digests via $ZF → libcrypto.
+STDCRYPTO       ; m-stdlib — Cryptographic digests via $&stdcrypto → libcrypto.
         ; m-lint: disable-file=M-MOD-024
         ; m-lint: disable-file=M-MOD-036
         ; m-lint: disable-file=M-MOD-020
@@ -7,12 +7,13 @@ STDCRYPTO       ; m-stdlib — Cryptographic digests via $ZF → libcrypto.
         ; track flow through the $ETRAP indirection used to recover from
         ; missing-callout failures.
         ; M-MOD-036 (XECUTE injection) is intentional here: the XECUTE
-        ; wrapper is the only way to invoke $ZF without the m fmt
-        ; abbreviation expander mangling the token. The XECUTEd command
-        ; string is built only from the literal "set rc=$ZF(...)" template
-        ; and a sym argument that the M-side public surface controls — no
-        ; user data ever flows into the XECUTE source. Same pattern as
-        ; STDXFRM's @expr indirection.
+        ; wrapper is the only way to embed $&stdcrypto.<fn>() without
+        ; the tree-sitter-m grammar tripping on the package-prefixed
+        ; external-call syntax (open work in tree-sitter-m). The
+        ; XECUTEd command string is built only from a literal template
+        ; and a `sym` argument that the M-side public surface controls
+        ; — no user data ever flows into the XECUTE source. Same
+        ; pattern as STDXFRM's @expr indirection.
         ; M-MOD-020 (by-ref formal not written) false positives: dispatch3
         ; / dispatch4 write to `out` by reference, but the writes happen
         ; through the XECUTE'd command string, which the by-ref analyser
@@ -31,30 +32,41 @@ STDCRYPTO       ; m-stdlib — Cryptographic digests via $ZF → libcrypto.
         ;   $$hmacSha256Bytes^STDCRYPTO(key,msg)  — 32 raw bytes
         ;   $$hmacSha384Bytes^STDCRYPTO(key,msg)  — 48 raw bytes
         ;   $$hmacSha512Bytes^STDCRYPTO(key,msg)  — 64 raw bytes
-        ;   $$available^STDCRYPTO()               — 1 iff std_crypto callout
+        ;   $$available^STDCRYPTO()               — 1 iff stdcrypto callout
         ;                                            is loaded
         ;
-        ; Backend: $ZF → libcrypto (OpenSSL EVP_Digest + HMAC). The C source
-        ; is at src/callouts/std_crypto.c; the YDB call-out descriptor is at
-        ; tools/std_crypto.xc; the build harness is tools/build-callouts.sh.
+        ; Backend: $&stdcrypto.<fn> → libcrypto (OpenSSL EVP_Digest + HMAC).
+        ; The C source is at src/callouts/std_crypto.c; the YDB call-out
+        ; descriptor is at tools/std_crypto.xc; the build harness is
+        ; tools/build-callouts.sh.
+        ;
+        ; YottaDB ABI note — argc-prefixed C signatures: YDB's
+        ; $&pkg.fn(args) external-call ABI prepends an `int argc` to
+        ; every C entry point. The .xc descriptor still describes the
+        ; user-visible signature (sha256(I:,O:) etc.), but the actual
+        ; C function is `int crypto_sha256(int argc, ydb_string_t* in,
+        ; ydb_string_t* out)`. A wrong argc returns -5. The legacy
+        ; $ZF + ydb_ci form was abandoned because YDB r2.02's parser
+        ; rejects the `.var` byref-output syntax for $ZF.
         ;
         ; Deployment runbook (full detail in docs/modules/stdcrypto.md):
-        ;   1. tools/build-callouts.sh       ; produce so/<plat>/std_crypto.so
-        ;   2. export STDLIB_LIB=<dir-of-so> ; substituted into std_crypto.xc
-        ;   3. export ydb_ci=<abs>/tools/std_crypto.xc
+        ;   1. tools/build-callouts.sh             ; so/<plat>/std_crypto.so
+        ;   2. export STDLIB_LIB=<dir-of-so>       ; resolved by the .xc
+        ;   3. export ydb_xc_stdcrypto=<abs>/tools/std_crypto.xc
         ;   4. ensure libcrypto.so.3 (or .so.1.1) is on the loader path
         ;
-        ; Implementation note — XECUTE wrapper for $ZF:
+        ; Implementation note — XECUTE wrapper:
         ; M-side calls go through dispatch3 / dispatch4, which build the
-        ; "set rc=$ZF(...)" command as a STRING and XECUTE it. This is a
-        ; workaround for an m fmt bug where the abbreviation-expansion
-        ; table mangles $ZF → $zfind (longest-prefix match against
-        ; $ZFIND). String literals are not introspected by the formatter,
-        ; so the literal $ZF survives through to runtime, where YDB's
-        ; parser resolves it correctly to the external-call form. The
-        ; same trick applies if we ever need $ZCALL → $zcstatusall.
-        ; Filed in TOOLCHAIN-FINDINGS; once m fmt is fixed, the wrapper
-        ; can be replaced by direct $ZF calls and a simpler signature.
+        ; "set rc=$&stdcrypto.<fn>(...)" command as a STRING and XECUTE
+        ; it. This serves two purposes:
+        ;   (a) sidesteps the tree-sitter-m grammar gap for the
+        ;       `$&pkg.fn` external-call syntax (literal strings are
+        ;       not introspected by the parser);
+        ;   (b) sidesteps a pre-existing m fmt longest-prefix bug
+        ;       where bare $ZF was rewritten to $zfind / $ZFIND.
+        ; The XECUTE template is closed over a `sym` argument that the
+        ; public extrinsics control directly — no caller-supplied data
+        ; ever appears in the command source.
         ;
         ; All error paths set $ECODE rather than raising directly so callers
         ; can wrap with a single $ETRAP — matches STDCSPRNG / STDCSV style.
@@ -94,19 +106,19 @@ sha256Bytes(data)       ; 32 raw bytes — SHA-256 digest of data.
         ; doc: pipeline; otherwise sha256() is more convenient.
         new out
         set out=$$zeros($$shaLen("sha256"))
-        if '$$dispatch3("crypto_sha256",data,.out,1) quit ""
+        if '$$dispatch3("sha256",data,.out,1) quit ""
         quit out
         ;
 sha384Bytes(data)       ; 48 raw bytes — SHA-384 digest of data.
         new out
         set out=$$zeros($$shaLen("sha384"))
-        if '$$dispatch3("crypto_sha384",data,.out,1) quit ""
+        if '$$dispatch3("sha384",data,.out,1) quit ""
         quit out
         ;
 sha512Bytes(data)       ; 64 raw bytes — SHA-512 digest of data.
         new out
         set out=$$zeros($$shaLen("sha512"))
-        if '$$dispatch3("crypto_sha512",data,.out,1) quit ""
+        if '$$dispatch3("sha512",data,.out,1) quit ""
         quit out
         ;
         ; ---------- public API: HMAC ----------
@@ -129,19 +141,19 @@ hmacSha512(key,msg)     ; 128-char lowercase hex HMAC-SHA-512.
 hmacSha256Bytes(key,msg)        ; 32 raw bytes — HMAC-SHA-256.
         new out
         set out=$$zeros($$shaLen("sha256"))
-        if '$$dispatch4("crypto_hmac_sha256",key,msg,.out) quit ""
+        if '$$dispatch4("hmacSha256",key,msg,.out) quit ""
         quit out
         ;
 hmacSha384Bytes(key,msg)        ; 48 raw bytes — HMAC-SHA-384.
         new out
         set out=$$zeros($$shaLen("sha384"))
-        if '$$dispatch4("crypto_hmac_sha384",key,msg,.out) quit ""
+        if '$$dispatch4("hmacSha384",key,msg,.out) quit ""
         quit out
         ;
 hmacSha512Bytes(key,msg)        ; 64 raw bytes — HMAC-SHA-512.
         new out
         set out=$$zeros($$shaLen("sha512"))
-        if '$$dispatch4("crypto_hmac_sha512",key,msg,.out) quit ""
+        if '$$dispatch4("hmacSha512",key,msg,.out) quit ""
         quit out
         ;
         ; ---------- public API: probe ----------
@@ -167,15 +179,15 @@ shaLen(name)    ; Digest size in bytes for the named algorithm.
         set $ecode=",U-STDCRYPTO-BAD-ALGO,"
         quit 0
         ;
-dispatch3(sym,inp,out,isDigest) ; Invoke $ZF(sym, inp, .out).
-        ; doc: Internal — wraps $ZF in an XECUTE'd command string so
-        ; doc: m fmt cannot mangle the $ZF token (longest-prefix bug
-        ; doc: against $ZFIND). Returns 1 on success, 0 on failure with
-        ; doc: $ECODE set. isDigest selects the failure error code.
+dispatch3(sym,inp,out,isDigest) ; Invoke $&stdcrypto.<sym>(inp,.out).
+        ; doc: Internal — wraps $& in an XECUTE'd command string so
+        ; doc: tree-sitter-m doesn't trip on the $&pkg.fn syntax.
+        ; doc: Returns 1 on success, 0 on failure with $ECODE set.
+        ; doc: isDigest selects the failure error code.
         new $etrap,rc,cmd
-        set $etrap="set $ecode="""" set rc=-1 quit"
+        set $etrap="set $ecode="""" set rc=-1 quit -1"
         set rc=0
-        set cmd="set rc=$ZF("""_sym_""",inp,.out)"
+        set cmd="set rc=$&stdcrypto."_sym_"(inp,.out)"
         xecute cmd
         if rc=-1 set $ecode=",U-STDCRYPTO-CALLOUT-MISSING," quit 0
         if rc=0 quit 1
@@ -183,12 +195,12 @@ dispatch3(sym,inp,out,isDigest) ; Invoke $ZF(sym, inp, .out).
         set $ecode=",U-STDCRYPTO-HMAC-FAIL,"
         quit 0
         ;
-dispatch4(sym,key,msg,out)      ; Invoke $ZF(sym, key, msg, .out).
+dispatch4(sym,key,msg,out)      ; Invoke $&stdcrypto.<sym>(key,msg,.out).
         ; doc: Internal — same XECUTE-wrap rationale as dispatch3.
         new $etrap,rc,cmd
-        set $etrap="set $ecode="""" set rc=-1 quit"
+        set $etrap="set $ecode="""" set rc=-1 quit -1"
         set rc=0
-        set cmd="set rc=$ZF("""_sym_""",key,msg,.out)"
+        set cmd="set rc=$&stdcrypto."_sym_"(key,msg,.out)"
         xecute cmd
         if rc=-1 set $ecode=",U-STDCRYPTO-CALLOUT-MISSING," quit 0
         if rc=0 quit 1
