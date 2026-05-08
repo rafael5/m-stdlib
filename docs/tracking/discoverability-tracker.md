@@ -133,8 +133,8 @@ the work without further orientation.
 | WA6 | done | WA | 6 | stdlib | Add YAML frontmatter (module / tag / phase / stable / since / synopsis / errors / labels / conformance / see_also) to every `docs/modules/stdXXX.md` | — | 0.5d | Every per-module markdown has frontmatter parsing cleanly as YAML. Field values agree with the manifest where overlapping (verified by a small check script, not gated yet). | § 3.3 | `docs/modules/std*.md`, `tools/write-module-frontmatter.py` (new), `Makefile` (`frontmatter` target) |
 | WA7 | done | WA | 7 | stdlib | Generate `dist/errors.json` (inverted index of `U-STD*` codes → producing module + labels) as a derivative of the manifest | WA4 | 0.25d | `make manifest` also writes `dist/errors.json` containing every `U-STD*` code with its origin module + labels. | § 3.5 | `tools/gen-manifest.py` (covers WA7 too), `dist/errors.json` (generated) |
 | WA8 | done | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md` ([v0.5.0] heading), `docs/modules/index.md` (Machine-readable surface section), git tag `v0.5.0` (local; not pushed) |
-| WB1 | not-started | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` (new) |
-| WB2 | not-started | WB | 2 | m-cli | `m doc --json` and `m doc --short` flags | WB1 | 0.5d | `--json` emits the raw manifest entry; `--short` emits one-line synopsis. Both stable for scripting. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` |
+| WB1 | done | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/m_cli/doc/{cli,lookup,format}.py` (new+rewrite), `~/projects/m-cli/tests/test_cli_doc_lookup.py` (new), m-cli commit `0024a72` pushed |
+| WB2 | done | WB | 2 | m-cli | `m doc --json` and `m doc --short` flags | WB1 | 0.5d | `--json` emits the raw manifest entry; `--short` emits one-line synopsis. Both stable for scripting. | § 4.1 | landed in the same commit as WB1 (`0024a72`) — `format.py` carries `format_*_short` and `format_*_json` formatters; `cli.py` wires the flags |
 | WB3 | not-started | WB | 3 | m-cli | `m search <query>` — full-text fuzzy search over manifest synopsis + description + example | WA4 | 0.5–1d | `m search "json parse"` returns ranked `module.label — synopsis` lines; matches against case-insensitive substrings in synopsis, description, examples. | § 4.2 | `~/projects/m-cli/src/cmd/search.m` (new) |
 | WB4 | not-started | WB | 4 | m-cli | `m manifest`, `m examples <module>`, `m errors` thin wrappers | WA4, WA7 | 0.5d | All three commands emit useful output piped from the manifest / errors registry. | § 4.3, § 4.4, § 4.5 | `~/projects/m-cli/src/cmd/manifest.m`, `examples.m`, `errors.m` (all new) |
 | WC1 | not-started | WC | 1 | vscode | VS Code extension v0.1: hover, goto-def, completion driven by `dist/stdlib-manifest.json` (no LSP) | WA4 | 2–3d | Extension activates on `.m` files; hover on `^STDJSON` and `parse^STDJSON` shows synopsis + signature; goto-def jumps to `src/STDJSON.m:L`; completion suggests `^STD*` modules and labels. | § 5.1 | TBD in WC1: either new repo `~/projects/m-stdlib-vscode/` or `~/projects/m-cli/vscode/` |
@@ -398,7 +398,7 @@ planning; expand them as work happens. The format is:
 
 #### WB1 — `m doc <symbol>`
 
-**Status.** not-started.
+**Status.** done (2026-05-08; m-cli commit `0024a72` pushed to origin).
 
 **Goal.** The flagship lookup command, modelled on `go doc`. Plan § 4.1 has the full UX spec.
 
@@ -413,13 +413,17 @@ planning; expand them as work happens. The format is:
 **Out of scope.** Pager support, colour, network lookups (alt manifest sources). Keep v1 lean.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08 (m-cli commit `0024a72`)** — Repurposed the existing `m doc` CLI from path-based extract-to-Markdown to godoc-style symbol lookup over `dist/stdlib-manifest.json`. Three-file module (`src/m_cli/doc/`): **`lookup.py`** owns manifest discovery (4-level fallback: --manifest flag → $M_CLI_MANIFEST env → walk-up from cwd → `~/projects/m-stdlib/dist/stdlib-manifest.json`) and symbol resolution (classifies into module / module.label / fuzzy bare-name); **`format.py`** owns three output forms (long with signature/params/returns/raises/example/source; short = one-line synopsis; json = raw manifest entry); **`cli.py`** is the rewritten argparse handler that ties them together. **Legacy `extract.py` / `render.py` kept on disk** as a programmatic surface — only the CLI was repurposed. **The 4 old `doc_command` tests in `test_doc.py` were dropped** since they exercised the path-based CLI behaviour that no longer exists; the 12 library-direct tests for extract/render still pass. **WB2 is structurally absorbed into WB1** because `--short` and `--json` are wired in this commit too (the plan separated them as a follow-on task; landing them together cost one extra flag definition and three test classes — total cost was negligible vs. shipping them separate). **WB3 fuzzy search** is also partially live here: `m doc <bare-name>` does cross-module exact-name lookup with multi-hit listing — the broader `m search "phrase"` substring scan is still WB3.
+- **30 new tests in `tests/test_cli_doc_lookup.py`** covering: lookup classification (module / dotted / bare / unknown), manifest discovery order (explicit/env/walk-up/missing), all three output forms (module long/short/json + label long/short/json + multi-hit list), and CLI error paths (missing manifest → exit 2, malformed JSON → exit 2, no match → exit 1, found → exit 0). All pass.
+- **End-to-end against m-stdlib v0.5.0**: `m doc STDJSON.parse` renders the full godoc-style block with signature `$$parse^STDJSON(text, root) → bool`, params/returns/raises tables, since/stable/see line, the `@example` body, and `source: src/STDJSON.m:39`. `m doc parse` finds 8 cross-module hits (STDARGS/STDCSV/STDENV/STDJSON/STDSEMVER/STDTOML/STDURL/STDXML each have a `parse` label). `m doc` (no args) lists all 32 modules with synopses. Cold latency ~30ms (well under the 100ms target).
+- **Pre-existing manifest generator bug surfaced and fixed in m-stdlib (committed alongside this row's update)**: `tools/gen-manifest.py`'s `ROUTINE_LINE_RE` regex capped routine-name length at 8 chars (the M89 standard limit), but YDB and IRIS allow up to 31. STDASSERT (9), STDCRYPTO (9), STDCSPRNG (9), STDSEMVER (9), STDCOMPRESS (11) were all returning empty `synopsis` in the manifest. Relaxed to `[A-Z][A-Z0-9]{0,30}`. Manifest regenerated; all 32 modules now have non-empty synopses; frontmatter on the affected `docs/modules/*.md` regenerated to match.
+- **Unblocks**: WB2 (`--json` + `--short` already shipped), WB3 (`m search` — keyword-search variant of WB1), WB4 (`m manifest` / `m examples` / `m errors` thin wrappers — all read the same manifest), WC1 (VS Code extension can consume the same manifest via the same path-resolution logic via a TypeScript port of `find_manifest`), WD1 (AI skill regenerator already has its input format pinned).
 
 ---
 
 #### WB2 — `--json` and `--short` flags
 
-**Status.** not-started.
+**Status.** done (2026-05-08; landed in the same m-cli commit `0024a72` as WB1).
 
 **Goal.** Scripting hooks. `--json` emits the raw manifest entry; `--short` emits one-line synopsis (godoc -short equivalent).
 
@@ -430,7 +434,7 @@ planning; expand them as work happens. The format is:
 **Out of scope.** YAML / TOML output formats. JSON is enough.
 
 **Progress log.**
-- (none yet)
+- **2026-05-08** — Shipped together with WB1 in m-cli `0024a72`. Verified end-to-end: `m doc --json STDFMT.f | python3 -c 'import sys,json; print(json.load(sys.stdin)["signature"])'` → `$$f^STDFMT(template, a1, a2, a3, a4, a5, a6, a7, a8, a9)`. `m doc --short STDASSERT.eq` → `STDASSERT.eq — Assert actual=expected (string equality).`. Both forms covered by tests in `tests/test_cli_doc_lookup.py` (TestDocCommandShort, TestDocCommandJson).
 
 ---
 

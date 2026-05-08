@@ -4,7 +4,7 @@ tag: v0.0.1
 phase: Phase 1
 stable: stable
 since: v0.0.1
-synopsis: ""
+synopsis: 'assertion library (v0.0.1)'
 labels: ['contains', 'eq', 'false', 'len', 'ne', 'near', 'raises', 'report', 'start', 'true']
 errors: []
 conformance: []

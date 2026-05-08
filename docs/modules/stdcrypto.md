@@ -4,7 +4,7 @@ tag: v0.4.0
 phase: Phase 3 + post-P4 wave
 stable: stable
 since: v0.4.0
-synopsis: ""
+synopsis: 'Cryptographic digests via $&stdcrypto → libcrypto'
 labels: ['available', 'hmacSha256', 'hmacSha256Bytes', 'hmacSha384', 'hmacSha384Bytes', 'hmacSha512', 'hmacSha512Bytes', 'sha256', 'sha256Bytes', 'sha384', 'sha384Bytes', 'sha512', 'sha512Bytes']
 errors: ['U-STDCRYPTO-CALLOUT-MISSING', 'U-STDCRYPTO-DIGEST-FAIL', 'U-STDCRYPTO-HMAC-FAIL']
 conformance: []

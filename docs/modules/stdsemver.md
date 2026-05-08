@@ -4,7 +4,7 @@ tag: v0.3.0
 phase: P4 wave
 stable: stable
 since: v0.3.0
-synopsis: ""
+synopsis: 'SemVer 2.0.0 parse / compare / range matching'
 labels: ['build', 'compare', 'major', 'matches', 'minor', 'parse', 'patch', 'prerelease', 'valid']
 errors: []
 conformance: []

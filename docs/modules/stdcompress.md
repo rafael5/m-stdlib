@@ -4,7 +4,7 @@ tag: v0.4.0
 phase: Phase 3 + post-P4 wave
 stable: stable
 since: v0.4.0
-synopsis: ""
+synopsis: 'gzip / deflate / zstd via $&stdcompress callouts'
 labels: ['available', 'deflate', 'gunzip', 'gzip', 'inflate', 'zstdCompress', 'zstdDecompress']
 errors: ['U-STDCOMPRESS-BAD-LEVEL', 'U-STDCOMPRESS-CALLOUT-MISSING', 'U-STDCOMPRESS-LIBZ-FAIL', 'U-STDCOMPRESS-LIBZSTD-FAIL']
 conformance: []

@@ -63,9 +63,13 @@ DOC_LINE_RE = re.compile(r"^\s+;\s*doc:\s?(?P<body>.*)$")
 # A regular comment line (not `; doc:`). Used for the routine-header block.
 COMMENT_LINE_RE = re.compile(r"^\s+;\s?(?P<body>.*)$")
 
-# A routine line: column 1, ALL-CAPS up to 8 chars, then `;` and inline comment.
+# A routine line: column 1, ALL-CAPS, then `;` and inline comment.
+# YDB allows routine names up to 31 characters; use {0,30} as a sane
+# upper bound that catches every m-stdlib `STD*` name (STDCOMPRESS at
+# 11 chars is the longest today). The 8-char cap previously here was
+# the M89 standard limit, which YDB and IRIS both relax.
 ROUTINE_LINE_RE = re.compile(
-    r"^(?P<name>[A-Z][A-Z0-9]{0,7})\s+;\s?(?P<rest>.*)$"
+    r"^(?P<name>[A-Z][A-Z0-9]{0,30})\s+;\s?(?P<rest>.*)$"
 )
 
 # A `set $ecode=",U-STDxxx-NAME,"` site (any quoting variant). Used to detect

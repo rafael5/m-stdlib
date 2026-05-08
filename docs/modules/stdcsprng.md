@@ -4,7 +4,7 @@ tag: v0.3.0
 phase: P4 wave
 stable: stable
 since: v0.3.0
-synopsis: ""
+synopsis: 'Cryptographic random (kernel CSPRNG via getrandom(2) | /dev/urandom)'
 labels: ['available', 'base64', 'bytes', 'hex', 'int', 'token', 'useCallout', 'uuid4']
 errors: ['U-STDCSPRNG-BAD-COUNT', 'U-STDCSPRNG-BAD-RANGE', 'U-STDCSPRNG-OPEN-FAIL']
 conformance: []
