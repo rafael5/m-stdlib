@@ -9,7 +9,7 @@ SHELL := /bin/bash
 # m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check
 
 # vista-meta connection contract — published by `vista-meta: make run`.
 VISTA_CONN := $(HOME)/data/vista-meta/conn.env
@@ -67,6 +67,25 @@ check: fmt-check lint test
 ci: check
 	$(M) test --format=tap tests/ > test-results.tap
 	$(M) coverage --routines src --tests tests --format=json > coverage.json
+
+# ── Manifest generation (WA4: discoverability + tooling plan) ─────────
+#
+# `make manifest` regenerates dist/stdlib-manifest.json + dist/errors.json
+# from src/STD*.m via the doc-comment grammar in
+# docs/guides/m-doc-grammar.md. The manifest is the canonical
+# machine-readable surface consumed by m-cli `m doc`, the VS Code
+# extension, and the AI skill (Wave A → B/C/D).
+#
+# `make manifest-check` (WA5) re-runs the generator and fails on diff
+# against the committed dist/ files — same model as `m fmt --check`.
+
+manifest:
+	python3 tools/gen-manifest.py
+
+manifest-check: manifest
+	@git diff --exit-code dist/stdlib-manifest.json dist/errors.json \
+		|| { echo "ERROR: dist/ manifest is out of date — run 'make manifest' and commit."; exit 1; }
+	@echo "manifest: clean"
 
 clean:
 	rm -rf coverage.lcov test-results.tap coverage.json
