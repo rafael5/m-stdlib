@@ -6,7 +6,32 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 Pre-1.0 minor versions may include breaking changes.
 
-## [Unreleased]
+## [v0.4.0] — 2026-05-08
+
+**Phase 3 close + post-v0.3.0 P4 wave + STDXML T26 + tooling
+hardening.** All three Phase 3 modules engine-green on the
+vista-meta YottaDB r2.02 / GT.M V7.0-005 container: STDCRYPTO H1
+(SHA + HMAC over libcrypto, 23/23, T28 closed), STDCOMPRESS H2
+(gzip/deflate/zstd over libz + libzstd, 59/59, T28 + T30 closed),
+STDHTTP H3 iter 1 + iter 2 (pure-M wire-format helpers + libcurl-
+backed `$$get` / `$$post` / `$$request`, 68/68, T29 closed). Two
+more P4 promotions out of Table 2 — STDMATH (L26) and STDXFRM
+(L27, with the post-`@expr`-regression XECUTE-evaluated lambdas).
+STDXML reaches ~100% of its 12-16d envelope: T26 (DTDs / DOCTYPE /
+internal subset / `<!ENTITY>` custom entities) closes alongside
+T27a (wildcards + attribute axis) and T27b (XPath functions +
+comparison predicates), bringing STDXMLTST to 209/209.
+STDCSPRNG gains the optional `$ZF → getrandom(2)` callout backend
+(T12 closed; pure-M `/dev/urandom` fallback unchanged); STDFS gains
+byte-faithful I/O via `$ZF → libc open/read/write/close` (T13 +
+T14 closed). The deployment loop for Phase 3 callouts is automated
+end-to-end by `scripts/seed-callouts.sh`: builds inside the
+container against the runtime YDB headers, stages `.so` + `.xc`
+artefacts under `~/export/seed/m-stdlib/{lib/<plat>,xc}/`, and
+idempotently injects a marker block into `/etc/profile.d/ydb_env.sh`
+exporting `STDLIB_LIB` + per-package `ydb_xc_<pkg>`. Aggregate
+gate at v0.4.0: **32 suites, 2483/2483 assertions green on engine,
+0E lint, fmt clean across 65 files.**
 
 ### Fixed
 

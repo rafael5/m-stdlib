@@ -95,7 +95,7 @@ expansion)** below — the table itself stays compact.
 | P2 | L13 | 15 | [`STDCOLL`](modules/stdcoll.md) | `v0.2.0` | 5d | none (completed) | none | Set/Map/Stack/Queue/Deque/Heap/OrderedDict | n/a |
 | P2 | L14 | 16 | [`STDURL`](modules/stdurl.md) | `v0.2.0` | 5d | none (completed) | none | RFC 3986 URI parse/build/normalise/resolve | 🔮 C9 |
 | P4 | L15 | 17 | [`STDCSPRNG`](modules/stdcsprng.md) | `v0.3.0` | 1d | none (completed) | STDB64; STDHEX; STDUUID; `$ZF → getrandom(2)` (with `/dev/urandom` fallback) | Crypto random — bytes / hex / base64 / token / int / uuid4 | n/a |
-| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.4.0` (pending) | 2d | none (completed) | `$ZF → libc open/read/write/close` | File-system primitives + byte-faithful I/O (read/write/append/exists/remove/size + basename/dirname/join + readBytes/writeBytes/appendBytes) | n/a |
+| P4 | L16 | 18 | [`STDFS`](modules/stdfs.md) | `v0.4.0` | 2d | none (completed) | `$ZF → libc open/read/write/close` | File-system primitives + byte-faithful I/O (read/write/append/exists/remove/size + basename/dirname/join + readBytes/writeBytes/appendBytes) | n/a |
 | P4 | L17 | 19 | [`STDOS`](modules/stdos.md) | `v0.3.0` | 1d | none (options) | none | Process / env / cmdline helpers | n/a |
 | P4 | L18 | 20 | [`STDSEMVER`](modules/stdsemver.md) | `v0.3.0` | 1d | none (options) | none | SemVer 2.0.0 — valid / parse / compare / matches | 🔮 C10 |
 | P4 | L19 | 21 | [`STDSTR`](modules/stdstr.md) | `v0.3.0` | 1d | none (options) | none | String helpers (pad/trim/replaceAll/split/startsWith/endsWith/case-fold/repeat) | n/a |
@@ -104,12 +104,12 @@ expansion)** below — the table itself stays compact.
 | P4 | L22 | 24 | [`STDPROF`](modules/stdprof.md) | `v0.3.0` | 1d | none (completed) | none | Wall-clock profiler — start/stop/count/total/mean/min/max/percentile | ✅ C6 |
 | P4 | L23 | 25 | [`STDSNAP`](modules/stdsnap.md) | `v0.3.0` | 1d | none (completed) | STDFS; STDASSERT | Snapshot testing — serialize/save/matches/asserts | ✅ C7 |
 | P4 | L24 | 26 | [`STDENV`](modules/stdenv.md) | `v0.3.0` | 1d | none (options) | STDFS | `.env` loader + typed accessors | ✅ C8 |
-| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.4.0` (pending) | 14d | none (completed) | none | XML 1.0 parser + XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / DOCTYPE + internal subset + `<!ENTITY>` custom entities) | n/a |
-| P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.4.0` (pending) | 1d | none (completed) | none | Numeric helpers — clamp / min / max / sum / count / mean | n/a |
-| P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.4.0` (pending) | 1d | none (completed) | none | Higher-order array transforms — map / filter / reduce | n/a |
-| P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.4.0` (pending) | 2d | none (completed) | `$&stdcrypto.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 |
-| P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.4.0` (pending) | 6d | none (completed) | `$&stdcompress.fn → libz + libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress | 🟡 C13 |
-| P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` (pending) | 4d | none (options) | STDURL; `$&stdhttp.fn → libcurl`; A6 | HTTP/1.1 client (`$$get` / `$$post` / `$$request`) + pure-M wire-format helpers | 🟡 C14 |
+| P4 | L25 | 27 | [`STDXML`](modules/stdxml.md) | `v0.4.0` | 14d | none (completed) | none | XML 1.0 parser + XPath subset (paths / predicates / descendant axis / wildcards / attribute axis / functions / DOCTYPE + internal subset + `<!ENTITY>` custom entities) | n/a |
+| P4 | L26 | 28 | [`STDMATH`](modules/stdmath.md) | `v0.4.0` | 1d | none (completed) | none | Numeric helpers — clamp / min / max / sum / count / mean | n/a |
+| P4 | L27 | 29 | [`STDXFRM`](modules/stdxfrm.md) | `v0.4.0` | 1d | none (completed) | none | Higher-order array transforms — map / filter / reduce | n/a |
+| P3 | H1 | 30 | [`STDCRYPTO`](modules/stdcrypto.md) | `v0.4.0` | 2d | none (completed) | `$&stdcrypto.fn → libcrypto`; A6 | SHA-256/384/512 + HMAC-SHA-256/384/512 | 🟡 C12 |
+| P3 | H2 | 31 | [`STDCOMPRESS`](modules/stdcompress.md) | `v0.4.0` | 6d | none (completed) | `$&stdcompress.fn → libz + libzstd`; A6 | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress | 🟡 C13 |
+| P3 | H3 | 32 | [`STDHTTP`](modules/stdhttp.md) | `v0.4.0` | 4d | none (options) | STDURL; `$&stdhttp.fn → libcurl`; A6 | HTTP/1.1 client (`$$get` / `$$post` / `$$request`) + pure-M wire-format helpers | 🟡 C14 |
 
 **Aggregate:** ~108d shipped across all 32 landed modules (sum of
 the Effort column above). **Full engine suite green on `main`
@@ -304,7 +304,7 @@ API unchanged. STDCSPRNGTST 406/406 green when the descriptor isn't
 deployed (soft-fall-back); engine-deployed perf path verified separately
 under T28's `seed-callouts.sh` harness.
 
-### #18 — `STDFS` (`v0.4.0` pending, T13 + T14 closed)
+### #18 — `STDFS` (`v0.4.0`, T13 + T14 closed)
 
 Original ship was text-mode YDB-only: read/write/append/exists/remove/
 size + basename/dirname/join. `exists()` uses `$ETRAP+ZGOTO $zlevel`
@@ -430,7 +430,7 @@ convention for typed accessors.
 (depends on STDOS setenv from T15). Activates when a concrete `.env`
 consumer needs full POSIX shell `.env` semantics.
 
-### #27 — `STDXML` (`v0.4.0` pending, T23–T27b + T26 all closed)
+### #27 — `STDXML` (`v0.4.0`, T23–T27b + T26 all closed)
 
 Shipped incrementally across eight landings, each preserving 100%
 backward compatibility:
@@ -473,7 +473,7 @@ backward compatibility:
 
 Full envelope covered.
 
-### #29 — `STDXFRM` (`v0.4.0` pending)
+### #29 — `STDXFRM` (`v0.4.0`)
 
 Higher-order array transforms — map / filter / reduce. Original
 implementation used `@expr` name-indirection in own stack frame
@@ -485,7 +485,7 @@ expressions. Migrated to **XECUTE-evaluated lambdas**
 (`set <target>=<expr>`) which accepts any RHS. Public API
 unchanged. STDXFRMTST 38/38 green.
 
-### #30 — `STDCRYPTO` (`v0.4.0` pending, T28 closed)
+### #30 — `STDCRYPTO` (`v0.4.0`, T28 closed)
 
 SHA-256/384/512 + HMAC-SHA-256/384/512 over OpenSSL libcrypto
 (`EVP_DigestInit_ex` / `EVP_DigestUpdate` / `EVP_DigestFinal_ex`
@@ -510,7 +510,7 @@ with arity-check short-circuit. T28 closed 2026-05-07 by
 ydb_env.sh injection); STDCRYPTOTST 23/23 green; coverage
 17/17 = 100%.
 
-### #31 — `STDCOMPRESS` (`v0.4.0` pending, T28 + T30 closed)
+### #31 — `STDCOMPRESS` (`v0.4.0`, T28 + T30 closed)
 
 gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress /
 available over libz + libzstd. Output via `.out` byref (1 MiB cap);
@@ -542,7 +542,7 @@ errors via `$ECODE`.
   standard `raises^STDASSERT` idiom. STDCOMPRESSTST 59/59 green;
   100% label coverage.
 
-### #32 — `STDHTTP` (`v0.4.0` pending, T29 closed)
+### #32 — `STDHTTP` (`v0.4.0`, T29 closed)
 
 HTTP/1.1 client. Two layers:
 

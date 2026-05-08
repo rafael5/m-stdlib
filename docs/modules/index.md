@@ -1,8 +1,8 @@
 # m-stdlib modules
 
-Regenerated at the **v0.2.0** Phase 2 release (2026-05-07). One
-row per shipped module. The canonical "what's done / in flight /
-proposed" view lives in [`docs/module-tracker.md`](../module-tracker.md);
+Regenerated at the **v0.4.0** release (2026-05-08). One row per
+shipped module. The canonical "what's done / in flight / proposed"
+view lives in [`docs/module-tracker.md`](../module-tracker.md);
 this file is the released-module catalogue.
 
 ## Phase 1 (v0.1.0)
@@ -51,6 +51,86 @@ coverage ≥ 95% (most at 100%); 0 lint errors.
 across STDJSON, STDREGEX, STDCOLL, STDURL; per-module label
 coverage ≥ 95% (most at 100%); 0 lint errors.
 
+## P4 wave (v0.3.0)
+
+Eleven pure-M promotions out of `docs/module-tracker.md` Table 2,
+plus the toolchain hardening that unblocked them. All shipped under
+the v0.3.0 release tag (commit `363b990`, 2026-05-07).
+
+| Module | Tag | Purpose | Per-module doc |
+|---|---|---|---|
+| [`STDCSPRNG`](stdcsprng.md) | `v0.3.0` | Crypto random — bytes / hex / base64 / token / int / uuid4 over kernel CSPRNG (`/dev/urandom`; v0.4.0 adds optional `$ZF → getrandom(2)` callout). | [stdcsprng.md](stdcsprng.md) |
+| [`STDFS`](stdfs.md) | `v0.3.0` | File-system primitives — read/write/append/exists/remove/size + basename/dirname/join (text I/O via YDB SEQ stream mode; v0.4.0 adds byte-faithful I/O via libc callout). | [stdfs.md](stdfs.md) |
+| [`STDOS`](stdos.md) | `v0.3.0` | Process / env / cmdline helpers — env / pid / cmdline / argc / arg / argv / splitArgs / cwd / user / hostname / exit. YDB-only v1. | [stdos.md](stdos.md) |
+| [`STDSEMVER`](stdsemver.md) | `v0.3.0` | SemVer 2.0.0 — valid / parse / compare / matches plus major/minor/patch/prerelease/build accessors; range syntax (`>` / `<` / `>=` / `<=` / `=` / `^` / `~`). | [stdsemver.md](stdsemver.md) |
+| [`STDSTR`](stdstr.md) | `v0.3.0` | String helpers — pad / trim / replaceAll / split / startsWith / endsWith / toLowerASCII / toUpperASCII / repeat. ASCII-only by design. | [stdstr.md](stdstr.md) |
+| [`STDTOML`](stdtoml.md) | `v0.3.0` | TOML 1.0 subset — top-level pairs + `[section]` tables; string / integer / float / bool scalars; `#` comments. | [stdtoml.md](stdtoml.md) |
+| [`STDCACHE`](stdcache.md) | `v0.3.0` | LRU + TTL cache over caller-owned array — new / put / get / has / remove / clear / size / capacity. | [stdcache.md](stdcache.md) |
+| [`STDPROF`](stdprof.md) | `v0.3.0` | Wall-clock profiler — start / stop / count / total / mean / min / max / percentile / tags / clear. `$ZHOROLOG`-microsecond-resolution. | [stdprof.md](stdprof.md) |
+| [`STDSNAP`](stdsnap.md) | `v0.3.0` | Snapshot testing — serialize / save / matches / asserts; canonical line-per-leaf dump via `$QUERY` walk. | [stdsnap.md](stdsnap.md) |
+| [`STDENV`](stdenv.md) | `v0.3.0` | `.env` loader + typed accessors — parse / parseFile / valid / has / get / getInt / getBool / getFloat. | [stdenv.md](stdenv.md) |
+| [`STDXML`](stdxml.md) | `v0.3.0` | XML 1.0 parser + XPath 1.0 subset (paths / `[N]` predicates / descendant axis `//` / element-level + attribute-level namespaces / comments / PI / xml-decl / CDATA / numeric char refs). v0.4.0 extends with wildcards + attribute axis + functions + DOCTYPE/`<!ENTITY>`. | [stdxml.md](stdxml.md) |
+
+**P4-wave m-cli companion tracks (v0.3.0):**
+
+- **`m test --timings`** — subprocess-level wall-clock per suite via
+  Python `time.perf_counter()`; STDPROF is the in-process API for
+  finer-grained intra-suite timing.
+- **`m test --update-snapshots`** — sets
+  `^STDLIB($JOB,"stdsnap","update")=1` so `asserts^STDSNAP` rewrites
+  baselines instead of comparing.
+- **`m test --env PATH`** — repeatable; loads each `.env` via
+  `parseFile^STDENV` and merges into `^STDLIB($JOB,"env",KEY)`.
+
+**P4-wave totals**: 11 new modules; ~700 new assertions; per-module
+label coverage ≥ 91% (most at 100%; STDOS at 91.7%, STDENV at 93.3%);
+0 lint errors.
+
+## Phase 3 + post-P4 wave (v0.4.0)
+
+The three Phase 3 `$ZF`-bound modules (STDCRYPTO H1, STDCOMPRESS H2,
+STDHTTP H3) all green on engine, plus two more P4 promotions out of
+Table 2 (STDMATH L26, STDXFRM L27) and significant feature work on
+STDXML and STDFS.
+
+| Module | Tag | Purpose | Per-module doc |
+|---|---|---|---|
+| [`STDMATH`](stdmath.md) | `v0.4.0` | Numeric helpers — clamp / min / max / sum / count / mean over caller-owned arrays. | [stdmath.md](stdmath.md) |
+| [`STDXFRM`](stdxfrm.md) | `v0.4.0` | Higher-order array transforms — map / filter / reduce via XECUTE-evaluated lambdas (`value` / `key` / `acc` locals). | [stdxfrm.md](stdxfrm.md) |
+| [`STDCRYPTO`](stdcrypto.md) | `v0.4.0` | SHA-256/384/512 + HMAC-SHA-256/384/512 via `$&stdcrypto.fn → libcrypto` (OpenSSL EVP_Digest + HMAC). | [stdcrypto.md](stdcrypto.md) |
+| [`STDCOMPRESS`](stdcompress.md) | `v0.4.0` | gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress via `$&stdcompress.fn → libz + libzstd`. | [stdcompress.md](stdcompress.md) |
+| [`STDHTTP`](stdhttp.md) | `v0.4.0` | HTTP/1.1 client — pure-M wire-format helpers (`parseStatusLine` / `parseHeader` / `parseResponse` / `buildRequest` / `formatHeaders`) + libcurl-backed `$$get` / `$$post` / `$$request` / `$$available`. | [stdhttp.md](stdhttp.md) |
+
+**v0.4.0 add-ons (extending v0.3.0 modules):**
+
+- **STDXML T26 + T27a + T27b** — DOCTYPE + internal subset +
+  `<!ENTITY>` custom entities (T26); XPath wildcards (`*`, `@*`) +
+  attribute axis `@attrName` (T27a); XPath comparison predicates
+  + functions `position()` / `last()` / `name()` / `text()` /
+  `count()` / `string-length()` / `normalize-space()` /
+  `contains()` / `starts-with()` / `not()` / `string()` /
+  `number()` (T27b). Closes the 12-16d envelope; STDXMLTST 209/209.
+- **STDFS byte-faithful I/O** — `readBytes` / `writeBytes` /
+  `appendBytes` / `available` via `$ZF → libc open/read/write/close`
+  (T13 + T14). Atomic `O_APPEND`; no CR/LF normalisation.
+- **STDCSPRNG `$ZF → getrandom(2)` callout backend** — optional
+  perf-only swap (T12); pure-M `/dev/urandom` fallback unchanged.
+
+**v0.4.0 deployment harness:**
+
+- **`scripts/seed-callouts.sh`** — builds Phase 3 `.c` sources inside
+  the vista-meta container against the runtime YDB headers, stages
+  `.so` + `.xc` artefacts under `~/export/seed/m-stdlib/{lib/<plat>,xc}/`,
+  and idempotently injects a marker block into
+  `/etc/profile.d/ydb_env.sh` exporting `STDLIB_LIB` + per-package
+  `ydb_xc_<pkg>`. `make seed` invokes it automatically when
+  `src/callouts/*.c` is present.
+
+**v0.4.0 totals**: 5 new modules (STDMATH, STDXFRM, STDCRYPTO,
+STDCOMPRESS, STDHTTP); 3 module add-ons (STDXML T26+T27a+T27b, STDFS
+byte-I/O, STDCSPRNG callout). Aggregate engine gate: **32 suites,
+2483/2483 assertions green; 0E lint; fmt clean.**
+
 ## Conformance corpora
 
 | Path | Vectors | Used by |
@@ -71,5 +151,13 @@ Per [parallel-tracks.md §2](../parallel-tracks.md#2-dependency-map):
   JSON-line emission (v0.2.0 add-on).
 - **STDSEED `loadJson` → STDJSON** — `$$parse^STDJSON` for JSON
   manifest parsing (v0.2.0 add-on).
+- **STDCSPRNG → STDB64 / STDHEX / STDUUID** — `$$urlencode^STDB64`,
+  `$$encode^STDHEX`, `$$valid^STDUUID` (test-only) consumed by
+  `bytes` / `hex` / `base64` / `token` / `uuid4` extrinsics.
+- **STDSNAP → STDFS / STDASSERT** — file I/O via `STDFS`; assertion
+  integration via `asserts^STDSNAP`.
+- **STDENV → STDFS** — `parseFile^STDENV` reads via STDFS.
+- **STDHTTP → STDURL** — `parse^STDURL` extracts host/path/port for
+  request-line and Host-header construction in `$$buildRequest`.
 
 All other modules are runtime-independent.
