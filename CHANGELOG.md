@@ -6,7 +6,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 Pre-1.0 minor versions may include breaking changes.
 
-## [Unreleased]
+## [v0.5.0] — 2026-05-08
 
 **Discoverability & tooling — Wave A.** The first wave of the
 discoverability and tooling plan

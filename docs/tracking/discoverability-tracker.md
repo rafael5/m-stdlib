@@ -132,7 +132,7 @@ the work without further orientation.
 | WA5 | done | WA | 5 | stdlib | CI gate: regenerate manifest in CI, fail on diff against committed `dist/stdlib-manifest.json` | WA4 | 0.5d | CI workflow runs `make manifest-check`; passes today, fails if a label changes without manifest re-gen. | § 3.2 (acceptance gate) | `.github/workflows/ci.yml` (step add), `Makefile` (already had `manifest-check`) |
 | WA6 | done | WA | 6 | stdlib | Add YAML frontmatter (module / tag / phase / stable / since / synopsis / errors / labels / conformance / see_also) to every `docs/modules/stdXXX.md` | — | 0.5d | Every per-module markdown has frontmatter parsing cleanly as YAML. Field values agree with the manifest where overlapping (verified by a small check script, not gated yet). | § 3.3 | `docs/modules/std*.md`, `tools/write-module-frontmatter.py` (new), `Makefile` (`frontmatter` target) |
 | WA7 | done | WA | 7 | stdlib | Generate `dist/errors.json` (inverted index of `U-STD*` codes → producing module + labels) as a derivative of the manifest | WA4 | 0.25d | `make manifest` also writes `dist/errors.json` containing every `U-STD*` code with its origin module + labels. | § 3.5 | `tools/gen-manifest.py` (covers WA7 too), `dist/errors.json` (generated) |
-| WA8 | in-progress | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md` (Unreleased section landed), `docs/modules/index.md` (Machine-readable surface section landed), git tag (pending user decision on version + timing) |
+| WA8 | done | WA | 8 | stdlib | Cut a release tag carrying Wave A; update `docs/modules/index.md` to link the manifest + errors registry | WA4, WA5, WA6, WA7 | 0.5d | A new tag (≥ `v0.5.0` or per CHANGELOG decision) ships with manifest + errors.json + frontmatter; `docs/modules/index.md` carries a "Machine-readable surface" subsection linking both. | § 8 Wave A gate | `CHANGELOG.md` ([v0.5.0] heading), `docs/modules/index.md` (Machine-readable surface section), git tag `v0.5.0` (local; not pushed) |
 | WB1 | not-started | WB | 1 | m-cli | `m doc <symbol>` — module overview, single-label, fuzzy lookup; reads `dist/stdlib-manifest.json` from the resolved m-stdlib install at runtime | WA4 | 1–2d | `m doc STDJSON`, `m doc STDJSON.parse`, and `m doc parse` all return correct godoc-style output within ~100ms cold. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` (new) |
 | WB2 | not-started | WB | 2 | m-cli | `m doc --json` and `m doc --short` flags | WB1 | 0.5d | `--json` emits the raw manifest entry; `--short` emits one-line synopsis. Both stable for scripting. | § 4.1 | `~/projects/m-cli/src/cmd/doc.m` |
 | WB3 | not-started | WB | 3 | m-cli | `m search <query>` — full-text fuzzy search over manifest synopsis + description + example | WA4 | 0.5–1d | `m search "json parse"` returns ranked `module.label — synopsis` lines; matches against case-insensitive substrings in synopsis, description, examples. | § 4.2 | `~/projects/m-cli/src/cmd/search.m` (new) |
@@ -337,7 +337,7 @@ planning; expand them as work happens. The format is:
 
 #### WA8 — Wave A release
 
-**Status.** in-progress (prep landed 2026-05-08; tag cut pending user decision).
+**Status.** done (2026-05-08; tagged `v0.5.0` locally, not pushed).
 
 **Goal.** Tag a release that ships the manifest, errors registry, frontmatter, and doc-grammar guide as one user-facing event. Update `docs/modules/index.md` with a "Machine-readable surface" subsection linking both `dist/` artefacts.
 
@@ -365,6 +365,7 @@ planning; expand them as work happens. The format is:
   3. Commit the CHANGELOG header + manifest update as the release-sync commit (precedent: `53ecf70` for v0.4.0).
   4. `git tag -a v0.5.0 -m "<release annotation>"`. Decide whether to push (`git push origin v0.5.0`) per project policy.
   5. Flip this row to `done`.
+- **2026-05-08 (release sync)** — User accepted both recommendations. Cut **v0.5.0**: CHANGELOG `[Unreleased]` heading flipped to `[v0.5.0] — 2026-05-08`; `make manifest` re-ran and `stdlib_version` flipped to `v0.5.0` in both `dist/stdlib-manifest.json` and `dist/errors.json`. Tag `v0.5.0` cut locally with annotated message enumerating Wave A scope. **Tag not pushed** — branch is local-only per session policy. Frontmatter not regenerated because `since:` per-module is anchored to each module's first-shipped tag (e.g. STDJSON's stays `v0.2.0`), not the rolling stdlib release. **Wave A m-stdlib-side: ALL DONE (WA1+WA4+WA5+WA6+WA7+WA8). Cross-repo: WA2 (src/ tag backfill), WA3 (m-cli M-DOC-001 lint), WB1 (m-cli `m doc`).**
 
 ---
 
