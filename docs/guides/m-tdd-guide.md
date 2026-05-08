@@ -1,30 +1,22 @@
 ---
-title: m-tdd guide — operational TDD on M
-status: live (2026-05-08)
+title: M Test Driven Development Guide
 audience: M developers building or maintaining test suites on top of m-stdlib's TDD primitives.
-companion: tdd-orchestration-plan.md (the historical M0→M5 plan; this doc is its operational follow-up). users-guide.md (general m-stdlib usage). modules/index.md (per-module reference).
+companion: users-guide.md (general m-stdlib usage). modules/index.md (per-module reference).
 ---
 
-# m-tdd guide — operational TDD on M
+# M Test Driven Development Guide
 
-The cross-project TDD orchestration plan
-([`tdd-orchestration-plan.md`](../plans/tdd-orchestration-plan.md)) called for
-an integrated TDD loop on M:
+The integrated TDD loop on M:
 
 ```
 edit .m  →  m fmt  →  m lint  →  m test (with fixtures + mocks)  →
 m coverage (line + branch, gated)  →  m test --integration  →  CI
 ```
 
-It set milestones M0 through M5 — TDD primitives (M1), CI output +
-gates (M2), changed-only + integration (M3), Phase 2 ship (M4),
-Phase 3 ship (M5). **Every milestone is now closed.** The library
-ships, the runner consumes it, the gates run.
-
-This document is the operational follow-up. It documents only
-what's shipped, what works today, and what to type. There are no
-"queued" sections, no "proposed" specs, no aspirational milestones —
-that material lives in the orchestration plan as historical record.
+This guide documents what to type and how the pieces fit. It covers
+the runtime substrate (m-stdlib), the runner (m-cli), the
+container endpoint (vista-meta), and the inner-loop / release-gate
+commands that drive them.
 
 ## Contents
 
@@ -61,35 +53,31 @@ them is responsible for the whole stack:
 | **`m-cli`** | Python-side runner — `m test` (discovery, execution, output formats, isolation wrap, `--seed` / `--env` / `--update-snapshots` / `--timings` / `--changed` integration), `m coverage` (label coverage, LCOV / JSON, `--min-percent` gate), `m fmt`, `m lint`. | `m test tests/` / `m coverage --min-percent=85` — see §3. |
 | **`vista-meta`** | Containerised YottaDB endpoint that `m test` and `m coverage` talk to over SSH (`~/data/vista-meta/conn.env`). No host YDB install required. Same engine the upstream consumers run. | `cd ~/projects/vista-meta && make run` (one-time per host); subsequent `m test` invocations reuse it. |
 
-The architectural rule
-([`tdd-orchestration-plan.md`](../plans/tdd-orchestration-plan.md) §2) is that
-M-side runtime helpers belong in `m-stdlib`, Python-side tooling
-belongs in `m-cli`, and coupling points are documented protocols.
-The seven m-cli-integrated primitives below are the realised
-contract.
+The architectural rule is that M-side runtime helpers belong in
+`m-stdlib`, Python-side tooling belongs in `m-cli`, and coupling
+points are documented protocols. The seven m-cli-integrated
+primitives below are the realised contract.
 
 ## 2. The seven m-cli-integrated primitives
 
-Of m-stdlib's 32 modules, **seven** are wired into the m-cli runner
-and form the operational TDD substrate. The other 25 are general-
-purpose runtime utilities; they happen to be heavily used inside the
-test suites (because every suite assertion-checks against `STDASSERT`,
-many encode/decode through `STDB64` / `STDJSON` / `STDREGEX` / etc.),
-but they are not part of the TDD wiring per se.
+Seven m-stdlib modules are wired into the m-cli runner and form the
+operational TDD substrate. Other m-stdlib modules are general-
+purpose runtime utilities — heavily used inside test suites (every
+suite asserts via `STDASSERT`; many encode/decode through `STDB64` /
+`STDJSON` / `STDREGEX`) but not part of the TDD wiring per se.
 
-| # | Module | m-cli track | Runner contract | Companion flag |
-|---|---|---|---|---|
-| 1 | [`STDASSERT`](../modules/stdassert.md) | C1 + C2 | `do start^STDASSERT(.pass,.fail)` at suite entry; `do <verb>^STDASSERT(.pass,.fail,...)` per assertion; `do report^STDASSERT(pass,fail)` at exit. The runner parses the `PASS` / `FAIL` lines to compute per-suite totals. | (always on; built-in) |
-| 2 | [`STDFIX`](../modules/stdfix.md) | C3 | Runner wraps each test label in `do invoke^STDFIX("<label>",code)` so a `tstart` / `trollback $tlevel-1` brackets every test. Database mutations (`^DPT`, `^DIC`, `^XTMP`, anything global) auto-roll-back at end-of-test. | `--no-isolation` opts out (legacy `^TESTRUN`-style suites) |
-| 3 | [`STDMOCK`](../modules/stdmock.md) | C4 | Runner calls `do clear^STDMOCK` between each pair of test labels so registrations don't leak across tests. Mock state (call count, recorded args) is `$JOB`-scoped. | (always on; built-in) |
-| 4 | [`STDSEED`](../modules/stdseed.md) | C5 | Before each suite, runner calls `do load^STDSEED("PATH")` for each `--seed PATH`. Pluggable filer hook (`fileViaDie^STDSEED` is the default; tests inject a stub for unit-mode). Cleanup is automatic via STDFIX rollback. | `--seed PATH` (repeatable; order preserved) |
-| 5 | [`STDPROF`](../modules/stdprof.md) | C6 | `m test --timings` captures the subprocess wall-clock per suite via Python `time.perf_counter()` — STDPROF is the in-process API for finer-grained intra-suite timings (`start^STDPROF` / `stop^STDPROF` / `$$percentile^STDPROF`). | `--timings` (subprocess level); `start^STDPROF` / `stop^STDPROF` (intra-suite) |
-| 6 | [`STDSNAP`](../modules/stdsnap.md) | C7 | `m test --update-snapshots` sets `^STDLIB($JOB,"stdsnap","update")=1` so `do asserts^STDSNAP(...)` rewrites the baseline instead of comparing. Useful after an intentional output change. | `--update-snapshots` |
-| 7 | [`STDENV`](../modules/stdenv.md) | C8 | Before each suite, runner calls `do parseFile^STDENV("PATH",.env)` and merges into `^STDLIB($JOB,"env",KEY)`. Test code reads via `$get(^STDLIB($JOB,"env","KEY"))`. Later `--env` files override earlier keys. | `--env PATH` (repeatable) |
+| # | Module | Runner contract | Companion flag |
+|---|---|---|---|
+| 1 | [`STDASSERT`](../modules/stdassert.md) | `do start^STDASSERT(.pass,.fail)` at suite entry; `do <verb>^STDASSERT(.pass,.fail,...)` per assertion; `do report^STDASSERT(pass,fail)` at exit. The runner parses the `PASS` / `FAIL` lines to compute per-suite totals. | (always on; built-in) |
+| 2 | [`STDFIX`](../modules/stdfix.md) | Runner wraps each test label in `do invoke^STDFIX("<label>",code)` so a `tstart` / `trollback $tlevel-1` brackets every test. Database mutations (`^DPT`, `^DIC`, `^XTMP`, anything global) auto-roll-back at end-of-test. | `--no-isolation` opts out |
+| 3 | [`STDMOCK`](../modules/stdmock.md) | Runner calls `do clear^STDMOCK` between each pair of test labels so registrations don't leak across tests. Mock state (call count, recorded args) is `$JOB`-scoped. | (always on; built-in) |
+| 4 | [`STDSEED`](../modules/stdseed.md) | Before each suite, runner calls `do load^STDSEED("PATH")` for each `--seed PATH`. Pluggable filer hook (`fileViaDie^STDSEED` is the default; tests inject a stub for unit-mode). Cleanup is automatic via STDFIX rollback. | `--seed PATH` (repeatable; order preserved) |
+| 5 | [`STDPROF`](../modules/stdprof.md) | `m test --timings` captures the subprocess wall-clock per suite via Python `time.perf_counter()` — STDPROF is the in-process API for finer-grained intra-suite timings (`start^STDPROF` / `stop^STDPROF` / `$$percentile^STDPROF`). | `--timings` (subprocess level); `start^STDPROF` / `stop^STDPROF` (intra-suite) |
+| 6 | [`STDSNAP`](../modules/stdsnap.md) | `m test --update-snapshots` sets `^STDLIB($JOB,"stdsnap","update")=1` so `do asserts^STDSNAP(...)` rewrites the baseline instead of comparing. Useful after an intentional output change. | `--update-snapshots` |
+| 7 | [`STDENV`](../modules/stdenv.md) | Before each suite, runner calls `do parseFile^STDENV("PATH",.env)` and merges into `^STDLIB($JOB,"env",KEY)`. Test code reads via `$get(^STDLIB($JOB,"env","KEY"))`. Later `--env` files override earlier keys. | `--env PATH` (repeatable) |
 
-These seven are the answer to "M doesn't have a test framework" —
-together with `m test`, they are the framework. Every other m-stdlib
-module is general-purpose and unrelated to the TDD wiring.
+These seven, together with `m test`, are the framework. Every other
+m-stdlib module is general-purpose and unrelated to the TDD wiring.
 
 ## 3. The runner protocol
 
@@ -160,10 +148,8 @@ small (one purpose per label).
 
 ## 4. The TDD inner loop
 
-Per the orchestration plan §3 and m-stdlib's
-[`m-stdlib-implementation-plan.md`](../plans/m-stdlib-implementation-plan.md)
-§9, every m-stdlib module was built TDD-first. The same loop applies
-to any project building on top:
+The loop for any module — m-stdlib's own modules and any project
+building on top:
 
 1. **Write the test file with realistic fixtures** —
    `tests/STDxxxTST.m`. Each test label is named `t<UpperCase>` and
@@ -493,17 +479,15 @@ local correctness.
 firing inside an extrinsic must `quit` *with an argument*. Either
 move the etrap into a procedure-level frame, or end the body with
 `quit -1` (or another sentinel). See
-[`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) for the open
-issues; STDASSERT.raises has been hardened twice for the
-extrinsic-context-unwind case.
+[`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) for any
+open issues in this area.
 
 **Tests leak state between runs.** Either you have `--no-isolation`
 on by mistake, or the test mutates something STDFIX can't roll back
 (local files via `STDFS`, env vars via `STDOS.setenv`, mock state
 that the runner handles separately). For files: clean up explicitly
 in the test. For mocks: trust the runner's
-`do clear^STDMOCK`-between-tests guarantee — it has a regression
-test (`tMocksDoNotLeakAcrossTests`).
+`do clear^STDMOCK`-between-tests guarantee.
 
 **`m test --update-snapshots` doesn't update.** STDSNAP only
 rewrites if a baseline exists *and* the new content differs — a
@@ -522,10 +506,9 @@ m coverage --routines src/ --tests tests/ --min-percent=85
 
 ## 10. Cross-references
 
-- [`tdd-orchestration-plan.md`](../plans/tdd-orchestration-plan.md) — the historical M0 → M5 cross-project plan; this document is its operational follow-up.
 - [`users-guide.md`](users-guide.md) — general m-stdlib user's guide; full module inventory, per-module reference, library philosophy.
+- [`modules/index.md`](../modules/index.md) — canonical module inventory; per-module reference + cross-module dependency map.
 - [`m-stdlib-implementation-plan.md`](../plans/m-stdlib-implementation-plan.md) — per-module specs (§8) and the §9 acceptance gate.
 - [`module-tracker.md`](../tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board.
-- [`modules/index.md`](../modules/index.md) — canonical module inventory; per-module reference + cross-module dependency map.
 - [`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
-- [`../../m-cli/CLAUDE.md`](../../CLAUDE.md) — m-cli's project context; runner / lint / lsp conventions.
+- [`../../m-cli/CLAUDE.md`](../../../m-cli/CLAUDE.md) — m-cli's project context; runner / lint / lsp conventions.
