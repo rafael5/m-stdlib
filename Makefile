@@ -119,7 +119,12 @@ manifest:
 	python3 tools/gen-manifest.py
 
 manifest-check: manifest
-	@git diff --exit-code dist/stdlib-manifest.json dist/errors.json \
+	@# `--` forces pathspec mode. Without it, `git diff <path1> <path2>`
+	@# is ambiguous and git can pick `git diff <blob> <blob>` mode
+	@# (diffing the two files against each other instead of each-vs-index),
+	@# producing a giant spurious diff and a false-positive CI failure
+	@# even when the manifest is in sync.
+	@git diff --exit-code -- dist/stdlib-manifest.json dist/errors.json \
 		|| { echo "ERROR: dist/ manifest is out of date — run 'make manifest' and commit."; exit 1; }
 	@echo "manifest: clean"
 
