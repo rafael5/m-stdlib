@@ -55,7 +55,9 @@ jobs:
         # somebody touched a `; doc:` block (or src/ structure) without
         # re-running `make manifest`. Engine-free — only needs python3
         # and git, both already installed above.
-        run: make manifest-check
+        run: |
+          export PATH="/tmp/venv/bin:$PATH"
+          make manifest-check
 
       - name: AI skill drift check
         # Regenerates dist/skill/{SKILL.md,manifest-index.md,patterns.md,
@@ -63,7 +65,9 @@ jobs:
         # (WD1). Same drift model as manifest-check: any `; doc:` change
         # that flows into the skill artefacts forces a regenerate-and-
         # commit. Engine-free.
-        run: make skill-check
+        run: |
+          export PATH="/tmp/venv/bin:$PATH"
+          make skill-check
 
       - name: Doctest drift check
         # Regenerates tests/STD*DOCTST.m from the manifest's @example
@@ -73,7 +77,9 @@ jobs:
         # regular `make test` step below, which globs `tests/` and so
         # picks up the committed STD*DOCTST.m suites alongside the
         # hand-written STD*TST.m ones.
-        run: make doctest-check
+        run: |
+          export PATH="/tmp/venv/bin:$PATH"
+          make doctest-check
 
       - name: Initialise YDB workspace
         run: |
