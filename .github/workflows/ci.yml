@@ -42,8 +42,8 @@ jobs:
           # Distribution model: clone-and-install (no package registry).
           # tree-sitter-m must land before m-cli so its local checkout
           # satisfies m-cli's dependency declaration.
-          git clone --depth=1 https://github.com/rafael5/tree-sitter-m /tmp/tree-sitter-m
-          git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          git clone --depth=1 https://github.com/m-dev-tools/tree-sitter-m /tmp/tree-sitter-m
+          git clone --depth=1 https://github.com/m-dev-tools/m-cli /tmp/m-cli
           /tmp/venv/bin/pip install /tmp/tree-sitter-m
           /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
 
@@ -146,8 +146,8 @@ jobs:
           # Distribution model: clone-and-install (no package registry).
           # tree-sitter-m must land before m-cli so its local checkout
           # satisfies m-cli's dependency declaration.
-          git clone --depth=1 https://github.com/rafael5/tree-sitter-m /tmp/tree-sitter-m
-          git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          git clone --depth=1 https://github.com/m-dev-tools/tree-sitter-m /tmp/tree-sitter-m
+          git clone --depth=1 https://github.com/m-dev-tools/m-cli /tmp/m-cli
           /tmp/venv/bin/pip install /tmp/tree-sitter-m
           /tmp/venv/bin/pip install -e "/tmp/m-cli[lsp]"
 

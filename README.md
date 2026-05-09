@@ -9,10 +9,10 @@ cache, profiling, snapshot testing, `.env` loaders, XML, numeric
 helpers, higher-order array transforms, SHA + HMAC, gzip / deflate /
 zstd, and HTTP/1.1.
 
-Sibling project to [m-cli](https://github.com/rafael5/m-cli) (the
-toolchain), [m-standard](https://github.com/rafael5/m-standard) (the
+Sibling project to [m-cli](https://github.com/m-dev-tools/m-cli) (the
+toolchain), [m-standard](https://github.com/m-dev-tools/m-standard) (the
 modern-M style guide), and
-[tree-sitter-m](https://github.com/rafael5/tree-sitter-m) (the parser).
+[tree-sitter-m](https://github.com/m-dev-tools/tree-sitter-m) (the parser).
 
 YottaDB-first; IRIS-portable where reasonable.
 

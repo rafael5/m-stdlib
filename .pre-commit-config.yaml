@@ -2,7 +2,7 @@
 #
 # Uses `repo: local` and shells out to a local m-cli venv. Once m-cli
 # publishes its `.pre-commit-hooks.yaml` against a release tag, swap
-# this for `repo: https://github.com/rafael5/m-cli` with a pinned rev.
+# this for `repo: https://github.com/m-dev-tools/m-cli` with a pinned rev.
 
 repos:
   - repo: local

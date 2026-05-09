@@ -655,8 +655,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install m-cli + tree-sitter-m from git checkouts (no package registry).
 # tree-sitter-m must be installed first so its local checkout satisfies
 # m-cli's dependency declaration.
-RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
-    git clone https://github.com/rafael5/m-cli /opt/m-cli && \
+RUN git clone https://github.com/m-dev-tools/tree-sitter-m /opt/tree-sitter-m && \
+    git clone https://github.com/m-dev-tools/m-cli /opt/m-cli && \
     python3.12 -m venv /opt/m-cli/.venv && \
     /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
     /opt/m-cli/.venv/bin/pip install -e "/opt/m-cli[lsp]"
@@ -840,7 +840,7 @@ jobs:
 
       - name: Install m-cli (from git until post-Phase-1 publication)
         run: |
-          git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          git clone --depth=1 https://github.com/m-dev-tools/m-cli /tmp/m-cli
           /tmp/venv/bin/pip install -e /tmp/m-cli[lsp]
         # Post-Phase-1 swap:
         # run: /tmp/venv/bin/pip install 'm-cli[lsp]==0.1.0'
@@ -1008,7 +1008,7 @@ resolved. The original recommendation is preserved as background; the
 
 - **Decision.** **m-stdlib ships as a sibling** of m-cli, m-standard,
   and tree-sitter-m. Independent repo (`~/projects/m-stdlib`,
-  `github.com/rafael5/m-stdlib`), independent versioning, independent
+  `github.com/m-dev-tools/m-stdlib`), independent versioning, independent
   release cadence.
 - **Implication.** m-stdlib has its own CI, its own pre-commit, its
   own license file. It depends on m-cli (for fmt/lint/test/coverage)
@@ -1177,7 +1177,7 @@ All resolved 2026-04-30. This section was a Q&A; each item is now an
 ### 13.1 Repo location and host — confirmed
 
 - Local: `~/projects/m-stdlib`.
-- Remote: `github.com/rafael5/m-stdlib`, public, AGPL-3.0.
+- Remote: `github.com/m-dev-tools/m-stdlib`, public, AGPL-3.0.
 
 ### 13.2 m-cli evolves in parallel; m-stdlib takes naming priority
 

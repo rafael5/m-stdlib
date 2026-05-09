@@ -114,7 +114,7 @@ These rules govern every commit. They are not phase-specific.
   permanently. IRIS portability job is fail-soft until v0.0.4, then
   reintroduced.
 - **Repo:** local `~/projects/m-stdlib`; remote
-  `github.com/rafael5/m-stdlib`, public.
+  `github.com/m-dev-tools/m-stdlib`, public.
 - **Assertion library:** STDASSERT is canonical for m-stdlib and the
   whole project family. m-stdlib does not depend on m-tools.
 
@@ -247,8 +247,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # m-cli installed from git checkout. Distribution model is git-clone-and-install
 # (no package registry). tree-sitter-m must be installed first so its local
 # checkout satisfies m-cli's dependency declaration.
-RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
-    git clone https://github.com/rafael5/m-cli /opt/m-cli && \
+RUN git clone https://github.com/m-dev-tools/tree-sitter-m /opt/tree-sitter-m && \
+    git clone https://github.com/m-dev-tools/m-cli /opt/m-cli && \
     python3.12 -m venv /opt/m-cli/.venv && \
     /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
     /opt/m-cli/.venv/bin/pip install -e "/opt/m-cli[lsp]"
@@ -329,7 +329,7 @@ repos:
         entry: /opt/m-cli/.venv/bin/m lint --error-on=error
         language: system
         files: \.m$
-# TODO: swap to `repo: https://github.com/rafael5/m-cli` once m-cli ≥ v0.1.0
+# TODO: swap to `repo: https://github.com/m-dev-tools/m-cli` once m-cli ≥ v0.1.0
 # publishes its `.pre-commit-hooks.yaml` against a release tag.
 ```
 
@@ -361,7 +361,7 @@ jobs:
 
       - name: Install m-cli (from git until post-Phase-1 publication)
         run: |
-          git clone --depth=1 https://github.com/rafael5/m-cli /tmp/m-cli
+          git clone --depth=1 https://github.com/m-dev-tools/m-cli /tmp/m-cli
           /tmp/venv/bin/pip install -e /tmp/m-cli[lsp]
 
       - name: Initialise YDB

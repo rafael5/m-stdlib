@@ -23,10 +23,10 @@ fi
 cd /home/vehu
 
 if [ ! -d tree-sitter-m ]; then
-    git clone https://github.com/rafael5/tree-sitter-m
+    git clone https://github.com/m-dev-tools/tree-sitter-m
 fi
 if [ ! -d m-cli ]; then
-    git clone https://github.com/rafael5/m-cli
+    git clone https://github.com/m-dev-tools/m-cli
 fi
 
 python3.12 -m venv "$VENV"

@@ -24,8 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # tree-sitter-m must be installed first: m-cli declares it as a dep, and the
 # `[tool.uv.sources]` redirect in m-cli/pyproject.toml is uv-only — pip needs
 # the local checkout already satisfied in the env before resolving m-cli.
-RUN git clone https://github.com/rafael5/tree-sitter-m /opt/tree-sitter-m && \
-    git clone https://github.com/rafael5/m-cli /opt/m-cli && \
+RUN git clone https://github.com/m-dev-tools/tree-sitter-m /opt/tree-sitter-m && \
+    git clone https://github.com/m-dev-tools/m-cli /opt/m-cli && \
     python3.12 -m venv /opt/m-cli/.venv && \
     /opt/m-cli/.venv/bin/pip install --upgrade pip && \
     /opt/m-cli/.venv/bin/pip install /opt/tree-sitter-m && \
