@@ -27,37 +27,37 @@ jobs:
         ydb-image: ["latest-master"]   # add tagged release lines as they're vetted
 
     steps:
+      - name: Install git before checkout (so checkout does a real clone)
+        # Critical: the container ships without git. When
+        # actions/checkout@v4 runs inside the container and can't find
+        # git, it falls back to GitHub's REST API and downloads the
+        # source as a tarball — no .git directory. Every later step
+        # that calls git (manifest-check, skill-check, doctest-check)
+        # then errors with "Not a git repository".
+        #
+        # Installing git BEFORE checkout lets the action do a real
+        # `git clone` and leave a working .git in $GITHUB_WORKSPACE.
+        # Diagnosed 2026-05-09 via the previous safe.directory step's
+        # diagnostic listing of /__w/m-stdlib/m-stdlib/.git — file not
+        # found, but src/ etc. all present (tarball download).
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates
+
       - uses: actions/checkout@v4
 
       - name: Install Python toolchain
         run: |
-          apt-get update
           apt-get install -y --no-install-recommends \
-              python3.12 python3.12-venv python3.12-dev gcc \
-              git make ca-certificates
+              python3.12 python3.12-venv python3.12-dev gcc make
           python3.12 -m venv /tmp/venv
           /tmp/venv/bin/pip install --upgrade pip
 
       - name: Trust workspace inside the container
-        # The container runs as root but the workspace was checked out
-        # by the runner under a different UID. Without this, git refuses
-        # to recognise the workspace as a repo and `git diff` falls back
-        # to --no-index mode (or, on per-file diffs, errors out with
-        # "Not a git repository"). Affects every step that calls git
-        # inside the container — manifest-check / skill-check /
-        # doctest-check most visibly.
-        #
-        # The wildcard form trusts every directory; equivalent to
-        # `git config --global --add safe.directory *`. Targeting just
-        # $GITHUB_WORKSPACE wasn't enough — the actual workspace path
-        # under `container:` mounts is /__w/<repo>/<repo>, not always
-        # equal to $GITHUB_WORKSPACE inside the container.
-        run: |
-          git config --global --add safe.directory '*'
-          # Diagnostic so future failures show what git actually sees.
-          echo "PWD=$PWD  GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          ls -la "$GITHUB_WORKSPACE/.git" 2>&1 | head -3 || true
-          git -C "$GITHUB_WORKSPACE" rev-parse --is-inside-work-tree || echo "NOT A GIT REPO"
+        # Wildcard safe.directory entry — fine on an ephemeral CI
+        # runner. Avoids "dubious ownership" errors when later git
+        # operations run as root against the checked-out workspace.
+        run: git config --global --add safe.directory '*'
 
       - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
@@ -159,37 +159,37 @@ jobs:
       image: intersystemsdc/iris-community:latest
       options: --user root
     steps:
+      - name: Install git before checkout (so checkout does a real clone)
+        # Critical: the container ships without git. When
+        # actions/checkout@v4 runs inside the container and can't find
+        # git, it falls back to GitHub's REST API and downloads the
+        # source as a tarball — no .git directory. Every later step
+        # that calls git (manifest-check, skill-check, doctest-check)
+        # then errors with "Not a git repository".
+        #
+        # Installing git BEFORE checkout lets the action do a real
+        # `git clone` and leave a working .git in $GITHUB_WORKSPACE.
+        # Diagnosed 2026-05-09 via the previous safe.directory step's
+        # diagnostic listing of /__w/m-stdlib/m-stdlib/.git — file not
+        # found, but src/ etc. all present (tarball download).
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates
+
       - uses: actions/checkout@v4
 
       - name: Install Python toolchain
         run: |
-          apt-get update
           apt-get install -y --no-install-recommends \
-              python3.12 python3.12-venv python3.12-dev gcc \
-              git make ca-certificates
+              python3.12 python3.12-venv python3.12-dev gcc make
           python3.12 -m venv /tmp/venv
           /tmp/venv/bin/pip install --upgrade pip
 
       - name: Trust workspace inside the container
-        # The container runs as root but the workspace was checked out
-        # by the runner under a different UID. Without this, git refuses
-        # to recognise the workspace as a repo and `git diff` falls back
-        # to --no-index mode (or, on per-file diffs, errors out with
-        # "Not a git repository"). Affects every step that calls git
-        # inside the container — manifest-check / skill-check /
-        # doctest-check most visibly.
-        #
-        # The wildcard form trusts every directory; equivalent to
-        # `git config --global --add safe.directory *`. Targeting just
-        # $GITHUB_WORKSPACE wasn't enough — the actual workspace path
-        # under `container:` mounts is /__w/<repo>/<repo>, not always
-        # equal to $GITHUB_WORKSPACE inside the container.
-        run: |
-          git config --global --add safe.directory '*'
-          # Diagnostic so future failures show what git actually sees.
-          echo "PWD=$PWD  GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          ls -la "$GITHUB_WORKSPACE/.git" 2>&1 | head -3 || true
-          git -C "$GITHUB_WORKSPACE" rev-parse --is-inside-work-tree || echo "NOT A GIT REPO"
+        # Wildcard safe.directory entry — fine on an ephemeral CI
+        # runner. Avoids "dubious ownership" errors when later git
+        # operations run as root against the checked-out workspace.
+        run: git config --global --add safe.directory '*'
 
       - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
