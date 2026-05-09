@@ -1,23 +1,33 @@
 # m-stdlib Makefile.
 #
-# Engine: the shared vista-meta YottaDB container (no host YDB).
-# `make test` and `make coverage` go through `m test` / `m coverage`
-# which talk to vista-meta over SSH via ~/data/vista-meta/conn.env.
+# Engine: m-cli's multi-transport runner picks LocalEngine (host YDB),
+# DockerEngine (m-test-engine container), or SSHEngine (legacy
+# vista-meta over SSH) per the resolver in m-cli/src/m_cli/engine.py.
+# Engine-bound targets (test, coverage) fail with a helpful message
+# from m-cli if no transport is detected; engine-free targets
+# (manifest, manifest-check, skill-check, doctest-check, fmt, lint)
+# work on a fresh clone with no engine configured.
 
 SHELL := /bin/bash
 
 # m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
 M ?= $(HOME)/projects/m-cli/.venv/bin/m
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter skill skill-check skill-install doctest doctest-check doctest-run
+# m-test-engine — local checkout for `make engine-up` / `engine-down`.
+# Override if you cloned it elsewhere.
+M_TEST_ENGINE ?= $(HOME)/projects/m-test-engine
 
-# vista-meta connection contract — published by `vista-meta: make run`.
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter skill skill-check skill-install doctest doctest-check doctest-run engine-up engine-down engine-status
+
+# vista-meta connection contract — silently included if present.
+# Preserves the maintainer's existing workflow but no longer hard-errors
+# on a fresh clone. Engine-bound targets fail with m-cli's
+# EngineNotConfigured guidance instead — fresh-clone-friendly.
 VISTA_CONN := $(HOME)/data/vista-meta/conn.env
-ifeq ($(wildcard $(VISTA_CONN)),)
-$(error vista-meta connection not configured: $(VISTA_CONN) missing — run: cd ~/projects/vista-meta && make run)
-endif
+ifneq ($(wildcard $(VISTA_CONN)),)
 include $(VISTA_CONN)
 export VISTA_HOST VISTA_SSH_PORT VISTA_SSH_USER
+endif
 
 all: check
 
@@ -37,7 +47,33 @@ fmt-check:
 lint:
 	$(M) lint --error-on=error src/ tests/
 
-# ── Engine-bound (m test / m coverage seed vista-meta automatically) ──
+# ── Engine lifecycle (m-test-engine container) ──────────────────────
+#
+# `engine-up` starts the lightweight YDB container so DockerEngine can
+# target it. m-cli's detect_engine() picks up the running container
+# automatically. Force the choice with `M_CLI_ENGINE=docker`.
+#
+# `engine-status` shows which transport detect_engine() resolves to.
+
+engine-up:
+	@if [ -d "$(M_TEST_ENGINE)" ]; then \
+	    $(MAKE) -C $(M_TEST_ENGINE) up; \
+	else \
+	    echo "m-test-engine not found at $(M_TEST_ENGINE)."; \
+	    echo "Clone it: git clone https://github.com/m-dev-tools/m-test-engine $(M_TEST_ENGINE)"; \
+	    echo "Or override: make engine-up M_TEST_ENGINE=/elsewhere"; \
+	    exit 1; \
+	fi
+
+engine-down:
+	@$(MAKE) -C $(M_TEST_ENGINE) down
+
+engine-status:
+	@$(M) -c "from m_cli.engine import detect_engine; e = detect_engine(); print(f'transport: {type(e).__name__}'); print(f'detail: {e!r}')" 2>/dev/null \
+	  || python3 -c "import sys; sys.path.insert(0, '$(HOME)/projects/m-cli/src'); from m_cli.engine import detect_engine; e = detect_engine(); print(f'transport: {type(e).__name__}'); print(f'detail: {e!r}')" \
+	  || echo "(no engine resolved — install YDB, run 'make engine-up', or set up vista-meta)"
+
+# ── Engine-bound — m test / m coverage dispatch via m-cli's resolver ──
 
 seed:
 	@./scripts/seed-vista.sh
