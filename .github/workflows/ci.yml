@@ -38,6 +38,16 @@ jobs:
           python3.12 -m venv /tmp/venv
           /tmp/venv/bin/pip install --upgrade pip
 
+      - name: Trust workspace inside the container
+        # The container runs as root but the workspace was checked out
+        # by the runner under a different UID. Without this, git refuses
+        # to recognise $GITHUB_WORKSPACE as a repo and `git diff` falls
+        # back to --no-index mode (or, on per-file diffs, errors out
+        # with "Not a git repository"). Affects every step that calls
+        # git inside the container — manifest-check / skill-check /
+        # doctest-check most visibly.
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
           # Distribution model: clone-and-install (no package registry).
@@ -148,6 +158,16 @@ jobs:
               git make ca-certificates
           python3.12 -m venv /tmp/venv
           /tmp/venv/bin/pip install --upgrade pip
+
+      - name: Trust workspace inside the container
+        # The container runs as root but the workspace was checked out
+        # by the runner under a different UID. Without this, git refuses
+        # to recognise $GITHUB_WORKSPACE as a repo and `git diff` falls
+        # back to --no-index mode (or, on per-file diffs, errors out
+        # with "Not a git repository"). Affects every step that calls
+        # git inside the container — manifest-check / skill-check /
+        # doctest-check most visibly.
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
