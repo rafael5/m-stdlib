@@ -41,12 +41,23 @@ jobs:
       - name: Trust workspace inside the container
         # The container runs as root but the workspace was checked out
         # by the runner under a different UID. Without this, git refuses
-        # to recognise $GITHUB_WORKSPACE as a repo and `git diff` falls
-        # back to --no-index mode (or, on per-file diffs, errors out
-        # with "Not a git repository"). Affects every step that calls
-        # git inside the container — manifest-check / skill-check /
+        # to recognise the workspace as a repo and `git diff` falls back
+        # to --no-index mode (or, on per-file diffs, errors out with
+        # "Not a git repository"). Affects every step that calls git
+        # inside the container — manifest-check / skill-check /
         # doctest-check most visibly.
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        #
+        # The wildcard form trusts every directory; equivalent to
+        # `git config --global --add safe.directory *`. Targeting just
+        # $GITHUB_WORKSPACE wasn't enough — the actual workspace path
+        # under `container:` mounts is /__w/<repo>/<repo>, not always
+        # equal to $GITHUB_WORKSPACE inside the container.
+        run: |
+          git config --global --add safe.directory '*'
+          # Diagnostic so future failures show what git actually sees.
+          echo "PWD=$PWD  GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE/.git" 2>&1 | head -3 || true
+          git -C "$GITHUB_WORKSPACE" rev-parse --is-inside-work-tree || echo "NOT A GIT REPO"
 
       - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
@@ -162,12 +173,23 @@ jobs:
       - name: Trust workspace inside the container
         # The container runs as root but the workspace was checked out
         # by the runner under a different UID. Without this, git refuses
-        # to recognise $GITHUB_WORKSPACE as a repo and `git diff` falls
-        # back to --no-index mode (or, on per-file diffs, errors out
-        # with "Not a git repository"). Affects every step that calls
-        # git inside the container — manifest-check / skill-check /
+        # to recognise the workspace as a repo and `git diff` falls back
+        # to --no-index mode (or, on per-file diffs, errors out with
+        # "Not a git repository"). Affects every step that calls git
+        # inside the container — manifest-check / skill-check /
         # doctest-check most visibly.
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        #
+        # The wildcard form trusts every directory; equivalent to
+        # `git config --global --add safe.directory *`. Targeting just
+        # $GITHUB_WORKSPACE wasn't enough — the actual workspace path
+        # under `container:` mounts is /__w/<repo>/<repo>, not always
+        # equal to $GITHUB_WORKSPACE inside the container.
+        run: |
+          git config --global --add safe.directory '*'
+          # Diagnostic so future failures show what git actually sees.
+          echo "PWD=$PWD  GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE/.git" 2>&1 | head -3 || true
+          git -C "$GITHUB_WORKSPACE" rev-parse --is-inside-work-tree || echo "NOT A GIT REPO"
 
       - name: Install m-cli + tree-sitter-m from git checkouts
         run: |
