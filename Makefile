@@ -119,13 +119,17 @@ manifest:
 	python3 tools/gen-manifest.py
 
 manifest-check: manifest
-	@# `--` forces pathspec mode. Without it, `git diff <path1> <path2>`
-	@# is ambiguous and git can pick `git diff <blob> <blob>` mode
-	@# (diffing the two files against each other instead of each-vs-index),
-	@# producing a giant spurious diff and a false-positive CI failure
-	@# even when the manifest is in sync.
-	@git diff --exit-code -- dist/stdlib-manifest.json dist/errors.json \
-		|| { echo "ERROR: dist/ manifest is out of date — run 'make manifest' and commit."; exit 1; }
+	@# Diff each generated artefact separately. The previous form
+	@# (`git diff --exit-code -- A B`) tried to use the `--` pathspec
+	@# separator to disambiguate, but git silently falls back to
+	@# blob-vs-blob mode (diffing A against B instead of each against
+	@# the index) on some git versions even with the `--` — observed
+	@# under GitHub Actions' bundled git as of 2026-05-09. The single-
+	@# file form is unambiguous on every git version.
+	@git diff --exit-code -- dist/stdlib-manifest.json \
+		|| { echo "ERROR: dist/stdlib-manifest.json out of date — run 'make manifest' and commit."; exit 1; }
+	@git diff --exit-code -- dist/errors.json \
+		|| { echo "ERROR: dist/errors.json out of date — run 'make manifest' and commit."; exit 1; }
 	@echo "manifest: clean"
 
 # `make frontmatter` re-syncs YAML frontmatter on every docs/modules/std*.md
