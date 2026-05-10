@@ -257,7 +257,7 @@ corpus pointers, cross-module dependency map) is at
 Live work — proposed modules, in-flight extensions, deferred ToDos —
 is tracked in [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md). Open
 toolchain bugs that block or limit m-stdlib work live in
-[`docs/tracking/TOOLCHAIN-FINDINGS.md`](docs/tracking/TOOLCHAIN-FINDINGS.md).
+[`docs/tracking/discoveries.md`](docs/tracking/discoveries.md).
 Release history is in [`docs/tracking/changelog.md`](docs/tracking/changelog.md).
 
 ## 7. Cross-references
@@ -296,7 +296,7 @@ The changelog has moved into `docs/tracking/` alongside the other live work boar
 - [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board (T1–T30) with per-module history archaeology.
 - [`docs/tracking/parallel-tracks.md`](docs/tracking/parallel-tracks.md) — dispatch view; current execution status across L1–L27 / H1–H3 / m-cli companion tracks.
 - [`docs/tracking/TODO.md`](docs/tracking/TODO.md) — resume-here pointer; thin index over the tracker boards.
-- [`docs/tracking/TOOLCHAIN-FINDINGS.md`](docs/tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
+- [`docs/tracking/discoveries.md`](docs/tracking/discoveries.md) — discoveries register: in-project pivots + external toolchain findings, with severity / plan impact / status.
 
 ### Repo-root
 

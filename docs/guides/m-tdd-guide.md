@@ -479,7 +479,7 @@ local correctness.
 firing inside an extrinsic must `quit` *with an argument*. Either
 move the etrap into a procedure-level frame, or end the body with
 `quit -1` (or another sentinel). See
-[`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) for any
+[`discoveries.md`](../tracking/discoveries.md) for any
 open issues in this area.
 
 **Tests leak state between runs.** Either you have `--no-isolation`
@@ -510,5 +510,5 @@ m coverage --routines src/ --tests tests/ --min-percent=85
 - [`modules/index.md`](../modules/index.md) — canonical module inventory; per-module reference + cross-module dependency map.
 - [`m-stdlib-implementation-plan.md`](../plans/m-stdlib-implementation-plan.md) — per-module specs (§8) and the §9 acceptance gate.
 - [`module-tracker.md`](../tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board.
-- [`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
+- [`discoveries.md`](../tracking/discoveries.md) — discoveries register: in-project pivots + external toolchain findings, with severity / plan impact / status.
 - [`../../m-cli/CLAUDE.md`](../../../m-cli/CLAUDE.md) — m-cli's project context; runner / lint / lsp conventions.

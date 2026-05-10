@@ -73,7 +73,7 @@ convention) lands, m-cli adapts.
 
 ## Open toolchain findings
 
-See [`TOOLCHAIN-FINDINGS.md`](TOOLCHAIN-FINDINGS.md). None of the
+See [`discoveries.md`](discoveries.md). None of the
 remaining toolchain items gate any m-stdlib suite at v0.4.0.
 
 ## Cross-references

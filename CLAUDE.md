@@ -50,7 +50,8 @@ docs:
   discoverability_tracker: docs/tracking/discoverability-tracker.md
   parallel_tracks: docs/tracking/parallel-tracks.md         # dispatch view across all parallel tracks
   todo: docs/tracking/TODO.md                               # resume-here pointer
-  toolchain_findings: docs/tracking/TOOLCHAIN-FINDINGS.md   # open toolchain bugs against m-cli / tree-sitter-m / YDB
+  discoveries: docs/tracking/discoveries.md                 # discoveries register: in-project pivots + external toolchain findings (renamed from TOOLCHAIN-FINDINGS.md 2026-05-10)
+  tracking_readme: docs/tracking/README.md                  # the four-bucket doc model that everything under docs/tracking/ follows
   implementation_plan: docs/plans/m-stdlib-implementation-plan.md
   tdd_orchestration: docs/plans/tdd-orchestration-plan.md   # m-stdlib ↔ m-cli joint milestones
 ---
@@ -77,11 +78,12 @@ The canonical files inside `docs/tracking/`:
 
 | File | Purpose |
 |------|---------|
+| [`README.md`](docs/tracking/README.md) | Defines the four-bucket doc model (planning · implementation · discoveries · tracking) that everything under docs/tracking/ follows. Read this first. |
 | [`changelog.md`](docs/tracking/changelog.md) | Release history (Keep-a-Changelog format). One entry per tag. |
 | [`module-tracker.md`](docs/tracking/module-tracker.md) | Master per-module tracker — Table 1 (shipped + in-flight) + ToDo expansion + Table 2 (proposals) + per-module archaeology. |
 | [`discoverability-tracker.md`](docs/tracking/discoverability-tracker.md) | Wave A–D implementation tracker for the discoverability & tooling plan; tabular summary + per-task narrative with progress logs. |
 | [`parallel-tracks.md`](docs/tracking/parallel-tracks.md) | Dispatch view across L1–L27 / H1–H3 / m-cli companion C-tracks. |
-| [`TOOLCHAIN-FINDINGS.md`](docs/tracking/TOOLCHAIN-FINDINGS.md) | Toolchain weaknesses surfaced during m-stdlib work (against m-cli / tree-sitter-m / YDB). |
+| [`discoveries.md`](docs/tracking/discoveries.md) | Discoveries register — every issue that wasn't anticipated in a locked plan but had to be addressed during implementation. Both internal m-stdlib pivots and external findings against m-cli / tree-sitter-m / YDB / vista-meta. (Renamed from TOOLCHAIN-FINDINGS.md 2026-05-10; scope broadened.) |
 | [`TODO.md`](docs/tracking/TODO.md) | "Resume here" pointer; thin index over the trackers. |
 
 **Process rule.** Any commit that touches a module's source, tests,

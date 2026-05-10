@@ -27,9 +27,9 @@ Two tracks are **independent** if **all** of these hold:
 2. Neither consumes the other's public API at runtime.
 3. Neither's `*TST.m` suite imports or invokes the other module.
 
-Files that are **shared but mergeable** — `CHANGELOG.md`, the §1
+Files that are **shared but mergeable** — `changelog.md`, the §1
 status table in `m-stdlib-implementation-plan.md`, `TODO.md`,
-`TOOLCHAIN-FINDINGS.md` — are not coordination points during
+`discoveries.md` — are not coordination points during
 development. Track owners produce fragments; concatenation happens at
 PR review time. The §9 per-module acceptance gate stays per-module.
 
@@ -411,7 +411,7 @@ So multiple tracks can land without stomping each other:
   conflicts are line-level and trivial to resolve.
 - **TODO.md.** Avoid editing during track work. Update only at
   milestone close.
-- **TOOLCHAIN-FINDINGS.md.** Append-only during track work; renumber
+- **discoveries.md.** Append-only during track work; renumber
   at milestone close.
 - **`docs/modules/index.md`** (when it exists). Each track adds its
   own row; index regeneration at v0.1.0 / v0.2.0 / v0.3.0 release
@@ -426,6 +426,6 @@ So multiple tracks can land without stomping each other:
 
 - [tdd-orchestration-plan.md](../plans/tdd-orchestration-plan.md) — joint milestone narrative; this doc is the dispatch view.
 - [m-stdlib-implementation-plan.md](../plans/m-stdlib-implementation-plan.md) — per-module specs and §9 acceptance gate; this doc references them by track.
-- [TOOLCHAIN-FINDINGS.md](TOOLCHAIN-FINDINGS.md) — open m-cli / tree-sitter-m issues; track C1 closes the P1.
+- [discoveries.md](discoveries.md) — discoveries register: in-project pivots + open m-cli / tree-sitter-m / YDB / vista-meta issues. Track C1 closed the original STDASSERT-vs-`^TESTRUN` P1.
 - [../../m-cli/TODO.md](../../../m-cli/TODO.md) — m-cli's own track list (C1–C5 land here as work begins).
 - [../../vista-meta/docs/vista-orchestration-plan.md](../../../vista-meta/docs/vista-orchestration-plan.md) — parent plan; tracks P1–P3 belong to its scope.

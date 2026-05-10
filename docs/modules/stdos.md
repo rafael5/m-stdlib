@@ -106,7 +106,7 @@ YDB supports both for backward compatibility. The default `m fmt`
 profile in this project mis-handles abbreviation expansion of
 `$zgetenv` (rewrites it as `$zgbldiretenv`, splicing
 `$zgbldir` + `etenv`); `$ztrnlnm` does not trigger the
-mangling. Filed as a TOOLCHAIN-FINDINGS row; the equivalence at
+mangling. Filed as a [`discoveries.md`](../tracking/discoveries.md) row; the equivalence at
 the YDB level means consumers see no observable difference.
 
 ## Edge cases

@@ -18,7 +18,7 @@ files, plus three pure-string path manipulators (`basename`,
 `dirname`, `join`). Centralises the YDB-style `OPEN`/`USE`/`READ`/
 `WRITE`/`CLOSE` device dance so consumer modules don't have to
 re-derive the deviceparam combinations or work around the
-[`M-MOD-024`](../tracking/TOOLCHAIN-FINDINGS.md) lint false-positive.
+[`M-MOD-024`](../tracking/discoveries.md) lint false-positive.
 
 ## Public API
 

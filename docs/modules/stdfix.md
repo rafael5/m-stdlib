@@ -109,7 +109,7 @@ scope before re-raising the original `$ECODE` so the caller's trap
 sees it. (One follow-on caveat: re-raising `$ECODE` from a trap that
 also rolled back its own transaction does not always propagate
 through the next outer `$ETRAP` in current YDB — see
-[`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md) row
+[`discoveries.md`](../tracking/discoveries.md) row
 2026-05-05 P2 against YottaDB. The **rollback** itself is
 unconditionally observable; the **re-raise** contract is
 documented-but-unverified pending an upstream YottaDB fix or a
@@ -147,7 +147,7 @@ re-introduced.
   uses it as a defensive between-tests reset; production code should
   not need it.
 - The error-path tests for `with`'s re-raise are deferred (see
-  Errors above and `TOOLCHAIN-FINDINGS.md` P1). The 28 happy-path
+  Errors above and `discoveries.md` P1). The 28 happy-path
   assertions exercise every public label; the contract that
   `with`/`invoke` propagate `$ECODE` to the caller after rollback
   ships unverified by automated test until that fix lands.
