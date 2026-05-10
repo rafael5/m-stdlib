@@ -224,3 +224,39 @@ expansion.
 - RFC 6234 — *US Secure Hash Algorithms (SHA and SHA-based HMAC and HKDF)*. https://datatracker.ietf.org/doc/html/rfc6234
 - OpenSSL EVP API — https://www.openssl.org/docs/man3.0/man7/crypto.html
 - YottaDB external calls — https://docs.yottadb.com/ProgrammersGuide/extrout.html
+
+## History
+
+SHA-256/384/512 + HMAC-SHA-256/384/512 over OpenSSL libcrypto
+(`EVP_DigestInit_ex` / `EVP_DigestUpdate` / `EVP_DigestFinal_ex` for
+SHA, `HMAC()` for HMAC). C source at `src/callouts/std_crypto.c`;
+descriptor at `tools/std_crypto.xc`.
+
+Initial M-side (commit `9622bbe`) used direct `$ZF(name,...)` syntax
+which `m fmt` mangles to `$zfind(...)` (longest-prefix-abbreviation
+table bug — see [`discoveries.md`](../tracking/discoveries.md) row
+2026-05-07 P2). Workaround landed at `acbaac6`: every $ZF call goes
+through an XECUTE'd command-string wrapper (`dispatch3` / `dispatch4`
+in src/STDCRYPTO.m) — fmt does not introspect string literals, so the
+literal `$ZF` token survives to YDB's parser. Cost: extra helper layer
++ `m-lint: disable-file=M-MOD-036` for the intentional XECUTE. Same
+pattern propagated to STDCOMPRESS / STDHTTP.
+
+Engine green-run was T28's gating ticket. Engine reports as GT.M
+V7.0-005 which rejects `.var` byref output for `$ZF`, forcing a second
+migration: `dispatch3/dispatch4` switched from `$ZF("crypto_<fn>",...)`
+to `$&stdcrypto.<fn>(...)` (namespaced call, accepts byref). C side
+gained `int argc` prepended to every entry per the `$&pkg.fn` ABI with
+arity-check short-circuit. T28 closed 2026-05-07 by
+`scripts/seed-callouts.sh` (build-inside-container + idempotent
+ydb_env.sh injection); STDCRYPTOTST 23/23 green; coverage 17/17 = 100%.
+
+Six steps closed in the T28 evening session: (1) C-side argc fix;
+(2) M-side dispatch rewrite from `$ZF` → `$&stdcrypto.<fn>`;
+(3) descriptor LHS rename to alphanumeric (`crypto_sha256` →
+`sha256`); (4) `seed-callouts.sh` strips non-alphanumerics from the
+descriptor base when computing `ydb_xc_<pkg>` exports;
+(5) `dispatch3`/`dispatch4` `$etrap` body returns `quit -1` (avoids
+`%YDB-E-QUITARGREQD` in extrinsic frame); (6) `$etrap` propagation
+flow stores `rc=-1` and the post-xecute chain still surfaces
+`,U-STDCRYPTO-CALLOUT-MISSING,`.

@@ -170,3 +170,16 @@ ANSI-standard. Runs unchanged on YDB and IRIS. The test suite
   STDDATE's `now`/`add` if datetime arithmetic became more
   involved; v1 stays on `$HOROLOG` directly because seconds
   arithmetic is trivial.
+
+## History
+
+LRU + TTL cache over caller-owned local-array tree; no globals,
+multiple caches per process are independent. LRU uses two-way
+`seq ↔ key` maps for O(log N) eviction; TTL reaping is **lazy on
+access** (no background sweeper). Time source `$HOROLOG` collapsed
+to seconds. Pure-M, no `$Z*`. STDCOLL listed as soft dep but inlined
+in v1 for self-containment.
+
+**Optional add-on (T19, deferred):** rebase onto STDCOLL OrderedDict
++ explicit `prune()` for batch expired-entry sweeps. Activates if a
+real consumer needs the streaming-percentile or batch-prune surface.

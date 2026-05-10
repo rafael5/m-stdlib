@@ -194,3 +194,35 @@ libzstd version bumps. Each fixture is the **byte-exact** compressed
 encoding of a labelled string at level 6 (libz) / 3 (zstd) plus the
 matching decompressed plaintext. Round-trip tests don't need it
 (self-consistent), but cross-version regression tests do.
+
+## History
+
+gzip / gunzip / deflate / inflate / zstdCompress / zstdDecompress /
+available over libz + libzstd. Output via `.out` byref (1 MiB cap);
+errors via `$ECODE`.
+
+- **Scaffolded 2026-05-07** (`9622bbe`, bundled with STDHTTP iter 1
+  and STDCRYPTO): C shim, .xc, M wrapper, 24-label test suite, doc.
+- **Host build verified 2026-05-07** (`52810d3`): missing `// link:
+  -lz -lzstd` directive added to `src/callouts/stdcompress.c` so
+  `tools/build-callouts.sh`'s per-source link parser picks up both
+  libs (parallel to `std_crypto.c`'s `// link: -lcrypto`).
+  `libzstd-dev` installed; `so/linux-x86_64/stdcompress.so` builds
+  with all 10 entrypoints exported.
+- **T28 engine-deployed 2026-05-07** (`c41ed25`, 55/57 green via
+  manual deploy). Three engine findings forced an M+C migration:
+  (1) `$ZF` rejects `.var` byref → `dispatchC`/`dispatchD` switched
+  from `$ZF("stdcompress_X",…)` to XECUTE-wrapped
+  `$&stdcompress.<short>(…)` (mirrors STDCRYPTO); (2) `$&pkg.fn` ABI
+  prepends `int argc` → every C entry gets `(int argc, …)` with
+  arity-check short-circuit; (3) YDB caps M-strings at 1 MiB on
+  r2.02, not 16 MiB → `STDCOMPRESS_OUT_BUFSIZE`, `preallocBuf()`,
+  .xc declarations all dropped to 1 MiB.
+- **T30 closed 2026-05-08**: `dispatchC/D` now return a status string
+  (`""` / `"MISSING"` / `"FAIL"`) instead of trying to set `$ECODE`
+  while the local `$etrap` is still armed. Each public extrinsic
+  maps the status to its `$ECODE` tag *after* dispatch returns,
+  where the caller's etrap can see it cleanly. Six tests migrated
+  from manual `$etrap` + `contains^STDASSERT` to the standard
+  `raises^STDASSERT` idiom. STDCOMPRESSTST 59/59 green; 100% label
+  coverage.

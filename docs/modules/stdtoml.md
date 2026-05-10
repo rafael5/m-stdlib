@@ -169,3 +169,18 @@ across 28 labels) is the conformance gate.
   could rebase onto STDSTR helpers in a future cleanup pass; v1
   inlines them for self-containment.
 - TOML 1.0 spec: <https://toml.io/en/v1.0.0>.
+
+## History
+
+Deliberately narrow TOML 1.0 v1: top-level pairs + `[section]` tables
++ 4 scalar types (string with `\n \t \r \" \\` escapes, signed decimal
+int, signed decimal float without exponent, bool surfaced as 1/0) +
+`#` comments (string-aware: `#` inside `"..."` preserved). Tree shape:
+`root("v",path)` + `root("t",path)` where `path` is dotted. Duplicate
+keys per scope rejected. Pure-M.
+
+**Optional add-on (T18, deferred):** arrays, inline tables, dotted
+keys, `[[array-of-tables]]`, multi-line / literal strings, integer
+underscores + hex/oct/bin, special floats, exponent notation, datetime
+values via STDDATE. Covers ~80% of real-world TOML; the remaining 20%
+activates if a consumer hits the v1 boundary.

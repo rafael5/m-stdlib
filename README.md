@@ -293,7 +293,7 @@ The changelog has moved into `docs/tracking/` alongside the other live work boar
 
 ### `docs/tracking/` — live work boards
 
-- [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md) — single-source-of-truth tracker for shipped, in-flight, and proposed modules; live ToDo board (T1–T30) with per-module history archaeology.
+- [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md) — canonical per-module tracker (Summary table + closed-ticket archaeology + Must-know). Per-module deep history at [`docs/modules/<m>.md` § History](docs/modules/); proposal pipeline at [`docs/plans/future-modules-plan.md`](docs/plans/future-modules-plan.md).
 - [`docs/tracking/parallel-tracks.md`](docs/tracking/parallel-tracks.md) — dispatch view; current execution status across L1–L27 / H1–H3 / m-cli companion tracks.
 - [`docs/tracking/TODO.md`](docs/tracking/TODO.md) — resume-here pointer; thin index over the tracker boards.
 - [`docs/tracking/discoveries.md`](docs/tracking/discoveries.md) — discoveries register: in-project pivots + external toolchain findings, with severity / plan impact / status.

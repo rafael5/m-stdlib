@@ -16,11 +16,14 @@ The single source of truth for in-flight + proposed work is
 [`module-tracker.md`](module-tracker.md).
 This TODO is a thin pointer; do not duplicate state here.
 
-- **Table 1** — 32 shipped modules with Tag / Effort / ToDo /
-  Dependency / Headline / m-cli-integration. Module-history section
-  below the table preserves per-module archaeology.
-- **Table 2** — proposed future modules (STDYAML, STDNET — both
-  multi-session, deferred until concrete consumers drive them).
+- **Summary table** — 32 shipped modules with Done / Tag / Effort /
+  ToDo / Dependency / Headline / m-cli-integration. Per-module deep
+  history (scaffolding, migrations, engine deploy, T-ticket closes)
+  lives in each module's [`../modules/<m>.md` § History](../modules/)
+  section.
+- **Proposals** — at [`../plans/future-modules-plan.md`](../plans/future-modules-plan.md)
+  (STDYAML, STDNET — both multi-session, deferred until concrete
+  consumers drive them).
 
 For dispatch view across all parallel tracks (L1–L27, H1–H3, m-cli
 companion C-tracks, conformance-corpus A-tracks):

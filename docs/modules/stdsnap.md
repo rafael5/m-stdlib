@@ -160,3 +160,21 @@ extensions. Runs unchanged on YDB and IRIS. The test suite
   byte-faithful type distinction matters (numeric `0` vs string
   `"0"`). STDSNAP's text format trades a small amount of fidelity
   for human-readable dumps.
+
+## History
+
+Snapshot testing: serialize / save / matches / asserts; canonical
+line-per-leaf dump via `$QUERY` walk. Companion track C7 added
+`--update-snapshots` support via `^STDLIB($JOB,"stdsnap","update")=1`
+global-flag mechanism (m-stdlib `631b4e7`, m-cli `8ef34a6`) —
+functionally equivalent to the originally-proposed `STDSNAP_UPDATE`
+env var, with the global preferred for in-process control without a
+shell round-trip.
+
+T21 (root-scalar serialization, bundled diff helper) closed 2026-05-07.
+Item 2 (auto-update flag) was delivered via C7's global mechanism;
+items 1 and 3 closed as won't-fix-without-consumer-driver. v1 walks
+`$QUERY` descendants only (a tree with a scalar at the root doesn't
+serialise — covers the practical 80% case of parsed-JSON / FileMan
+trees with subscripted leaves), and v1 reports the snapshot path on
+mismatch (humans run `diff -u baseline current` themselves).

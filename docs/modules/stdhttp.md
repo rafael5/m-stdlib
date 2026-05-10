@@ -195,3 +195,32 @@ error codes into `resp("error")` strings; `$ECODE` stays clean.
   headers).
 - `STDCRYPTO` (H1, queued) — paired with STDHTTP via the
   `examples/jwt-verify.m` end-to-end Phase 3 demo.
+
+## History
+
+HTTP/1.1 client. Two layers, shipped iteratively.
+
+**Iter 1** (`9622bbe`, bundled with STDCRYPTO + STDCOMPRESS scaffolds):
+pure-M wire-format helpers — `parseStatusLine` / `parseHeader` /
+`parseResponse` / `buildRequest` / `formatHeaders`. Parses CRLF or
+bare-LF line endings, lowercases header keys for case-insensitive
+lookup, joins duplicate headers with `", "` per RFC 7230 §3.2.2,
+preserves arbitrary body bytes.
+
+**Iter 2** (`940f8ce` + post-T28 namespace migration, T29 close via
+commit `ea373fa` + `scripts/seed-callouts.sh`): `src/callouts/http.c`
+(251 LOC libcurl shim — `http_perform` + `http_available`),
+`tools/std_http.xc`. M side drives `$&stdhttp.http_perform(...)`
+through an XECUTE-wrapped literal template (same anti-fmt-mangling
+pattern as STDCRYPTO). Response header stream split on `\r\n\r\n` to
+keep the **final** response after redirects; body installed
+afterwards. libcurl error string flows into `resp("error")`. Both
+`$$available^STDHTTP` and the internal `dispatchPerform` short-circuit
+on `$$env^STDOS("ydb_xc_stdhttp")=""` so engines without the
+descriptor exported soft-fail to `resp("error")="STDHTTP-NOT-WIRED"`
+without paying the XECUTE compile cost. STDHTTPTST 68/68 green; 94.1%
+label coverage.
+
+**Optional add-on:** Iter 3 IRIS arm via `%Net.HttpRequest`
+`$CLASSMETHOD`. Shares the same M-side req/resp shape. Activates when
+the IRIS portability spike unblocks behind T28's deployment machinery.

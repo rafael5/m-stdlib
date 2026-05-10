@@ -148,3 +148,21 @@ day one.
 - `STDFIX` (v0.1.1) — log records can be safely emitted from inside
   TSTART/TROLLBACK isolation blocks; STDLOG performs no transactional
   state of its own.
+
+## History
+
+The original `v0.0.4` release was the kv logger only. The L4
+`FORMAT(kv|json)` add-on landed at `v0.2.0` (depends on STDJSON, which
+itself only became available at `v0.2.0`). Total effort spans both
+landings.
+
+The seven JSON-emission tests (`tFormatJsonEmitsValidJson` …
+`tFormatKvAfterJsonReverts`) were withheld at the kv-only v0.0.4
+release because the first call after a clean kv-path test crashed the
+YDB harness. Diagnosis (corrected after one wrong turn) traced to the
+documented YDB syntax limit `.x(SUBS)` (`%YDB-E-COMMAORRPAREXP` at
+compile time on subscripted-by-reference args). STDJSON's recursive
+descent was refactored to the **merge-then-pass** idiom in commit
+`c3a0880`; the four parked STDLOG-JSON probe-the-tree tests followed
+in commit `fb48f39` once `raises^STDASSERT` itself was hardened (ZGOTO
+unwind for arg-less-quit-in-extrinsic in `9ee9724`).

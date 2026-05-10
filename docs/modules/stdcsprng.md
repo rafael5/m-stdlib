@@ -182,3 +182,22 @@ for the IRIS-portability pass.
 - RFC-4122 — UUID spec.
 - RFC-4648 §5 — URL-safe base64.
 - `getrandom(2)` Linux man page — kernel CSPRNG semantics.
+
+## History
+
+Original ship used a pure-M `/dev/urandom` `READ *b` loop (single-byte
+reads to avoid record-terminator truncation; rejection-sampled over the
+smallest power-of-256 ≥ range to dodge modulo bias). T12 (closed
+2026-05-07) added the `$ZF → getrandom(2)` callout backend
+(`src/callouts/cs_random.c`) for batch perf — `cs_random.so` loops over
+`getrandom(2)` until `n` bytes filled with `EINTR` retry; M side gains
+`$$useCallout^STDCSPRNG()` probe and an internal `dispatchRandom(n)`
+XECUTE-wrapped `$ZF` call (the XECUTE wrap dodges the `$ZF` →
+`$zfind` mangling that `m fmt`'s longest-prefix table introduces).
+`$$bytes` tries the callout first, falls back to `/dev/urandom` on
+miss — public API unchanged.
+
+STDCSPRNGTST 406/406 green when the callout descriptor isn't deployed
+(soft-fall-back path). Engine-deployed perf path verified separately
+under T28's `seed-callouts.sh` harness; same kernel ChaCha20 pool
+either way.

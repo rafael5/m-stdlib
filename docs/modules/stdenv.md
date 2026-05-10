@@ -154,3 +154,18 @@ Runs unchanged on YDB and IRIS.
 - [`STDTOML`](stdtoml.md) — TOML is the structured-config
   alternative; `.env` is flatter but more idiomatic for runtime
   configuration.
+
+## History
+
+`.env` loader + typed accessors: parse / parseFile / valid / has /
+get / getInt / getBool / getFloat. Format: bare values (whitespace-
+trimmed), double-quoted with `\n \t \r \" \\` escapes, single-quoted
+POSIX-literal (no escape processing), `#` whole-line comments, blank
+lines tolerated. `getBool` is case-insensitive against
+`{true,yes,on,1}`/`{false,no,off,0}`. Default-on-miss-or-mistype
+convention for typed accessors.
+
+**Optional add-on (T22, deferred):** variable substitution (`${VAR}`),
+`export` prefix, multi-line values, process-environment write-back
+(depends on STDOS `setenv` from T15). Activates when a concrete `.env`
+consumer needs full POSIX shell `.env` semantics.

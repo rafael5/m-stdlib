@@ -160,3 +160,21 @@ unchanged on YDB and IRIS. The test suite (38 assertions across
   and use STDXFRM only after you've extracted a flat array.
 - [`STDMOCK`](stdmock.md) — same `@`-indirection idiom but for
   call interception (`do @resolved@(.args)`).
+
+## History
+
+Higher-order array transforms — map / filter / reduce. The original
+implementation (commit `8e6b689`-era) used `@expr` name-indirection in
+own stack frame (`value` / `key` / `acc` locals visible to the
+lambda); same idiom as STDMOCK's `do @resolved@(.args)`.
+
+Engine run on 2026-05-08 hit `%YDB-E-INDEXTRACHARS` on `value*2` —
+name-indirection is **expratom-only** on this engine, doesn't accept
+arbitrary RHS-of-set expressions. Migrated to **XECUTE-evaluated
+lambdas** (`set <target>=<expr>`) which accepts any RHS. M-MOD-036
+disabled file-wide for the intentional indirection. Public API
+unchanged. STDXFRMTST 38/38 green.
+
+Companion fix in `tMapHasAccessToKey` test typo: `"key_'='_value"` (M
+parses `'=` as not-equals operator) → `"key_""=""_value"` (canonical M
+double-quote string).

@@ -399,3 +399,50 @@ on YDB and IRIS. The test suite is the conformance gate.
   rules in v0's grammar trace directly.
 - [W3C XML Test Suite](https://www.w3.org/XML/Test/) — conformance
   corpus for T23–T27 acceptance gating.
+
+## History
+
+Shipped incrementally across eight landings, each preserving 100%
+backward compatibility.
+
+- **v0** (`3d5df3a`, 2026-05-07): well-formed XML 1.0 elements,
+  attributes, nested children, text content, the 5 standard entity
+  references. Recursive-descent parser; tree shape mirrors STDJSON's
+  caller-owned-tree convention. `childByName` does the internal
+  `merge` to sidestep the YDB `.x(SUBS)` syntax limit.
+- **T23 + T24** (`25a04d8`, 2026-05-07): comments / PI /
+  `<?xml ?>` / CDATA + numeric character references (`&#NNN;`
+  decimal, `&#xHH;` hex with UTF-8 encoding for any code point up to
+  U+10FFFF). CDATA preserves `&` and `<` verbatim — exactly what
+  HL7v3 / CDA narrative blocks need.
+- **T25** (`bb169c1`, 2026-05-07): element-level namespaces.
+  Per-element nsMap threaded through `parseElement` / `parseContent`;
+  `xmlns` / `xmlns:prefix` filtered out of regular attrs; element
+  prefix resolved to URI; `$$ns^STDXML(.node)` accessor; undeclared
+  prefix is a parse error.
+- **T25b** (`1f2c38f`, 2026-05-07): attribute-level namespaces.
+  `resolveAttrNs` walks `node("attr",...)`; default xmlns does NOT
+  apply to unprefixed attrs (per spec); `xml:` prefix bound to
+  `http://www.w3.org/XML/1998/namespace` as a built-in;
+  `$$attrNs^STDXML(.node, attrName)` accessor.
+- **T27 v0**: XPath 1.0 v0 — bare `name`, chained `a/b/c`, absolute
+  `/foo`, descendant `//x`, position predicate `[N]`. Public:
+  `$$xpath` / `$$xpathOne` / `$$xpathText`.
+- **T27a** (2026-05-07): wildcards (`*`) + attribute axis (`@attrName`).
+  `*[N]`, `//*`, `*/x`, `@id`, `@*`, `a/@id`, `//@id`.
+- **T27b** (2026-05-07): comparison predicates + functions.
+  `[@id='v']` / `[name()='b']` / `[count(x)>1]`. Functions:
+  `position()`, `last()`, `name()`, `text()`, `count()`,
+  `string-length()`, `normalize-space()`, `contains()`,
+  `starts-with()`, `not()`, `string()`, `number()`. Full XPath 1.0
+  type coercion (`toBool` / `toStr` / `toNum`); ordering operators
+  numeric-promote, equality is string-or-number.
+- **T26** (2026-05-08): DOCTYPE + internal subset + `<!ENTITY>`
+  custom entity declarations. Closes the 12-16d envelope.
+  STDXMLTST 209/209 on engine. External `SYSTEM "url"` and `PUBLIC`
+  declarations are tolerated but ignored — internal subsets only.
+  Out of scope (queued behind real consumer): parameter entities
+  (`%name;`), recursive expansion inside entity values, external
+  DTD fetch.
+
+Full envelope covered.

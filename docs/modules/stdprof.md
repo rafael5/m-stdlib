@@ -171,3 +171,22 @@ ANSI-standard.
   longer load-bearing for STDPROF v1.
 - [`STDCACHE`](stdcache.md) — same caller-owned array convention;
   multiple profilers in one process are independent variables.
+
+## History
+
+Caller-owned profiler tree: start / stop per tag, count / total /
+mean / min / max / percentile aggregates, tags() enumerator. Time
+source `$ZHOROLOG` collapsed to microseconds since 1840-12-31 (ANSI
+`$HOROLOG` is 1-second-resolution, too coarse). Percentile via
+nearest-rank over a sorted-by-value sample tree (`prof("samples",
+tag, value, seq) = ""`); O(N) worst case but typically a small walk.
+Edge cases: negative-elapsed clamps to 0, double-`start()` is a
+no-op, `stop()` without matching `start()` is a no-op.
+
+T20 (streaming-percentile via STDCOLL Heap CKMS sketch) closed
+2026-05-07 as **won't-fix-without-consumer-driver**. The only consumer
+today is m-cli `m test --timings` (companion track C6), which calls
+`percentile()` once per tag at end-of-run — the exact one-shot report
+the v1 walk is sized for. Reopen criteria: a caller emerges that calls
+`percentile()` inside a hot path, or a long-running service
+instruments itself with STDPROF and observes the linear-walk cost.

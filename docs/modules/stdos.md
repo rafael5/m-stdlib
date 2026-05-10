@@ -154,3 +154,18 @@ public API surface does not change for the IRIS arm.
 - [`STDFS`](stdfs.md) — uses `$JOB` for sandbox-path namespacing
   in its tests; STDOS provides `$$pid^STDOS()` as the supported
   way to get the same value from app code.
+
+## History
+
+YDB-only v1: env / pid / cmdline / argc / arg / argv / splitArgs /
+cwd / user / hostname / exit. Built over `$ZTRNLNM` / `$JOB` /
+`$ZCMDLINE` / `ZHALT`. The earlier `$zgetenv` choice would have
+triggered a `m fmt` mangling bug (longest-prefix-abbreviation table
+matching `$zg` → `$zgbldir`, leaving `$zgbldiretenv` as the rewritten
+token); `$ztrnlnm` is the equivalent VAX/VMS-style intrinsic that fmt
+leaves alone. Argument splitting is whitespace-only.
+
+**Optional add-on (T15, deferred):** `setenv` + quote-aware `splitArgs`
++ IRIS arm via `$ZF → libc setenv/getcwd/gethostname`. Activates when
+an M-side consumer needs to **write** the env, needs quote-preserving
+argument parsing, or runs on IRIS.

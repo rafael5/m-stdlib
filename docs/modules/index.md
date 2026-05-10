@@ -72,8 +72,10 @@ coverage ≥ 95% (most at 100%); 0 lint errors.
 
 ## P4 wave (v0.3.0)
 
-Eleven pure-M promotions out of `docs/module-tracker.md` Table 2,
-plus the toolchain hardening that unblocked them. All shipped under
+Eleven pure-M promotions out of the proposal pipeline (was the old
+"Table 2" in `docs/tracking/module-tracker.md`; now lives in
+`docs/plans/future-modules-plan.md`), plus the toolchain hardening
+that unblocked them. All shipped under
 the v0.3.0 release tag (commit `363b990`, 2026-05-07).
 
 | Module | Tag | Purpose | Per-module doc |
@@ -108,9 +110,9 @@ label coverage ≥ 91% (most at 100%; STDOS at 91.7%, STDENV at 93.3%);
 ## Phase 3 + post-P4 wave (v0.4.0)
 
 The three Phase 3 `$ZF`-bound modules (STDCRYPTO H1, STDCOMPRESS H2,
-STDHTTP H3) all green on engine, plus two more P4 promotions out of
-Table 2 (STDMATH L26, STDXFRM L27) and significant feature work on
-STDXML and STDFS.
+STDHTTP H3) all green on engine, plus two more pure-M promotions out
+of the proposal pipeline (STDMATH L26, STDXFRM L27) and significant
+feature work on STDXML and STDFS.
 
 | Module | Tag | Purpose | Per-module doc |
 |---|---|---|---|

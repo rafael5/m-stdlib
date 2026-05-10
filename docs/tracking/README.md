@@ -214,7 +214,7 @@ tracker.
 | File | Role | When to write here |
 |------|------|--------------------|
 | [`README.md`](README.md) | This file. The doc model. | Updates only when the doc model itself changes. |
-| [`module-tracker.md`](module-tracker.md) | Master per-module tracker — Table 1 (live module rows) + per-task narratives + Table 2 (proposals) + per-module archaeology. | Every commit that lands or moves a module-level task. |
+| [`module-tracker.md`](module-tracker.md) | Master per-module tracker — Summary table (Done checkbox + module rows) + closed-tickets archaeology (T1–T30) + Must-know section. Per-module deep history lives in [`../modules/<m>.md` § History](../modules/); proposals live in [`../plans/future-modules-plan.md`](../plans/future-modules-plan.md). | Every commit that lands or moves a module-level task. |
 | [`discoverability-tracker.md`](discoverability-tracker.md) | Wave A–D implementation tracker for the discoverability & tooling plan. Tabular summary + per-task narrative; matches the Bucket 2 template. | Every commit that lands a Wave task. |
 | [`parallel-tracks.md`](parallel-tracks.md) | Dispatch view across L1–L27 / H1–H3 / m-cli companion C-tracks. Derived index, not a primary tracker. | When a track changes status; when a new track lands. |
 | [`discoveries.md`](discoveries.md) | Discoveries register (Bucket 3). | When a discovery surfaces and the criteria above are met. |

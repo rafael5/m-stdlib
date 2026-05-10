@@ -80,7 +80,7 @@ The canonical files inside `docs/tracking/`:
 |------|---------|
 | [`README.md`](docs/tracking/README.md) | Defines the four-bucket doc model (planning · implementation · discoveries · tracking) that everything under docs/tracking/ follows. Read this first. |
 | [`changelog.md`](docs/tracking/changelog.md) | Release history (Keep-a-Changelog format). One entry per tag. |
-| [`module-tracker.md`](docs/tracking/module-tracker.md) | Master per-module tracker — Table 1 (shipped + in-flight) + ToDo expansion + Table 2 (proposals) + per-module archaeology. |
+| [`module-tracker.md`](docs/tracking/module-tracker.md) | Master per-module tracker — Summary table (Done checkbox + module rows) + closed-tickets archaeology (T1–T30) + Must-know section. Per-module deep history lives in [`docs/modules/<m>.md` § History](docs/modules/); proposals (was Table 2) live in [`docs/plans/future-modules-plan.md`](docs/plans/future-modules-plan.md). |
 | [`discoverability-tracker.md`](docs/tracking/discoverability-tracker.md) | Wave A–D implementation tracker for the discoverability & tooling plan; tabular summary + per-task narrative with progress logs. |
 | [`parallel-tracks.md`](docs/tracking/parallel-tracks.md) | Dispatch view across L1–L27 / H1–H3 / m-cli companion C-tracks. |
 | [`discoveries.md`](docs/tracking/discoveries.md) | Discoveries register — every issue that wasn't anticipated in a locked plan but had to be addressed during implementation. Both internal m-stdlib pivots and external findings against m-cli / tree-sitter-m / YDB / vista-meta. (Renamed from TOOLCHAIN-FINDINGS.md 2026-05-10; scope broadened.) |

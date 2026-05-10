@@ -229,3 +229,30 @@ not change.
 - [`STDASSERT`](stdassert.md) — every test in `STDFSTST` is one
   STDASSERT call; the `$ETRAP+ZGOTO` pattern in `exists()` is the
   same one `raises^STDASSERT` uses.
+
+## History
+
+Original ship was text-mode YDB-only:
+read/write/append/exists/remove/size + basename/dirname/join.
+`exists()` uses `$ETRAP+ZGOTO $zlevel` OPEN-probe to bypass
+`$ZSEARCH`'s per-process cache (same pattern as `raises^STDASSERT`);
+`writeFile` always emits trailing LF (POSIX text-file convention);
+`append()` is read-then-rewrite to sidestep a YDB SEQ APPEND-mode
+position quirk.
+
+T13 + T14 closed 2026-05-08 by the `src/callouts/stdfs.c` libc shim
+(`stdfs_writeBytes` / `stdfs_appendBytes` / `stdfs_readBytes` /
+`stdfs_available` / `stdfs_lasterror`) + `tools/std_fs.xc`. M side
+adds byte-faithful extrinsics: `do writeBytes^STDFS` (no trailing LF),
+`do appendBytes^STDFS` (atomic at EOF via `O_APPEND`),
+`$$readBytes^STDFS` (preserves every byte; surfaces
+`,U-STDFS-READ-TRUNCATED,` on 16 MiB cap overflow), and
+`$$available^STDFS()`.
+
+The text-mode `append^STDFS` keeps its read-then-rewrite implementation
+by design — rerouting through `O_APPEND` would leave an interior LF
+whenever the previous content ended with one, breaking the
+`readFile(append(x,y)) == readFile(x) + y` round-trip contract.
+Callers that want byte-faithful append at EOF use `appendBytes`
+directly; callers that want text-mode "concat + trailing LF" semantics
+keep using `append`. STDFSTST 50/50 green on engine.

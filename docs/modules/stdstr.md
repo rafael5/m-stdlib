@@ -141,3 +141,14 @@ gate.
   the same shape as STDSTR.split with `sep=" "` plus run-collapse;
   the two will likely merge under a single tokeniser when STDOS
   picks up quote-aware splitting (T15).
+
+## History
+
+ASCII-only by design — pad / padLeft / padRight, trim / trimLeft /
+trimRight, replaceAll, split, startsWith / endsWith, toLowerASCII /
+toUpperASCII, repeat. Pure-M (`$translate` / `$piece` / `$find` /
+`$extract`); no `$Z*` extensions, no STDREGEX dep.
+
+**Optional add-on (T17, deferred):** Unicode whitespace + locale-aware
+case folding. Deferred behind a future `STDUNICODE`. Activates when a
+concrete consumer hits the ASCII-only limit.

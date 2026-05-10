@@ -158,3 +158,16 @@ test suite (99 assertions across 33 labels) is the conformance gate.
 - [`STDREGEX`](stdregex.md) — soft dep; not used in v1.
 - The SemVer 2.0.0 spec: <https://semver.org/spec/v2.0.0.html>.
 - Full §11 ordering example: `tests/STDSEMVERTST.m:tCompareSpecExampleChain`.
+
+## History
+
+SemVer 2.0.0 v1 — valid / parse / compare / matches plus
+major/minor/patch/prerelease/build accessors. Pure-M (`$piece` +
+`$translate`); no STDREGEX runtime dep despite being listed as soft.
+Range syntax v1: comparators (`>` `<` `>=` `<=` `=`), caret (`^`),
+tilde (`~`), AND-combination via space.
+
+**Optional add-on (T16, deferred):** `||` OR / hyphen ranges /
+`*`/`x`/`X` placeholders / prerelease-aware comparators / `^0.x.y`
+zero-major narrowing per npm semantics. Activates when m-cli grows
+`m install <pkg>@<range>` or another concrete consumer.

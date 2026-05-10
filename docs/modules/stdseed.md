@@ -121,3 +121,22 @@ manual rollback.
   flag (track Y) once the runner protocol lands at M1.
 - The TDD orchestration plan, §6.3 ([`tdd-orchestration-plan.md`](../plans/tdd-orchestration-plan.md))
   — narrative around STDFIX / STDMOCK / STDSEED.
+
+## History
+
+The original `v0.1.3` release shipped TSV + a `loadJson` stub raising
+`U-STDSEED-NOT-IMPLEMENTED`. The real `loadJson` implementation (driven
+by `$$parse^STDJSON`) landed at `v0.2.0` once STDJSON was available.
+`FILE^DIE` is a runtime-only dep — needed at use-site for the default
+filer, not at compile-time.
+
+The six `loadJson` raises-path tests (`U-STDSEED-LOAD-FAIL`,
+`U-STDSEED-NOT-IMPLEMENTED`, `U-STDSEED-INVALID-JSON`, etc.) were
+parked at v0.2.0 alongside STDLOG-JSON's similarly-blocked tests and
+re-enabled together at `e637425` once `raises^STDASSERT` gained
+`use $principal` to release SEQ-device context before the ZGOTO
+unwind. The actual hanging test was `tLoadFilerErrorPropagatesEcode`
+(test #12, mis-identified as #14 because of a TAP plan miscount); root
+cause was `$ETRAP` firing deep in `walk^STDSEED` while the OPENed TSV
+fixture was the current device. Post-fix STDSEEDTST runs 35/35 green
+on engine.

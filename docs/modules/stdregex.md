@@ -213,3 +213,31 @@ groups (including nested capture), greedy semantics through
 - `STDREGEX_PCRE` (Phase 3) — full PCRE via `$ZF` to `libpcre2`,
   for callers that need back-refs, lookaround, or Unicode property
   classes.
+
+## History
+
+Optional add-on **`STDREGEX_PCRE`** (`$ZF → libpcre2`) was sketched
+during Phase 2 design but never picked up. It would activate only when
+a concrete consumer needs back-references, lookaround, or Unicode
+properties — the v1 Thompson-NFA engine deliberately rejects those with
+`U-STDREGEX-UNSUPPORTED`.
+
+T9 (`classEscape` coverage gap) closed 2026-05-07 with five new tests
+exercising `\<x>` inside character classes for all three predefined
+symbol families (`\d`, `\w`, `\s`), literal escapes (`\.`, `\-`), and
+range-via-escape (`[\t-\n]`). Per-module label coverage 98.3% → 100%
+(59/59).
+
+T10 (IRIS native `$MATCH` / `$LOCATE` dispatch) closed at the
+documentation level 2026-05-07. The pure-M Thompson-NFA engine runs
+unchanged on IRIS for the entire v0.2.0 subset — IRIS portability was
+**not** a blocker. What was deferred is a perf-only follow-up: native
+`$MATCH` / `$LOCATE` dispatch for the simple-pattern subset (with
+`%Library.RegEx` for captures). Documented as a perf-follow-up here;
+the `iris-portability-check` CI job continues to surface any
+regressions in fail-soft mode without gating merges.
+
+The L12 `raise()`-helper pattern landed in commit `3abf7e8` to fix the
+long-latent `$ECODE`/`$ETRAP`/M17 corruption inside extrinsic chains.
+Same pattern was back-ported into STDFMT and STDARGS in commit
+`8c0b419`.
