@@ -103,8 +103,12 @@ same guarantee to MUMPS / M:
   the JSONTestSuite for JSON edge cases, the W3C XML Test Suite for
   XML, …) and runs all of it on every commit.
 - **Reproducible** because the test corpus runs against a containerised
-  YottaDB endpoint (`vista-meta`) — the same engine the upstream
-  consumers run, with no host-side YDB install to drift.
+  YottaDB endpoint —
+  [`m-test-engine`](https://github.com/m-dev-tools/m-test-engine) is
+  the default (a minimal `yottadb-base` Docker container, in-org and
+  VistA-free). Maintainers with a vista-meta checkout can keep using
+  that path; both share the same wire contract via m-cli's
+  multi-transport `Engine` abstraction.
 - **Portable** because IRIS is a first-class CI target: every pure-M
   module is verified against `intersystemsdc/iris-community:latest`
   in fail-soft CI. Phase 3 callouts are YDB-only by design and
@@ -136,9 +140,13 @@ The library only works because the toolchain landed first:
 - **`tree-sitter-m`** parses M into a real AST so per-module docs,
   lint rules, and coverage tooling can target language constructs
   rather than line patterns.
-- **`vista-meta`** publishes a containerised YottaDB endpoint so
-  `make test` runs against a real engine without a host install. CI
-  layers an IRIS image on top via `iris-portability-check`.
+- **[`m-test-engine`](https://github.com/m-dev-tools/m-test-engine)**
+  publishes a minimal YottaDB Docker container so `make test` runs
+  against a real engine without a host install. CI layers an IRIS
+  image on top via `iris-portability-check`. (The legacy
+  `vista-meta` SSH path is preserved for the maintainer; both
+  routes are dispatched through m-cli's multi-transport `Engine`
+  abstraction.)
 
 The toolchain is what makes the canonical-answer guarantee
 mechanically enforceable — a per-module §9 acceptance gate
@@ -168,9 +176,15 @@ The per-module §9 acceptance gate, applied before any `vN.N.N` tag:
 | Coverage | `m coverage --min-percent=85` | `make coverage` | ≥ 85 % per-module label coverage (most modules ship at 100 %) |
 | IRIS portability | `iris-portability-check` CI job | (CI only) | fail-soft — surfaces regressions but does not gate merges |
 
-The `make check` invocation talks to vista-meta's YottaDB container
-over SSH (`~/data/vista-meta/conn.env`), so there is no host YDB
-install to manage. For projects building tests on top of m-stdlib's
+The `make check` invocation talks to a YottaDB engine via m-cli's
+multi-transport `Engine` abstraction — `make engine-up` (delegates
+to [m-test-engine](https://github.com/m-dev-tools/m-test-engine))
+spins up a Docker container and m-cli's `DockerEngine` runs
+routines via `docker exec`. Maintainers with vista-meta installed
+can keep using that path (auto-detected via
+`~/data/vista-meta/conn.env`); developers with a local YDB install
+can set `M_CLI_ENGINE=local`. No host-side YDB install required for
+the default path. For projects building tests on top of m-stdlib's
 TDD primitives, per-test isolation, mocking, fixture seeding, and
 the runner-protocol details live in [`docs/guides/m-tdd-guide.md`](docs/guides/m-tdd-guide.md).
 
