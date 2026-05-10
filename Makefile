@@ -10,8 +10,11 @@
 
 SHELL := /bin/bash
 
-# m-cli venv — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
-M ?= $(HOME)/projects/m-cli/.venv/bin/m
+# m-cli — Python entry point for `m fmt` / `m lint` / `m test` / `m coverage`.
+# Resolved from $PATH by default. Maintainers who keep an unactivated
+# m-cli venv can override per-shell or per-invocation, e.g.
+#   make fmt-check M=$HOME/projects/m-cli/.venv/bin/m
+M ?= m
 
 # m-test-engine — local checkout for `make engine-up` / `engine-down`.
 # Override if you cloned it elsewhere.
