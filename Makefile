@@ -17,7 +17,7 @@ M ?= $(HOME)/projects/m-cli/.venv/bin/m
 # Override if you cloned it elsewhere.
 M_TEST_ENGINE ?= $(HOME)/projects/m-test-engine
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check frontmatter skill skill-check skill-install doctest doctest-check doctest-run engine-up engine-down engine-status
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check check-manifest frontmatter skill skill-check skill-install doctest doctest-check doctest-run engine-up engine-down engine-status
 
 # vista-meta connection contract — silently included if present.
 # Preserves the maintainer's existing workflow but no longer hard-errors
@@ -131,6 +131,18 @@ manifest-check: manifest
 	@git diff --exit-code -- dist/errors.json \
 		|| { echo "ERROR: dist/errors.json out of date — run 'make manifest' and commit."; exit 1; }
 	@echo "manifest: clean"
+
+# `check-manifest` is the Phase 0 tier-1 drift gate. It composes the
+# existing manifest-check (generated payloads) with an assertion that
+# the hand-edited dist/repo.meta.json is tracked and clean. The org
+# catalog generator fetches dist/repo.meta.json by raw URL — a missing
+# or stale file would break Phase 0's smoke test in .github.
+check-manifest: manifest-check
+	@git ls-files --error-unmatch dist/repo.meta.json >/dev/null 2>&1 \
+		|| { echo "ERROR: dist/repo.meta.json is not tracked — 'git add dist/repo.meta.json' and commit."; exit 1; }
+	@git diff --exit-code -- dist/repo.meta.json \
+		|| { echo "ERROR: dist/repo.meta.json has uncommitted changes — review and commit."; exit 1; }
+	@echo "check-manifest: clean"
 
 # `make frontmatter` re-syncs YAML frontmatter on every docs/modules/std*.md
 # from the manifest + index.md (WA6). Idempotent — files that already carry

@@ -402,14 +402,23 @@ def build_label_entry(
 
 
 def read_stdlib_version() -> str:
-    """Read the most-recent versioned entry from CHANGELOG.md.
+    """Read the most-recent versioned entry from the changelog.
 
     Skips an `[Unreleased]` heading if present so the manifest's
     stdlib_version stays anchored to the last shipped tag while
     work accumulates against the next one.
+
+    The changelog moved from `CHANGELOG.md` (repo root) to
+    `docs/tracking/changelog.md` per the four-bucket tracking model.
+    The old location is still checked for back-compat with older
+    checkouts and any tagged release that predates the move.
     """
-    changelog = REPO_ROOT / "CHANGELOG.md"
-    if not changelog.exists():
+    candidates = [
+        REPO_ROOT / "docs" / "tracking" / "changelog.md",
+        REPO_ROOT / "CHANGELOG.md",
+    ]
+    changelog = next((p for p in candidates if p.exists()), None)
+    if changelog is None:
         return ""
     for line in changelog.read_text(encoding="utf-8").splitlines():
         m = re.match(r"^##\s*\[([^\]]+)\]", line)
