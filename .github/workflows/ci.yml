@@ -76,9 +76,15 @@ jobs:
         # somebody touched a `; doc:` block (or src/ structure) without
         # re-running `make manifest`. Engine-free — only needs python3
         # and git, both already installed above.
+        #
+        # `check-manifest` wraps `manifest-check` and additionally
+        # asserts dist/repo.meta.json is tracked and committed (Phase 0
+        # tier-1 contract — the org catalog generator fetches that file
+        # by raw URL and a missing/stale copy would break the smoke
+        # test in m-dev-tools/.github).
         run: |
           export PATH="/tmp/venv/bin:$PATH"
-          make manifest-check
+          make check-manifest
 
       - name: AI skill drift check
         # Regenerates dist/skill/{SKILL.md,manifest-index.md,patterns.md,

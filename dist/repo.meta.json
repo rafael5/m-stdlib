@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/m-dev-tools/.github/main/profile/repo.meta.schema.json",
+  "id": "tool:m-stdlib",
+  "repo": "https://github.com/m-dev-tools/m-stdlib",
+  "role": "Pure-M runtime standard library — STD* modules",
+  "language": ["m"],
+  "license": "AGPL-3.0",
+  "agent_instructions": "AGENTS.md",
+  "verified_on": "2026-05-10",
+  "exposes": {
+    "modules": "dist/stdlib-manifest.json",
+    "errors": "dist/errors.json"
+  },
+  "consumes": ["tool:m-test-engine"],
+  "verification_commands": ["make manifest", "make test", "make check-manifest"]
+}
