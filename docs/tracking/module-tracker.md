@@ -1634,7 +1634,7 @@ Per `docs/parallel-tracks.md` §7:
   index (Phase 1 only at present; regenerated each release).
 - [TOOLCHAIN-FINDINGS.md](TOOLCHAIN-FINDINGS.md) — open
   toolchain bugs.
-- [../../CHANGELOG.md](../../CHANGELOG.md) — release history.
+- [`changelog.md`](changelog.md) — release history.
 - [TODO.md](TODO.md) — resume-here pointer.
 - [../../CLAUDE.md](../../CLAUDE.md) — project context +
   architectural rule.

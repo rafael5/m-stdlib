@@ -258,7 +258,7 @@ Live work — proposed modules, in-flight extensions, deferred ToDos —
 is tracked in [`docs/tracking/module-tracker.md`](docs/tracking/module-tracker.md). Open
 toolchain bugs that block or limit m-stdlib work live in
 [`docs/tracking/TOOLCHAIN-FINDINGS.md`](docs/tracking/TOOLCHAIN-FINDINGS.md).
-Release history is in [`CHANGELOG.md`](CHANGELOG.md).
+Release history is in [`docs/tracking/changelog.md`](docs/tracking/changelog.md).
 
 ## 7. Cross-references
 
@@ -267,7 +267,7 @@ The `docs/` tree is organised into five subfolders by purpose:
 authoritative API docs + conformance-corpus pointers),
 **plans/** (forward-looking specs + roadmaps), **testing/**
 (corpus-validation reports), and **tracking/** (live work boards).
-Repo-root docs (`CHANGELOG.md`) sit alongside this README.
+The changelog has moved into `docs/tracking/` alongside the other live work boards (see below).
 
 ### `docs/guides/` — long-form orientation
 
@@ -300,7 +300,7 @@ Repo-root docs (`CHANGELOG.md`) sit alongside this README.
 
 ### Repo-root
 
-- [`CHANGELOG.md`](CHANGELOG.md) — release history.
+- [`docs/tracking/changelog.md`](docs/tracking/changelog.md) — release history.
 
 ## License
 

@@ -80,7 +80,7 @@ remaining toolchain items gate any m-stdlib suite at v0.4.0.
 
 - [`../../README.md`](../../README.md) — public-facing overview;
   mirrors `../guides/users-guide.md` §§ 1–4 + 6–7.
-- [`../../CHANGELOG.md`](../../CHANGELOG.md) — release history.
+- [`changelog.md`](changelog.md) — release history.
 - [`../guides/users-guide.md`](../guides/users-guide.md) — full
   user's guide including § 5 per-module reference.
 - [`../modules/index.md`](../modules/index.md) — canonical

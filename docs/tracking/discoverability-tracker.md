@@ -90,7 +90,7 @@ the work without further orientation.
 | Build / generator scripts (target dir for new tools/) | [`tools/`](../../tools/) |
 | Manifest output (will not exist until WA4 lands) | `dist/stdlib-manifest.json` |
 | Errors output (will not exist until WA7 lands) | `dist/errors.json` |
-| Release notes | [`CHANGELOG.md`](../../CHANGELOG.md) |
+| Release notes | [`changelog.md`](changelog.md) |
 | Project conventions | [`CLAUDE.md`](../../CLAUDE.md) |
 
 ### Outside m-stdlib (downstream consumers)

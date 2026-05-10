@@ -933,7 +933,7 @@ Live work — proposed modules, in-flight extensions, deferred ToDos —
 is tracked in [`module-tracker.md`](../tracking/module-tracker.md). Open
 toolchain bugs that block or limit m-stdlib work live in
 [`TOOLCHAIN-FINDINGS.md`](../tracking/TOOLCHAIN-FINDINGS.md). Release history
-is in [`../CHANGELOG.md`](../../CHANGELOG.md).
+is in [`../tracking/changelog.md`](../tracking/changelog.md).
 
 ## 7. Cross-references
 
@@ -944,4 +944,4 @@ is in [`../CHANGELOG.md`](../../CHANGELOG.md).
 - [tdd-orchestration-plan.md](../plans/tdd-orchestration-plan.md) — historical cross-project TDD-orchestration plan (M0 → M5). Now fully realised; `m-tdd-guide.md` is the operational follow-up.
 - [parallel-tracks.md](../tracking/parallel-tracks.md) — dispatch view; current execution status.
 - [TOOLCHAIN-FINDINGS.md](../tracking/TOOLCHAIN-FINDINGS.md) — open toolchain bugs with severity, status, and resolution path.
-- [../CHANGELOG.md](../../CHANGELOG.md) — release history.
+- [../tracking/changelog.md](../tracking/changelog.md) — release history.
