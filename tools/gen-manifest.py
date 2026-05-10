@@ -408,15 +408,15 @@ def read_stdlib_version() -> str:
     stdlib_version stays anchored to the last shipped tag while
     work accumulates against the next one.
 
-    The changelog moved from `CHANGELOG.md` (repo root) to
-    `docs/tracking/changelog.md` per the four-bucket tracking model.
-    The old location is still checked for back-compat with older
-    checkouts and any tagged release that predates the move.
+    The changelog moved in commit 90e694e from `CHANGELOG.md` at the
+    repo root to `docs/tracking/changelog.md` (per the four-bucket
+    tracking-doc model). Look at the new path first, fall back to the
+    old one for back-compat with checkouts predating that commit.
     """
-    candidates = [
+    candidates = (
         REPO_ROOT / "docs" / "tracking" / "changelog.md",
         REPO_ROOT / "CHANGELOG.md",
-    ]
+    )
     changelog = next((p for p in candidates if p.exists()), None)
     if changelog is None:
         return ""
