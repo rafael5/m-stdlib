@@ -1,5 +1,5 @@
 # Lint configuration for a VistA-targeted test suite.
-# Same shape as m-cli/docs/vista-lint-presets/m-cli.toml.example —
+# Same shape as m-cli/examples/vista-lint-presets/m-cli.toml.example —
 # vista-full profile + Kernel-locals + trusted-routines allowlists.
 
 [lint]
