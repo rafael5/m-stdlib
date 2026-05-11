@@ -2,6 +2,10 @@
 title: m-stdlib — future module proposals
 status: proposal
 tracker: docs/tracking/module-tracker.md
+created: 2026-05-10
+last_modified: 2026-05-10
+revisions: 1
+doc_type: [PROPOSAL]
 ---
 
 # m-stdlib — future module proposals

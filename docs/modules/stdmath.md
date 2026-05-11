@@ -9,6 +9,10 @@ labels: ['clamp', 'count', 'max', 'mean', 'min', 'sum']
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-08
+revisions: 2
+doc_type: [REFERENCE]
 ---
 
 # `STDMATH` — Numeric helpers

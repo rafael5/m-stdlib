@@ -9,6 +9,10 @@ labels: ['attr', 'attrNs', 'childByName', 'childCount', 'lastError', 'ns', 'pars
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 9
+doc_type: [REFERENCE]
 ---
 
 # `STDXML` — XML parser (well-formed XML 1.0 subset)

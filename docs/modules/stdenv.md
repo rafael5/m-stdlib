@@ -9,6 +9,10 @@ labels: ['get', 'getBool', 'getFloat', 'getInt', 'has', 'parse', 'parseFile', 'v
 errors: ['U-STDFS-OPEN-FAIL']
 conformance: []
 see_also: ['STDFS']
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [REFERENCE]
 ---
 
 # `STDENV` — `.env` loader + typed accessors

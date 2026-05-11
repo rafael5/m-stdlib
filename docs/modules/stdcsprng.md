@@ -9,6 +9,10 @@ labels: ['available', 'base64', 'bytes', 'hex', 'int', 'token', 'useCallout', 'u
 errors: ['U-STDCSPRNG-BAD-COUNT', 'U-STDCSPRNG-BAD-RANGE', 'U-STDCSPRNG-OPEN-FAIL']
 conformance: []
 see_also: ['STDB64', 'STDHEX', 'STDUUID']
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 6
+doc_type: [REFERENCE]
 ---
 
 # `STDCSPRNG` — Cryptographic random

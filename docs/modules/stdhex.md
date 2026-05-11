@@ -9,6 +9,10 @@ labels: ['decode', 'encode', 'encodeu', 'valid']
 errors: []
 conformance: []
 see_also: ['STDCSPRNG']
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDHEX` — RFC-4648 §8 hex encoding

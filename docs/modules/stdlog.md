@@ -9,6 +9,10 @@ labels: ['DEBUG', 'ERROR', 'FATAL', 'FORMAT', 'INFO', 'LEVEL', 'SINK', 'WARN']
 errors: ['U-STDLOG-INVALID-FORMAT', 'U-STDLOG-INVALID-LEVEL', 'U-STDLOG-INVALID-SINK']
 conformance: []
 see_also: ['STDDATE', 'STDJSON']
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [REFERENCE]
 ---
 
 # `STDLOG` — structured key=value logger

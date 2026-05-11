@@ -2,6 +2,10 @@
 title: M Test Driven Development Guide
 audience: M developers building or maintaining test suites on top of m-stdlib's TDD primitives.
 companion: users-guide.md (general m-stdlib usage). modules/index.md (per-module reference).
+created: 2026-05-08
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [GUIDE]
 ---
 
 # M Test Driven Development Guide

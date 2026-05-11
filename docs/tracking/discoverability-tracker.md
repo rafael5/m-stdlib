@@ -11,6 +11,10 @@ sibling: docs/tracking/module-tracker.md (the module-level tracker; deferred
   decisions D1/D2/D3 there originated in the same plan)
 audience: anyone executing or proposing work against the discoverability plan,
   including AI agents asked to "complete phase X"
+created: 2026-05-08
+last_modified: 2026-05-10
+revisions: 22
+doc_type: [STATUS]
 ---
 
 # m-stdlib — discoverability & tooling implementation tracker

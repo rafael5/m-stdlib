@@ -9,6 +9,10 @@ labels: ['add', 'diff', 'fromh', 'now', 'strftime', 'strptime', 'toh']
 errors: ['U-STDDATE-BAD-DUR', 'U-STDDATE-BAD-HOROLOG', 'U-STDDATE-BAD-ISO']
 conformance: []
 see_also: ['STDLOG']
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 6
+doc_type: [REFERENCE]
 ---
 
 # `STDDATE` — ISO-8601 datetime + duration arithmetic

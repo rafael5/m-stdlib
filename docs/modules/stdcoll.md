@@ -9,6 +9,10 @@ labels: ['dequeClear', 'dequePeekBack', 'dequePeekFront', 'dequePopBack', 'deque
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDCOLL` — collections

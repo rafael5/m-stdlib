@@ -5,6 +5,10 @@ last-updated: 2026-05-08
 companion: m-stdlib-implementation-plan.md (the live build plan; this doc is the
   cross-cutting "make it usable" plan that runs in parallel)
 audience: m-stdlib maintainers; m-cli maintainers; VS Code / AI tooling builders
+created: 2026-05-08
+last_modified: 2026-05-08
+revisions: 1
+doc_type: [PLAN]
 ---
 
 # m-stdlib — discoverability, metadata, and tooling plan

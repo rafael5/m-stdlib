@@ -1,3 +1,10 @@
+---
+created: 2026-04-30
+last_modified: 2026-05-10
+revisions: 14
+doc_type: [STATUS]
+---
+
 # m-stdlib — resume-here TODO
 
 **Status:** **`v0.4.0` shipped 2026-05-08** (tag `53ecf70`). 32

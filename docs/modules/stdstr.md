@@ -9,6 +9,10 @@ labels: ['endsWith', 'pad', 'padLeft', 'padRight', 'repeat', 'replaceAll', 'spli
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDSTR` — String helpers

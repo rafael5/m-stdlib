@@ -9,6 +9,10 @@ labels: ['available', 'buildRequest', 'formatHeaders', 'get', 'parseHeader', 'pa
 errors: []
 conformance: []
 see_also: ['STDURL']
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 6
+doc_type: [REFERENCE]
 ---
 
 # `STDHTTP` — HTTP/1.1 client (libcurl callout)

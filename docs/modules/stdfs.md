@@ -9,6 +9,10 @@ labels: ['append', 'appendBytes', 'available', 'basename', 'dirname', 'exists', 
 errors: ['U-STDFS-NOT-WIRED', 'U-STDFS-OPEN-FAIL', 'U-STDFS-READ-TRUNCATED', 'U-STDFS-REMOVE-FAIL']
 conformance: []
 see_also: ['STDENV', 'STDSNAP']
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 7
+doc_type: [REFERENCE]
 ---
 
 # `STDFS` — File-system primitives

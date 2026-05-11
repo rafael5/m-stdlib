@@ -9,6 +9,10 @@ labels: ['get', 'parse', 'type', 'valid']
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [REFERENCE]
 ---
 
 # `STDTOML` — TOML 1.0 (subset)

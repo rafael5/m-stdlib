@@ -9,6 +9,10 @@ labels: ['capacity', 'clear', 'get', 'has', 'new', 'put', 'remove', 'size']
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [REFERENCE]
 ---
 
 # `STDCACHE` — LRU + TTL cache

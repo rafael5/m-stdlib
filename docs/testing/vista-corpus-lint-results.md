@@ -4,6 +4,10 @@ status: live (2026-05-06)
 corpus: ~/projects/vista-meta/vista/vista-m-host/Packages (39,375 routines, 176 packages)
 companion: modern-m-corpus-test-results.md (non-VA companion)
 informs: m-cli profile tuning (xindex / vista / sac / default), tree-sitter-m grammar gaps
+created: 2026-05-06
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [RESEARCH]
 ---
 
 # VistA corpus — lint pass results

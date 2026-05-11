@@ -9,6 +9,10 @@ labels: ['addflag', 'addpos', 'addsub', 'free', 'help', 'new', 'parse']
 errors: ['U-STDARGS-MISSING-POSITIONAL', 'U-STDARGS-MISSING-VALUE', 'U-STDARGS-UNKNOWN-ACTION', 'U-STDARGS-UNKNOWN-FLAG', 'U-STDARGS-UNKNOWN-SUBCOMMAND']
 conformance: []
 see_also: []
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDARGS` — argparse

@@ -9,6 +9,10 @@ labels: ['f', 'fn']
 errors: ['U-STDFMT-MISSING-ARG', 'U-STDFMT-UNCLOSED-BRACE', 'U-STDFMT-UNESCAPED-RBRACE', 'U-STDFMT-UNKNOWN-TYPE']
 conformance: []
 see_also: []
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 5
+doc_type: [REFERENCE]
 ---
 
 # `STDFMT` — printf-style formatter
