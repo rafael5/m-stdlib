@@ -100,7 +100,7 @@ trusted_routines = "default"
 
 The vista-full profile + the two allowlists turn off the M-MOD-024
 and M-XINDX-007 false positives that hand-rolled VistA always
-trips. See `m-cli/docs/vista-lint-presets/` for the rationale.
+trips. See `m-cli/examples/vista-lint-presets/` for the rationale.
 
 ## What this template is NOT
 
@@ -123,4 +123,4 @@ trips. See `m-cli/docs/vista-lint-presets/` for the rationale.
 - `m-stdlib/docs/modules/stdfix.md` — transactional fixture wrappers.
 - `m-stdlib/docs/modules/stdseed.md` — declarative test data loading.
 - `m-stdlib/docs/modules/stdassert.md` — assertion API.
-- `m-cli/docs/vista-lint-presets/` — VistA lint profile setup.
+- `m-cli/examples/vista-lint-presets/` — VistA lint profile setup.
