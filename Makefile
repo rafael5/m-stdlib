@@ -20,7 +20,7 @@ M ?= m
 # Override if you cloned it elsewhere.
 M_TEST_ENGINE ?= $(HOME)/projects/m-test-engine
 
-.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check check-manifest frontmatter skill skill-check skill-install doctest doctest-check doctest-run engine-up engine-down engine-status
+.PHONY: all fmt fmt-check lint test safe-test coverage check ci clean print-env seed unseed manifest manifest-check check-manifest frontmatter skill skill-check skill-install doctest doctest-check doctest-run engine-up engine-down engine-status check-docs-prose
 
 # vista-meta connection contract — silently included if present.
 # Preserves the maintainer's existing workflow but no longer hard-errors
@@ -213,3 +213,21 @@ doctest-run:
 
 clean:
 	rm -rf coverage.lcov test-results.tap coverage.json
+
+# Guardrail: docs/ holds only human-readable prose. Non-prose artifacts
+# (generated data, JSON/TSV output, copy-paste examples, scaffolding
+# templates) belong under dist/, examples/, templates/, or a top-level
+# domain-specific directory — not docs/.
+check-docs-prose:
+	@if [ ! -d docs ]; then echo "check-docs-prose: no docs/ directory ✓"; exit 0; fi; \
+	violations=$$(find docs -type f \
+	    ! -name '*.md' ! -name '*.markdown' \
+	    ! -name '*.png' ! -name '*.jpg' ! -name '*.jpeg' \
+	    ! -name '*.gif' ! -name '*.svg' ! -name '*.webp' \
+	    ! -name '.gitkeep'); \
+	if [ -n "$$violations" ]; then \
+	  echo "ERROR: non-prose files under docs/ — move to dist/, examples/, templates/, or a top-level domain dir:" >&2; \
+	  echo "$$violations" >&2; \
+	  exit 1; \
+	fi; \
+	echo "check-docs-prose: docs/ is prose-only ✓"
