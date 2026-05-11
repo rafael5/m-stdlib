@@ -180,3 +180,22 @@ make check-manifest    # drift gate: dist/ matches src/ AND repo.meta.json is co
   module's source, tests, or per-module doc must update the relevant
   row in `docs/tracking/module-tracker.md` (see "Tracking conventions"
   above).
+
+## Layout conventions
+
+`docs/` holds **only** human-readable prose. Technical artifacts live
+elsewhere — m-stdlib's top-level layout:
+
+| Path | Contents |
+|---|---|
+| `docs/` | Tracking (changelog, module tracker, discoveries, parallel tracks), per-module API reference (`modules/`), plans, guides, testing writeups |
+| `dist/` | Phase 0 `repo.meta.json` + `stdlib-manifest.json` / `errors.json` / `skill/` (drift gates) |
+| `examples/` | Demo M source (e.g. `stdargs-demo.m`) |
+| `templates/` | Project scaffolds (e.g. `m-vista-test-suite/`) |
+| `scripts/` | Shell helpers |
+| `src/` | M (`.m`) source |
+| `tests/` | Test suites — hand-written `STD*TST.m` + generated `STD*DOCTST.m` |
+| `tools/` | Python generator scripts (gen-manifest, gen-skill, gen-doctests, write-module-frontmatter) |
+
+Enforced by `make check-docs-prose` (CI gate). Org-level rule:
+[`.github/CONTRIBUTING.md` § Layout conventions](https://github.com/m-dev-tools/.github/blob/main/CONTRIBUTING.md#layout-conventions).
