@@ -9,6 +9,10 @@ labels: ['active', 'cleanup', 'invoke', 'register', 'with']
 errors: ['U-STDFIX-EMPTY-TAG', 'U-STDFIX-UNREGISTERED-TAG']
 conformance: []
 see_also: []
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 7
+doc_type: [REFERENCE]
 ---
 
 # `STDFIX` — fixture lifecycle and per-test isolation

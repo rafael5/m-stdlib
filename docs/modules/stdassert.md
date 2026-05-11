@@ -9,6 +9,10 @@ labels: ['contains', 'eq', 'false', 'len', 'ne', 'near', 'raises', 'report', 'st
 errors: []
 conformance: []
 see_also: ['STDSNAP']
+created: 2026-04-30
+last_modified: 2026-05-08
+revisions: 5
+doc_type: [REFERENCE]
 ---
 
 # `STDASSERT` — assertion library

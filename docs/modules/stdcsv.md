@@ -9,6 +9,10 @@ labels: ['parse', 'parseFile', 'write', 'writeFile']
 errors: ['U-STDCSV-OPEN-FAIL']
 conformance: ['tests/conformance/csv/']
 see_also: []
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDCSV` — RFC-4180 CSV

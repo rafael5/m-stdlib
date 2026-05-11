@@ -9,6 +9,10 @@ labels: ['clear', 'count', 'max', 'mean', 'min', 'new', 'percentile', 'start', '
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 5
+doc_type: [REFERENCE]
 ---
 
 # `STDPROF` — Wall-clock profiler

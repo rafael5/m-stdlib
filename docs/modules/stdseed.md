@@ -9,6 +9,10 @@ labels: ['clear', 'load', 'loadJson', 'loaded', 'validate']
 errors: ['U-STDSEED-FILE-NOT-FOUND', 'U-STDSEED-FILER-ERROR', 'U-STDSEED-INVALID-JSON', 'U-STDSEED-INVALID-MANIFEST', 'U-STDSEED-MISSING-FIELD', 'U-STDSEED-MISSING-FILE']
 conformance: []
 see_also: ['STDJSON']
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 6
+doc_type: [REFERENCE]
 ---
 
 # `STDSEED` — declarative test data

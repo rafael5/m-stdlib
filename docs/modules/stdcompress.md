@@ -9,6 +9,10 @@ labels: ['available', 'deflate', 'gunzip', 'gzip', 'inflate', 'zstdCompress', 'z
 errors: ['U-STDCOMPRESS-BAD-LEVEL', 'U-STDCOMPRESS-CALLOUT-MISSING', 'U-STDCOMPRESS-LIBZ-FAIL', 'U-STDCOMPRESS-LIBZSTD-FAIL']
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 7
+doc_type: [REFERENCE]
 ---
 
 # `STDCOMPRESS` — gzip / deflate / zstd compression

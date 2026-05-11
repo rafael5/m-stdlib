@@ -3,6 +3,10 @@ title: m-stdlib ↔ m-cli — TDD orchestration plan
 status: proposed (2026-05-05)
 companion: m-stdlib-implementation-plan.md (the existing per-module plan; this doc layers on top)
 upstream: ~/projects/vista-meta/docs/vista-orchestration-plan.md
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [PLAN]
 ---
 
 # m-stdlib ↔ m-cli — TDD orchestration plan

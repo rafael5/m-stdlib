@@ -9,6 +9,10 @@ labels: ['decode', 'encode', 'urldecode', 'urlencode', 'valid']
 errors: []
 conformance: ['tests/conformance/b64/']
 see_also: ['STDCSPRNG']
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDB64` — RFC-4648 Base64

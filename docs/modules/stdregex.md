@@ -9,6 +9,10 @@ labels: ['compile', 'find', 'findall', 'free', 'groups', 'match', 'replace', 'se
 errors: ['U-STDREGEX-BAD-PATTERN', 'U-STDREGEX-NO-MATCH', 'U-STDREGEX-UNSUPPORTED']
 conformance: []
 see_also: []
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 5
+doc_type: [REFERENCE]
 ---
 
 # `STDREGEX` — regular expressions

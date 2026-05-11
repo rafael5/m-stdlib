@@ -9,6 +9,10 @@ labels: ['build', 'compare', 'major', 'matches', 'minor', 'parse', 'patch', 'pre
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 5
+doc_type: [REFERENCE]
 ---
 
 # `STDSEMVER` — SemVer 2.0.0

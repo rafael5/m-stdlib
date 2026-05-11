@@ -8,6 +8,10 @@ adjacent-projects:
   - tree-sitter-m (grammar, VS Code extension)
   - m-standard (this repo — provenance, schemas, conflicts)
   - m-tools (legacy reference, ^TESTRUN assertion library)
+created: 2026-04-30
+last_modified: 2026-05-09
+revisions: 4
+doc_type: [ROADMAP]
 ---
 
 # M libraries — remediation strategy and prioritised roadmap

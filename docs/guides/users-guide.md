@@ -3,6 +3,10 @@ title: m-stdlib — user's guide
 status: live
 audience: M developers (VistA, FIS-GT.M heritage projects, IRIS sites) who want a runtime-library substrate so they don't have to re-invent assertions, JSON, regex, datetime, logging, CSV, URL parsing, file I/O, HTTP, crypto digests, and the rest at every site.
 companion: modules/index.md (canonical inventory); module-tracker.md (live work board); m-stdlib-implementation-plan.md (per-module specs); m-tdd-guide.md (operational TDD guide for projects building tests on top of m-stdlib's TDD primitives).
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 17
+doc_type: [GUIDE]
 ---
 
 # m-stdlib — user's guide

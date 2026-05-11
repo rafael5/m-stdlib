@@ -3,6 +3,10 @@ title: m-stdlib — implementation plan
 status: in progress (Phase 0 not yet started)
 last-updated: 2026-04-30
 companion: m-libraries-remediation.md (background; this doc is the live work plan)
+created: 2026-04-30
+last_modified: 2026-05-09
+revisions: 12
+doc_type: [PLAN]
 ---
 
 # m-stdlib — implementation plan

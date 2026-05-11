@@ -9,6 +9,10 @@ labels: ['available', 'hmacSha256', 'hmacSha256Bytes', 'hmacSha384', 'hmacSha384
 errors: ['U-STDCRYPTO-CALLOUT-MISSING', 'U-STDCRYPTO-DIGEST-FAIL', 'U-STDCRYPTO-HMAC-FAIL']
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 7
+doc_type: [REFERENCE]
 ---
 
 # `STDCRYPTO` — Cryptographic digests + HMAC

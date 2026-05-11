@@ -9,6 +9,10 @@ labels: ['asserts', 'matches', 'save', 'serialize']
 errors: ['U-STDFS-OPEN-FAIL']
 conformance: []
 see_also: ['STDASSERT', 'STDFS']
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 4
+doc_type: [REFERENCE]
 ---
 
 # `STDSNAP` — Snapshot testing

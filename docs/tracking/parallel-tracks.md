@@ -3,6 +3,10 @@ title: m-stdlib — parallel execution tracks
 status: live (2026-05-06)
 companion: tdd-orchestration-plan.md (joint milestone narrative)
 implementation: m-stdlib-implementation-plan.md (per-module specs)
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 31
+doc_type: [STATUS]
 ---
 
 # m-stdlib — parallel execution tracks

@@ -1,3 +1,10 @@
+---
+created: 2026-05-05
+last_modified: 2026-05-10
+revisions: 6
+doc_type: [REFERENCE]
+---
+
 # m-stdlib modules
 
 Regenerated at the **v0.4.0** release (2026-05-08). One row per

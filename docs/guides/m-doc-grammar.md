@@ -9,6 +9,10 @@ plan: docs/plans/discoverability-and-tooling-plan.md (the design rationale —
   this guide is the normative spec implementing § 3.1)
 tracker: docs/tracking/discoverability-tracker.md (WA1 closes when this guide
   is reviewed; WA2 is the backfill that brings src/ into compliance)
+created: 2026-05-08
+last_modified: 2026-05-08
+revisions: 1
+doc_type: [SPEC]
 ---
 
 # m-stdlib — M-doc tag grammar

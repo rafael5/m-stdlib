@@ -8,6 +8,10 @@ companions: docs/tracking/README.md (the four-bucket doc model this tracker foll
   docs/plans/future-modules-plan.md (proposal pipeline; promote rows from there into Table 1
   here), docs/tracking/parallel-tracks.md (dispatch view), docs/plans/m-stdlib-implementation-plan.md
   (per-module specs and §9 acceptance gate), docs/modules/index.md (canonical released-module index).
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 37
+doc_type: [STATUS]
 ---
 
 # m-stdlib — master module development tracker

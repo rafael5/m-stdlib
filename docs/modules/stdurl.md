@@ -9,6 +9,10 @@ labels: ['build', 'decode', 'encode', 'normalize', 'parse', 'resolve', 'valid']
 errors: []
 conformance: ['tests/conformance/url/']
 see_also: ['STDHTTP']
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [REFERENCE]
 ---
 
 # `STDURL` — RFC 3986 URI parser, builder, encoder, resolver

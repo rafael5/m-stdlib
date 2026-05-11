@@ -3,6 +3,10 @@ title: m-stdlib — real-code validation against m-modern-corpus
 status: live (2026-05-05)
 corpus: ~/projects/m-modern-corpus (5 projects, 4,215 routines, ~14 MB)
 companion: users-guide.md (§6.5 "Portability open questions")
+created: 2026-05-05
+last_modified: 2026-05-08
+revisions: 3
+doc_type: [RESEARCH]
 ---
 
 # Real-code validation — m-stdlib against m-modern-corpus

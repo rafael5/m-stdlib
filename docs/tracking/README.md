@@ -8,6 +8,10 @@ audience: anyone landing or proposing work in m-stdlib, or coordinating
   cross-project work that surfaces m-stdlib changes.
 companions: docs/plans/ (forward-looking specs that get locked before
   implementation starts).
+created: 2026-05-10
+last_modified: 2026-05-10
+revisions: 2
+doc_type: [REFERENCE]
 ---
 
 # m-stdlib — tracking conventions

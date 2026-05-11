@@ -9,6 +9,10 @@ labels: ['arg', 'argc', 'argv', 'cmdline', 'cwd', 'env', 'exit', 'hostname', 'pi
 errors: []
 conformance: []
 see_also: []
+created: 2026-05-07
+last_modified: 2026-05-10
+revisions: 5
+doc_type: [REFERENCE]
 ---
 
 # `STDOS` — Process / env / cmdline helpers

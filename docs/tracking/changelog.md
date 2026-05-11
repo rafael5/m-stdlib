@@ -1,3 +1,10 @@
+---
+created: 2026-04-30
+last_modified: 2026-05-10
+revisions: 38
+doc_type: [CHANGELOG]
+---
+
 # Changelog
 
 All notable changes to m-stdlib are documented here. Format follows

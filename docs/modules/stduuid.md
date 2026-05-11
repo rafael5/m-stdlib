@@ -9,6 +9,10 @@ labels: ['v4', 'v7', 'valid', 'variant', 'version']
 errors: []
 conformance: ['tests/conformance/uuid/']
 see_also: ['STDCSPRNG']
+created: 2026-04-30
+last_modified: 2026-05-08
+revisions: 4
+doc_type: [REFERENCE]
 ---
 
 # `STDUUID` — UUID v4 + v7
