@@ -108,6 +108,13 @@ jobs:
           export PATH="/tmp/venv/bin:$PATH"
           make doctest-check
 
+      - name: docs/ prose-only gate
+        # Cross-repo guardrail: docs/ holds only human-readable prose.
+        # Non-prose artifacts (generated data, JSON/TSV output, examples,
+        # scaffolding templates) belong elsewhere (dist/, examples/,
+        # templates/, top-level domain dirs). Engine-free find-based check.
+        run: make check-docs-prose
+
       # The historical `make setup-ydb` step was removed: the Track A3
       # Makefile refactor (commit 6ff7c6d) dropped that target along
       # with the vista-meta seeding model. The new flow runs `m test`
